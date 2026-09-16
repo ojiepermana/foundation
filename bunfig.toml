@@ -1,0 +1,6 @@
+[install]
+linker = "hoisted"
+exact = true
+
+[test]
+root = "./tests"
