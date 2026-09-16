@@ -1,0 +1,4 @@
+<LayoutWrapperDefault surface="flat" layout-appearance="flat" width="full" layout-type="vertical" nav-type="sidebar" nav-type-mode="default" [data]="navigation()" [brand]="brand" [user]="user()" skip-link-label="Lewati ke konten utama" mobile-nav-label="Buka navigasi" close-mobile-nav-label="Tutup navigasi" content-class="bg-background" (logout)="logout()">
+  @if (error()) { <p role="alert" class="notice notice-error m-5">{{ error() }}</p> }
+  <router-outlet />
+</LayoutWrapperDefault>

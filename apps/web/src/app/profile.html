@@ -1,0 +1,45 @@
+<div class="page">
+  <header class="page-heading"><span class="eyebrow">Ruang kerja / Profil</span><h1>Profil & keamanan</h1><p>Kelola informasi akun dan cara Anda masuk.</p></header>
+  @if (error()) { <p role="alert" class="notice notice-error mb-6">{{ error() }}</p> }
+  @if (success()) { <p role="status" class="notice notice-success mb-6">{{ success() }}</p> }
+  <div class="grid items-start gap-6 lg:grid-cols-2">
+    <div class="grid gap-6">
+      <Card><CardHeader><h2 CardTitle>Informasi pribadi</h2><CardDescription>Nama Anda ditampilkan di ruang kerja.</CardDescription></CardHeader><CardContent>
+        <form novalidate (submit)="saveProfile($event)" class="grid gap-5">
+          <div class="field"><label Label for="profile-name">Nama lengkap</label><input Input id="profile-name" autocomplete="name" [formField]="profileForm.name" />@if (profileForm.name().touched() && profileForm.name().invalid()) { <p class="field-error">{{ profileForm.name().errors()[0]?.message }}</p> }</div>
+          <div class="field"><span class="text-sm font-medium">Alamat email</span><p class="break-all text-sm text-muted-foreground">{{ api.user()?.email }}</p><p class="text-xs text-muted-foreground">Alamat email tidak dapat diubah.</p></div>
+          <button Button type="submit" class="w-fit" [disabled]="!!busy()">{{ busy() === 'profile' ? 'Menyimpan…' : 'Simpan perubahan' }}</button>
+        </form>
+      </CardContent></Card>
+      <Card><CardHeader><h2 CardTitle>Ubah kata sandi</h2><CardDescription>Gunakan minimal 12 karakter. Sesi lain akan diakhiri.</CardDescription></CardHeader><CardContent>
+        <form novalidate (submit)="savePassword($event)" class="grid gap-5">
+          <div class="field"><label Label for="current-password">Kata sandi saat ini</label><input Input id="current-password" type="password" autocomplete="current-password" [formField]="passwordForm.currentPassword" />@if (passwordForm.currentPassword().touched() && passwordForm.currentPassword().invalid()) { <p class="field-error">{{ passwordForm.currentPassword().errors()[0]?.message }}</p> }</div>
+          <div class="field"><label Label for="new-password">Kata sandi baru</label><input Input id="new-password" type="password" autocomplete="new-password" [formField]="passwordForm.password" />@if (passwordForm.password().touched() && passwordForm.password().invalid()) { <p class="field-error">{{ passwordForm.password().errors()[0]?.message }}</p> }</div>
+          <div class="field"><label Label for="repeat-password">Ulangi kata sandi baru</label><input Input id="repeat-password" type="password" autocomplete="new-password" [formField]="passwordForm.confirmation" />@if (passwordForm.confirmation().touched() && passwordForm.confirmation().invalid()) { <p class="field-error">{{ passwordForm.confirmation().errors()[0]?.message }}</p> }</div>
+          <button Button type="submit" variant="outline" class="w-fit" [disabled]="!!busy()">{{ busy() === 'password' ? 'Memperbarui…' : 'Perbarui kata sandi' }}</button>
+        </form>
+      </CardContent></Card>
+    </div>
+    <Card><CardHeader><h2 CardTitle>Passkey</h2><CardDescription>Masuk dengan sidik jari, wajah, atau kunci keamanan perangkat Anda.</CardDescription></CardHeader><CardContent>
+      @if (loading()) { <p role="status" class="py-5 text-sm text-muted-foreground">Memuat passkey…</p> }
+      @else if (keysError()) { <p role="alert" class="notice notice-error">{{ keysError() }}</p><button Button variant="ghost" (click)="loadPasskeys()">Coba kembali</button> }
+      @else if (passkeys().length === 0) { <div class="mb-6 rounded-lg border border-dashed border-border p-6 text-center"><Icon name="fingerprint" [size]="30" class="mb-3 text-muted-foreground" /><h3 class="text-sm font-medium">Belum ada passkey</h3><p class="mt-2 text-xs leading-relaxed text-muted-foreground">Tambahkan passkey pertama untuk masuk dengan lebih mudah.</p></div> }
+      @else {
+        <ul class="mb-6 divide-y divide-border">
+          @for (key of passkeys(); track key.id) {
+            <li class="flex items-center gap-3 py-4"><Icon name="key" [size]="20" class="shrink-0 text-muted-foreground" /><div class="min-w-0 flex-1"><p class="break-words text-sm font-medium">{{ key.name }}</p><p class="mt-1 text-xs text-muted-foreground">Ditambahkan {{ key.createdAt | date:'dd MMM yyyy' }}</p><p class="mt-1 text-xs text-muted-foreground">{{ key.lastUsedAt ? 'Terakhir digunakan ' + (key.lastUsedAt | date:'dd MMM yyyy') : 'Belum pernah digunakan' }}</p></div><button Button type="button" size="sm" variant="ghost" [attr.aria-label]="'Hapus passkey ' + key.name" [disabled]="!!busy()" (click)="selectDelete(key)">Hapus</button></li>
+          }
+        </ul>
+      }
+      @if (supportsPasskey || pendingDelete()) {
+        <form novalidate (submit)="savePasskey($event)" class="grid gap-5 border-t border-border pt-6">
+          <h3 class="text-sm font-semibold">{{ pendingDelete() ? 'Hapus passkey: ' + pendingDelete()!.name : 'Tambahkan passkey' }}</h3>
+          @if (pendingDelete()) { <p class="text-sm text-muted-foreground">Passkey ini tidak dapat digunakan lagi setelah dihapus. Konfirmasikan dengan kata sandi Anda.</p> }
+          @else { <div class="field"><label Label for="passkey-name">Nama passkey</label><input Input id="passkey-name" placeholder="Contoh: MacBook pribadi" autocomplete="off" [formField]="keyForm.name" />@if (keyForm.name().touched() && keyForm.name().invalid()) { <p class="field-error">{{ keyForm.name().errors()[0]?.message }}</p> }</div> }
+          <div class="field"><label Label for="passkey-password">Konfirmasi kata sandi</label><input Input id="passkey-password" type="password" autocomplete="current-password" [formField]="keyForm.password" />@if (keyForm.password().touched() && keyForm.password().invalid()) { <p class="field-error">{{ keyForm.password().errors()[0]?.message }}</p> }</div>
+          <div class="flex flex-wrap gap-3"><button Button type="submit" [variant]="pendingDelete() ? 'destructive' : 'default'" [disabled]="!!busy()"><Icon [name]="pendingDelete() ? 'delete' : 'add'" [size]="18" />{{ busy() === 'passkey' ? 'Memproses…' : pendingDelete() ? 'Hapus passkey' : 'Tambahkan passkey' }}</button>@if (pendingDelete()) { <button Button type="button" variant="outline" (click)="cancelDelete()" [disabled]="!!busy()">Batal</button> }</div>
+        </form>
+      } @else { <p class="notice">Browser ini belum mendukung pendaftaran passkey.</p> }
+    </CardContent></Card>
+  </div>
+</div>

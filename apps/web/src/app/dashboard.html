@@ -1,0 +1,28 @@
+<div class="page">
+  <header class="page-heading flex flex-wrap items-end justify-between gap-5">
+    <div><span class="eyebrow">Ruang kerja / Dashboard</span><h1>Halo, {{ api.user()?.name }}.</h1><p>Selamat datang di Foundation. Mulai dari hal yang penting.</p></div>
+    <a Button variant="outline" routerLink="/profile"><Icon name="manage_accounts" [size]="18" />Kelola profil</a>
+  </header>
+  <section class="mb-7 rounded-lg border border-border bg-muted/30 p-6 sm:p-8" aria-labelledby="welcome-title">
+    <span class="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium"><span class="size-1.5 rounded-full bg-primary" aria-hidden="true"></span>Fondasi ruang kerja</span>
+    <h2 id="welcome-title" class="text-xl font-semibold tracking-tight">Tempat untuk langkah berikutnya.</h2>
+    <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">Akun Anda sudah siap. Halaman ini akan menjadi tempat ringkasan dan aktivitas aplikasi saat modul bisnis ditambahkan.</p>
+  </section>
+  <section class="grid gap-5 md:grid-cols-3" aria-label="Ringkasan yang akan datang">
+    @for (item of [{ title: 'Ringkasan', icon: 'bar_chart', text: 'Angka penting dari ruang kerja Anda.' }, { title: 'Aktivitas', icon: 'history', text: 'Perubahan dan aktivitas terbaru.' }, { title: 'Laporan', icon: 'description', text: 'Informasi untuk langkah berikutnya.' }]; track item.title) {
+      <Card>
+        <CardHeader><div class="mb-3 flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground"><Icon [name]="item.icon" [size]="20" /></div><h2 CardTitle>{{ item.title }}</h2><CardDescription>{{ item.text }}</CardDescription></CardHeader>
+        <CardContent><div class="mb-4 h-1 w-9 rounded-full bg-border" aria-hidden="true"></div><p class="text-xs text-muted-foreground">Belum tersedia</p></CardContent>
+      </Card>
+    }
+  </section>
+  <section class="mt-8 border-t border-border pt-7" aria-labelledby="account-title">
+    <h2 id="account-title" class="mb-4 text-sm font-semibold">Akun Anda</h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <a routerLink="/profile" class="flex items-center gap-4 rounded-lg border border-border p-5 transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring"><Icon name="fingerprint" [size]="24" /><div class="min-w-0 flex-1"><span class="text-sm font-medium">Masuk lebih mudah dengan passkey</span><p class="mt-1 text-xs text-muted-foreground">Tambahkan passkey di pengaturan profil.</p></div><Icon name="arrow_forward" [size]="18" /></a>
+      @if (api.user()?.role === 'admin') {
+        <a routerLink="/users" class="flex items-center gap-4 rounded-lg border border-border p-5 transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring"><Icon name="group" [size]="24" /><div class="min-w-0 flex-1"><span class="text-sm font-medium">Kelola akses pengguna</span><p class="mt-1 text-xs text-muted-foreground">Tinjau profil, peran, dan status akun.</p></div><Icon name="arrow_forward" [size]="18" /></a>
+      }
+    </div>
+  </section>
+</div>

@@ -1,0 +1,60 @@
+<Layout surface="grid" appearance="flat" width="full" layout-type="fluid">
+  <LayoutFluid>
+    <main class="w-full max-w-md px-5 py-10">
+      <a routerLink="/login" class="mx-auto mb-9 flex w-fit items-center gap-3 text-xl font-semibold tracking-tight" aria-label="Foundation, halaman masuk">
+        <span class="flex size-10 items-center justify-center rounded-lg bg-primary text-xl text-primary-foreground" aria-hidden="true">F</span>
+        Foundation
+      </a>
+      <Card class="w-full shadow-sm">
+        <CardHeader class="pb-6 pt-7">
+          <h1 CardTitle class="text-2xl tracking-tight">{{ title }}</h1>
+          <CardDescription class="mt-1 leading-relaxed">{{ subtitle }}</CardDescription>
+        </CardHeader>
+        <CardContent class="pb-7">
+          @if (error()) { <p role="alert" class="notice notice-error mb-5">{{ error() }}</p> }
+          @if (success()) {
+            <div role="status" class="notice notice-success mb-5">{{ success() }}</div>
+            <a Button routerLink="/login" class="w-full">Kembali ke halaman masuk</a>
+          } @else {
+            <form novalidate (submit)="onSubmit($event)" class="grid gap-5" [attr.aria-busy]="busy()">
+              @if (needsEmail) {
+                <div class="field">
+                  <label Label for="email">Alamat email</label>
+                  <input Input id="email" [formField]="fields.email" type="email" autocomplete="username webauthn" placeholder="nama@perusahaan.com" aria-describedby="email-error" />
+                  @if (fields.email().touched() && fields.email().invalid()) { <p id="email-error" class="field-error">{{ fields.email().errors()[0]?.message }}</p> }
+                </div>
+              }
+              @if (needsPassword) {
+                <div class="field">
+                  <div class="flex items-center justify-between gap-2">
+                    <label Label for="password">{{ isLogin ? 'Kata sandi' : 'Kata sandi baru' }}</label>
+                    @if (isLogin) { <a routerLink="/forgot-password" class="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">Lupa kata sandi?</a> }
+                  </div>
+                  <input Input id="password" [formField]="fields.password" type="password" [autocomplete]="isLogin ? 'current-password' : 'new-password'" aria-describedby="password-help password-error" />
+                  @if (!isLogin) { <p id="password-help" class="text-xs text-muted-foreground">Minimal 12 karakter, maksimal 128 karakter.</p> }
+                  @if (fields.password().touched() && fields.password().invalid()) { <p id="password-error" class="field-error">{{ fields.password().errors()[0]?.message }}</p> }
+                </div>
+                @if (!isLogin) {
+                  <div class="field">
+                    <label Label for="confirmation">Ulangi kata sandi</label>
+                    <input Input id="confirmation" type="password" autocomplete="new-password" [formField]="fields.confirmation" aria-describedby="confirmation-error" />
+                    @if (fields.confirmation().touched() && fields.confirmation().invalid()) { <p id="confirmation-error" class="field-error">{{ fields.confirmation().errors()[0]?.message }}</p> }
+                  </div>
+                }
+              }
+              <button Button type="submit" class="w-full" [disabled]="busy()">{{ busy() ? 'Mohon tunggu…' : action }}</button>
+            </form>
+            @if (isLogin) {
+              <div class="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span class="h-px flex-1 bg-border"></span>atau<span class="h-px flex-1 bg-border"></span></div>
+              <button Button type="button" variant="outline" class="w-full" [disabled]="busy() || !supportsPasskey" (click)="passkey()"><Icon name="fingerprint" [size]="18" />Masuk dengan passkey</button>
+              <p class="mt-4 text-center text-xs leading-relaxed text-muted-foreground">{{ supportsPasskey ? 'Gunakan passkey yang telah Anda daftarkan.' : 'Browser ini belum mendukung passkey.' }}</p>
+            } @else {
+              <a routerLink="/login" class="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground"><Icon name="arrow_back" [size]="16" />Kembali ke halaman masuk</a>
+            }
+          }
+        </CardContent>
+      </Card>
+      <p class="mt-7 text-center text-xs leading-relaxed text-muted-foreground">Ruang kerja Anda, dimulai dari sini.</p>
+    </main>
+  </LayoutFluid>
+</Layout>
