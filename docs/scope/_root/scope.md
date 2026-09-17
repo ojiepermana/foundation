@@ -46,16 +46,23 @@ Membangun kontrak data model sesuai spec yang disepakati.
 * [x] Test it: tes otomatis terkait
 
 ### 3. User, auth dan passkey · in-progress
-Membangun kontrak user, auth dan passkey sesuai spec yang disepakati.
 
-**Done when:** AUTH-001, AUTH-002, AUTH-003, USER-001, PASSKEY-001 memiliki implementasi dan bukti yang lulus.
+Mengganti password dengan tautan email yang dikonfirmasi pada frontend dan divalidasi backend. Passkey tetap tersedia; mode browser dipilih melalui ENV wajib.
 
-* [x] Design it (spec): [0003-user-auth](../../specs/_root/0003-user-auth/index.md)
-* [x] Build it: implementasi dan integrasi
-* [ ] Verify it: alur layanan dan passkey virtual lulus; perangkat passkey fisik belum diuji
-* [x] Test it: tes otomatis terkait
-* [x] Review it: review kode auth/passkey oleh model terpisah
-* [x] Document it: catat hasil dan batas keamanan
+**Done when:** AC-1 sampai AC-13 pada spec 0008 memiliki implementasi dan bukti yang lulus, termasuk kedua mode ENV, migrasi akun lama, serta gerbang GA auth dan perangkat passkey fisik.
+
+* [x] Design it (spec): [0008-email-link-auth](../../specs/_root/0008-email-link-auth/index.md)
+* [ ] Build it: /develop auth tautan email
+  * [ ] CLI, email, token, kedua mode ENV, callback, sesi, dan migrasi tanpa password (AC-1, AC-2, AC-3, AC-4, AC-5, AC-9, AC-13).
+  * [ ] Konfirmasi ulang, passkey, serta pemeriksaan role dan kepemilikan (AC-6, AC-7).
+  * [ ] Pembatas, kegagalan, dan state UI yang dapat dipulihkan (AC-8, AC-10, AC-11).
+  * [ ] Pembersihan token oleh worker (AC-12).
+* [ ] Verify it: /check verify auth tautan email
+* [ ] Test it: /test auth tautan email
+* [ ] Review it (fresh model): /check review auth tautan email
+* [ ] Document it: /document auth tautan email
+
+Desain 0008 disetujui pada 2026-09-17; pemeriksaan spec tambahan dilewati. Bukti auth versi 0003 tetap menjadi riwayat, bukan bukti bahwa alur pengganti sudah dibangun atau lulus.
 
 ### 4. Jobs native Redis · done
 Membangun kontrak jobs native redis sesuai spec yang disepakati.

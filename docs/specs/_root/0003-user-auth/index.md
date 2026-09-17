@@ -1,6 +1,6 @@
 # User, auth dan passkey
 
-**Status**: Implemented; GA verification pending
+**Status**: Superseded by [0008](../0008-email-link-auth/index.md)
 **Date**: 2026-09-16
 
 ## Summary
