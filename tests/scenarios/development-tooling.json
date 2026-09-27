@@ -1,0 +1,9 @@
+{
+  "source": "docs/rules/development-commands.md",
+  "scenarios": [
+    { "id": "TOOL-001", "criterion": "Kriteria verifikasi tooling: doctor", "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-001", "script": "test:tooling" },
+    { "id": "TOOL-002", "criterion": "Kriteria verifikasi tooling: cleanup port", "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-002", "script": "test:tooling" },
+    { "id": "TOOL-003", "criterion": "Kriteria verifikasi tooling: pilihan worker", "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-003", "script": "test:tooling" },
+    { "id": "TOOL-004", "criterion": "Kriteria verifikasi tooling: supervisor", "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-004", "script": "test:tooling" }
+  ]
+}

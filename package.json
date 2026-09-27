@@ -1,0 +1,10 @@
+{
+  "name": "foundation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "doctor": "bun scripts/doctor.ts",
+    "serve": "bun scripts/serve.ts",
+    "test:tooling": "bun test ./tests/integration/tooling"
+  }
+}

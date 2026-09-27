@@ -1,0 +1,17 @@
+{
+  "host": "127.0.0.1",
+  "frontend": {
+    "port": 8889,
+    "workspace": "apps/frontend",
+    "proxyConfig": "proxy.conf.json"
+  },
+  "backend": {
+    "port": 8888,
+    "entry": "apps/backend/src/index.ts"
+  },
+  "database": {
+    "schemas": ["common", "users", "auth"],
+    "migrationSchema": "common"
+  },
+  "workers": {}
+}
