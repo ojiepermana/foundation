@@ -11,6 +11,8 @@ bun run serve
 
 ## Layanan dan konfigurasi
 
+Siapkan PostgreSQL atau layanan pendukung lain melalui [Compose root untuk infrastruktur](infrastructure.md) atau layanan eksternal yang memenuhi aturan. Compose tidak memuat runtime frontend/backend/worker. Doctor dan serve tidak otomatis mengelola container, tidak memakai credential administrator Compose, dan tidak membersihkan port PostgreSQL. Provisioning role/schema serta migration tetap merupakan langkah terpisah.
+
 | Layanan | Host development | Port |
 | --- | --- | --- |
 | Frontend Angular | `127.0.0.1` | `8889` |

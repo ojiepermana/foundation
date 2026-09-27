@@ -20,6 +20,8 @@ Ikuti [aturan keamanan](security.md) sejak perencanaan. Tentukan data sensitif, 
 
 ## Menjalankan development
 
+Siapkan layanan pendukung melalui `docker-compose.yml` root sesuai [aturan infrastruktur](infrastructure.md), lalu provision role/schema dan jalankan migration melalui langkah terpisah. Compose hanya untuk infrastruktur, bukan frontend/backend/worker, migration/seed, atau test runner. Doctor dan serve tidak otomatis mengelola Compose.
+
 Jalankan `bun run doctor` untuk memeriksa prasyarat, lalu `bun run serve` untuk frontend port `8889`, backend port `8888`, dan worker yang dipilih melalui `--worker <nama>`. Kedua perintah mengikuti [aturan doctor/serve](development-commands.md).
 
 `serve` otomatis melakukan preflight, kemudian menghentikan listener pada port layanan yang digunakan sebelum startup. Doctor tidak menghentikan proses dan tidak menjalankan migration/seed; ketidaksiapan database diselesaikan melalui runner terpisah. Bila startup atau salah satu layanan gagal, supervisor menghentikan seluruh grup proses invocation tersebut.
@@ -121,6 +123,14 @@ Aturan ini menggunakan pertimbangan, bukan jumlah file, batas baris, atau kewaji
 Kode, test yang membuktikannya, serta konfigurasi atau dokumentasi yang diperlukan untuk perubahan tersebut dapat berada dalam commit yang sama. Perubahan kontrak backend beserta OpenAPI dan SDK hasil regenerasinya tetap dikelompokkan bersama bila diperlukan untuk menjaga konsistensi. Perubahan independen, seperti perbaikan bug terpisah atau cleanup yang tidak terkait, menjadi kelompok commit lain.
 
 Sebelum commit, periksa diff, tentukan kelompok perubahan, stage hanya file atau bagian yang sesuai, dan tinjau staged diff. Jangan menyertakan pekerjaan pengguna atau perubahan lain yang tidak termasuk kelompok tersebut. Pesan commit menjelaskan perubahan utamanya secara konkret; verifikasi yang relevan tetap mengikuti aturan testing.
+
+## Pembaruan knowledge graph saat commit
+
+Setiap kali melakukan commit, agent memperbarui knowledge graph graphify agar sesuai dengan perubahan yang di-commit. Jalankan `graphify update .` dari root repository setelah staged diff ditinjau. Perintah ini mengekstrak ulang kode melalui AST tanpa API key atau biaya LLM.
+
+Jika perintah menolak menulis karena graph baru lebih kecil, pastikan pengurangan tersebut berasal dari kode yang memang dihapus dalam perubahan, lalu jalankan ulang dengan `--force`. Perubahan dokumen, gambar, atau file non-kode lain tidak ikut diperbarui oleh perintah tersebut; periksa melalui `graphify check-update .`. Bila graph lokal memuat ekstraksi semantik, jalankan `/graphify . --update` untuk perubahan itu atau laporkan bahwa pembaruan semantik masih tertunda.
+
+`graphify-out/` adalah artefak lokal dan tercantum di `.gitignore`; jangan men-stage atau meng-commit isinya. Pembaruan graph yang gagal dilaporkan bersama output perintahnya dan tidak boleh dinyatakan berhasil.
 
 ## Pemeriksaan sebelum production release
 

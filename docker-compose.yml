@@ -1,0 +1,26 @@
+# Infrastruktur development saja; aplikasi dijalankan melalui bun run serve.
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: foundation
+      POSTGRES_USER: foundation_admin
+      POSTGRES_PASSWORD: ${FOUNDATION_POSTGRES_PASSWORD:?Isi FOUNDATION_POSTGRES_PASSWORD pada .env.infrastructure}
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    ports:
+      - "127.0.0.1:${FOUNDATION_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    shm_size: 128mb
+    mem_limit: 1g
+    cpus: 2
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:

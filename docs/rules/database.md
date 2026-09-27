@@ -4,6 +4,8 @@ Foundation menggunakan PostgreSQL minimal versi 18. PostgreSQL 18 menjadi baseli
 
 Akses database menggunakan client native `Bun.SQL` dan SQL langsung tanpa ORM.
 
+Server PostgreSQL development dapat dijalankan melalui `docker-compose.yml` root sesuai [aturan infrastruktur](infrastructure.md). Compose mengelola server database saja; credential administrator provisioning dipisahkan dari role migration/backend/worker. Schema, grants, migration, dan seed tetap melalui langkah terpisah, bukan startup Compose atau aplikasi.
+
 ## Schema berdasarkan domain
 
 Satu database menggunakan beberapa schema berdasarkan domain:
@@ -37,6 +39,7 @@ Saat menjalankan `/scope` atau `/architect`, agent menanyakan schema data fitur 
 foundation/
 ├── package.json
 ├── bun.lock
+├── docker-compose.yml
 ├── apps/
 │   ├── frontend/
 │   ├── backend/

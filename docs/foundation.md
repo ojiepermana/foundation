@@ -40,6 +40,7 @@ Bagian 2–17 menyajikan ikhtisar yang terhubung. Lampiran A memuat README, AGEN
 | Scope/specs | Berdasarkan fitur kecil yang dapat dibuktikan sebagai alur fullstack, bukan pembagian pekerjaan yang memaksa frontend/backend/worker selesai bergiliran. |
 | Testing | Vitest melalui Angular CLI, `bun:test`, Playwright, dan k6, sesuai pembuktian yang diperlukan. |
 | Development | `bun run doctor`, lalu `bun run serve`; frontend `127.0.0.1:8889`, backend `127.0.0.1:8888`; worker dipilih bila perlu. |
+| Infrastruktur | `docker-compose.yml` root hanya untuk layanan pendukung di luar runtime aplikasi. Saat ini PostgreSQL 18; frontend/backend/worker tetap dijalankan melalui serve. |
 | Port cleanup | Serve melakukan preflight lalu menghentikan listener pada port layanan terpilih sebelum startup. |
 | Commit | Kelompokkan berdasarkan tujuan yang koheren; perubahan independen dipisah, perubahan kecil atau saling bergantung boleh satu commit. |
 
@@ -58,6 +59,8 @@ foundation/
 ├── bun.lock                          # Belum tersedia
 ├── .gitignore
 ├── .env.example
+├── .env.infrastructure.example       # Credential administrator Compose terpisah
+├── docker-compose.yml               # Infrastruktur development saja
 ├── openapi.json                      # Generated; belum tersedia
 ├── playwright.config.ts              # Belum tersedia
 ├── config/development.json
@@ -235,6 +238,8 @@ Deployment menjalankan migration sebagai langkah tersendiri sebelum app yang mem
 
 ## 10. Worker dan container
 
+Compose root hanya mengelola infrastruktur pendukung; container runtime aplikasi/worker dan runner migration/seed tidak dimasukkan ke dalamnya. Deployment mandiri dapat memakai Dockerfile masing-masing melalui konfigurasi deployment terpisah.
+
 Worker mewakili tanggung jawab bisnis yang jelas. Beberapa jenis job boleh digabung jika kebutuhan deployment/resource/scaling/failure mendukungnya. Contoh: notification, file-processing, report, integration, maintenance. Tidak semua contoh harus dibuat.
 
 Worker memakai Bun; Elysia/HTTP hanya ditambah ketika dibutuhkan. Tanpa HTTP, tidak perlu port. Akses database menggunakan SQL native, pool per proses, role sendiri, dan grant sesuai domain/tugas. Job memerlukan validasi, identitas sumber, timeout, retry terbatas, concurrency, serta idempotensi sesuai fitur. URL/file dari job tetap merupakan input yang perlu dibatasi.
@@ -404,6 +409,18 @@ Worker didaftarkan dahulu, lalu dipilih, misalnya bun run serve --worker notific
 
 ## 17. Commit, status implementasi, bukti, dan fokus review
 
+### Infrastruktur development yang tersedia
+
+`docker-compose.yml` root saat ini hanya memuat service PostgreSQL dengan image `postgres:18`, database `foundation`, administrator provisioning `foundation_admin`, password wajib melalui `.env.infrastructure`, serta autentikasi host SCRAM. Port host default 5432 hanya terikat pada 127.0.0.1 dan dapat diganti melalui FOUNDATION_POSTGRES_PORT. Named volume postgres_data dimount pada /var/lib/postgresql sesuai PostgreSQL 18. Batas development: memory 1 GiB, CPU 2, shared memory 128 MiB; bukan bukti kapasitas production. Untuk pembuktian CI/release, pin patch/digest dan catat identitas image.
+
+Healthcheck pg_isready memakai user/database container, interval 5 detik, timeout 3 detik, retries 10, dan start period 10 detik. Healthcheck tidak membuktikan schema, grants, migration atau kesiapan aplikasi. Restart policy unless-stopped dan named volume mempertahankan data; penghentian Compose tidak menghapus volume secara otomatis.
+
+`.env.infrastructure.example` tidak berisi password nyata; salin ke file lokal yang diabaikan Git dan isi password sendiri. Compose menerima file melalui --env-file, terpisah dari .env runtime Bun. Jangan gunakan admin provisioning sebagai DATABASE_URL backend/worker atau mengekspor secret admin ke environment aplikasi. Compose tidak menyiapkan role runtime, schema common/users/auth, grants, migration, atau seed; provisioning tersebut tetap langkah terpisah dan belum diimplementasikan. Jangan memasang migration ke initdb sebagai pengganti runner versioned.
+
+Perintah dari root: `docker compose --env-file .env.infrastructure config --quiet`, kemudian `docker compose --env-file .env.infrastructure up -d --wait postgres`. Gunakan Compose v2 yang mendukung --wait. Status melalui ps; penghentian melalui down dengan argumen env-file yang sama. Jangan mencetak konfigurasi hasil interpolasi secret. Doctor/serve tidak mengelola Compose atau port infrastrukturnya; layanan PostgreSQL eksternal tetap diperbolehkan. Cache/broker/storage hanya ditambah setelah kebutuhan specs jelas. Runtime aplikasi, SDK generator, test, migration, dan seed tidak menjadi service Compose root.
+
+YAML diperiksa menggunakan parser native Bun dan pemeriksaan struktur; Docker CLI tidak tersedia pada lingkungan penyuntingan ini. Validasi melalui Compose, startup, healthcheck, koneksi PostgreSQL, dan persistensi container belum dijalankan. Lampiran memuat konfigurasi dan rules infrastruktur lengkap.
+
 ### 17.1 Pengelompokan commit
 
 Kelompok commit mengikuti tujuan yang mudah direview, bukan jumlah file/baris atau sesi kerja. Perubahan independen dipisah. Perubahan kecil tunggal atau satu kelompok saling bergantung boleh satu commit. Kode, test, config/docs yang diperlukan dapat bersama; backend/kontrak/OpenAPI/SDK tetap bersama bila dibutuhkan untuk konsistensi. Jangan memecah buatan hingga commit tidak dapat digunakan.
@@ -414,13 +431,14 @@ Periksa diff, kelompokkan, stage hanya file/hunk yang sesuai, lalu tinjau staged
 
 | Area | Status snapshot |
 | --- | --- |
-| README, AGENTS, 10 file rules, template release | Tersedia. |
+| README, AGENTS, 11 file rules, template release | Tersedia. |
 | Root package/config/env example/ignore | Tersedia; app dependency belum dipasang/dinyatakan di manifest. |
 | Doctor, serve, helper konfigurasi/port | Tersedia; preflight gagal secara benar karena app/database belum tersedia. |
 | Test tooling dan registry empat skenario | Tersedia. |
 | Angular/backend/worker aplikasi nyata | Belum tersedia. |
 | libs runtime dan factory database | Belum tersedia. |
-| PostgreSQL project, schema, grants, migration/seed/runner | Belum tersedia/diverifikasi terhadap database nyata. |
+| Compose PostgreSQL 18 development | Konfigurasi tersedia; belum diuji menggunakan Docker/container nyata. |
+| Schema, grants, migration/seed/runner | Belum tersedia/diverifikasi terhadap database nyata. |
 | OpenAPI root, script ekspor/pemeriksaan Bun, SDK generated | Belum tersedia; contoh config/generator masih di rules. |
 | Vitest app, integration PostgreSQL, Playwright, k6, CI/security scanner | Belum tersedia. |
 | Dockerfile/deployment/proxy server production | Belum tersedia. |
@@ -447,6 +465,7 @@ Doctor/serve telah dijalankan dan mengembalikan code 1 dengan error prasyarat ya
 Poin berikut adalah konteks review, bukan keputusan baru untuk mengganti aturan yang sudah disepakati:
 
 - Pilih versi Bun/Node/Angular/TypeScript/Elysia/plugin/library yang kompatibel, pin tooling, dan buktikan CLI workspace frontend dengan dependency root tunggal.
+- Validasi Compose dengan Docker, buktikan startup/healthcheck dan persistensi PostgreSQL, lalu provision role/schema melalui langkah terpisah sebelum doctor. Konfigurasi tersedia tidak berarti database aplikasi sudah siap.
 - Buktikan API layout/komponen/generator pada versi library yang benar-benar dipasang, SDK di luar src masuk build, dan kontrak yang dipakai didukung termasuk query style/explode.
 - Rinci auth/session/CSRF/MFA, permission/tenant, grant/default privilege/RLS yang diperlukan, TTL, rate limit, payload/query/concurrency limit, serta target performance sesuai fitur. Angka tersebut belum disepakati.
 - Implementasikan dan uji runner migration, bootstrap common/history, SQL urutan global, lock, transaksi/nontransactional, checksum, grants, serta seed yang aman terhadap pengulangan. Bootstrap harus konsisten dengan migration pertama.
@@ -470,29 +489,32 @@ Seluruh file berikut disalin utuh pada lampiran. SHA-256 mengidentifikasi byte f
 
 | Lampiran | Sumber | SHA-256 sumber |
 | --- | --- | --- |
-| A01 | [README.md](README.md) | `0812498e8c585e75c30c71e16db3555ac8b0c6e634d727498d347837ed1d2975` |
-| A02 | [AGENTS.md](AGENTS.md) | `0fc53710deab399fad5512e777c2cb0282a38501448498ca070d2915bb0a3c49` |
-| A03 | [docs/rules/development-workflow.md](docs/rules/development-workflow.md) | `0f83a3ddf1ce19ea0665aa16d0c841320db43897ba1b4ea84b2b3289814dbf3b` |
+| A01 | [README.md](README.md) | `eed97bc7d8fb230783a99b8eb3a42351e417ffb6d6d845f22b6775707e7648a4` |
+| A02 | [AGENTS.md](AGENTS.md) | `f48d3096443476933eadb90b1ffdfcd8c04c57c4f09e25193ece0977b182397c` |
+| A03 | [docs/rules/development-workflow.md](docs/rules/development-workflow.md) | `5339f3f00302ac91f3429165aeb2760fa9474f0d83debf26ed1ea2ae956741b6` |
 | A04 | [docs/rules/angular.md](docs/rules/angular.md) | `36d2adbc35827844dbb8be4e9e892a11619a677c4304b5133d99a1f1fddf75ff` |
 | A05 | [docs/rules/ui-ux.md](docs/rules/ui-ux.md) | `944f0558a092c90a1de6dedc446b7a108c71f4ed4ab3d7a00e3580b714c4b2bd` |
 | A06 | [docs/rules/elysia.md](docs/rules/elysia.md) | `b1966c64632066163787018dfd651db1dbe3b89e292c6930ff802b7fb5a9113c` |
-| A07 | [docs/rules/database.md](docs/rules/database.md) | `a18e0f391b955733b82082b234964c31363233427bff546c737b487652bb4c49` |
+| A07 | [docs/rules/database.md](docs/rules/database.md) | `9ff138c846e85bdf7ef114c7d04780dfdc276f46475bb082de7798f3f28eee34` |
 | A08 | [docs/rules/worker.md](docs/rules/worker.md) | `23b1cb477610f0a17e344fb7e8cabeb1fab9c2952ad466e227d937c078919e07` |
 | A09 | [docs/rules/openapi-sdk.md](docs/rules/openapi-sdk.md) | `c9fec052853e795dfa63bdcae58428876b6a748fa541993c4576e0582396696c` |
 | A10 | [docs/rules/security.md](docs/rules/security.md) | `f4e0d25c41a4c9680e59e8518b8c16de25908097c6a696e1357ce39cdddd633b` |
 | A11 | [docs/rules/testing.md](docs/rules/testing.md) | `351ba6bb1f8b83b989f5f4b45277c393629a1713ba4fa8e1f8e55d646f2e1a77` |
-| A12 | [docs/rules/development-commands.md](docs/rules/development-commands.md) | `4210d2eb101669ce84fbebc3e01d7d551f2626d96873c12ac542259a0a55d6cd` |
+| A12 | [docs/rules/development-commands.md](docs/rules/development-commands.md) | `7862dfac098dcd2b5889a1daf99e377f350e4d0b874eef8fa5d405ec6e1ee6ae` |
 | A13 | [docs/testing/release-report-template.md](docs/testing/release-report-template.md) | `bff6dc1fcd55338330ec21a0fb92ea37fd657d9b580b238543fa7bb080503ae6` |
+| A14 | [docs/rules/infrastructure.md](docs/rules/infrastructure.md) | `c207bffb6318a1b1317b1e0af00f67d4d452358e931528ab85ab51fcd9f32aa8` |
 | B01 | [package.json](package.json) | `bc598bb9f9569e4adc0e4e2d07217e42408e05460abb30c10d48d75c330511a9` |
 | B02 | [config/development.json](config/development.json) | `df53c1e0c21a061fc0100f49d122eb2e3bb74f171c0d0367812f13ff4c3e3ebe` |
 | B03 | [.env.example](.env.example) | `d0150cd52b9153665b6b5600778da1ded05bfb58c4fd5f15ba54c4645d13d117` |
-| B04 | [.gitignore](.gitignore) | `82ba7ea59951368895eed9cc7548ad29d93973e223d25657d8343acb31ea8e72` |
+| B04 | [.gitignore](.gitignore) | `3f9f21f0606698176d0f2e01061c23d5e950c4bb4c7c0733e1b0969069fb4135` |
 | B05 | [scripts/lib/development.ts](scripts/lib/development.ts) | `5a14dd02accaea7f8fb83bf8f3edaee2d9452f12e680051ec5749a6eb5ae4312` |
 | B06 | [scripts/lib/ports.ts](scripts/lib/ports.ts) | `edd32cdd6ae69844fcd121a3ee019cdad46e2c3d16b597e97b024363a59d6a41` |
 | B07 | [scripts/doctor.ts](scripts/doctor.ts) | `8521ec60451d01bbdb5505adbd963010d5b7c8e60ccfc40964c45e49bad5d5dd` |
 | B08 | [scripts/serve.ts](scripts/serve.ts) | `b77f9b29ae660f390d60d3687ab17cdbd96d085514e10f47b5699e10d86b6110` |
 | B09 | [tests/scenarios/development-tooling.json](tests/scenarios/development-tooling.json) | `82170a3b05a5a03b129a55ea57da8fd83555f3fb2c7840e5b96e51d9dd55d86a` |
 | B10 | [tests/integration/tooling/development.test.ts](tests/integration/tooling/development.test.ts) | `3328637b66c2f3ed152d4d60a4809d07ce984c746fb96e45bb69a7853f591c6e` |
+| B11 | [docker-compose.yml](docker-compose.yml) | `8b1cbb6886e6de2ec96fd33be566eb499ea44ed72973502cf26c3fbb9a6fc185` |
+| B12 | [.env.infrastructure.example](.env.infrastructure.example) | `0eacce11c799bf901b2a9a0a973060ffcb0c9f3af7e5c8da0d59bbc4828aef77` |
 
 ## Lampiran A. Dokumentasi dan aturan lengkap
 
@@ -500,7 +522,7 @@ Salinan berikut adalah sumber aktual untuk review, bukan file tambahan yang perl
 
 ### A01. README.md
 
-Source: `README.md`. SHA-256: `0812498e8c585e75c30c71e16db3555ac8b0c6e634d727498d347837ed1d2975`.
+Source: `README.md`. SHA-256: `eed97bc7d8fb230783a99b8eb3a42351e417ffb6d6d845f22b6775707e7648a4`.
 
 ````markdown
 # Foundation
@@ -508,6 +530,14 @@ Source: `README.md`. SHA-256: `0812498e8c585e75c30c71e16db3555ac8b0c6e634d727498
 Monorepo Angular, Bun/Elysia, dan worker dengan satu `package.json` root. Rules dan workflow agent berada di [AGENTS.md](AGENTS.md) serta `docs/rules/`.
 
 Workflow development menggunakan [Engineering Workflow Skills dari JS Mastery](https://github.com/jsmastery-pro/skills), termasuk `/scope`, `/audit`, `/architect`, `/develop`, `/check`, `/test`, `/debug`, `/document`, dan `/sync`. Gunakan skill sesuai kebutuhan perubahan. [Workflow project](docs/rules/development-workflow.md) dan aturan dalam `AGENTS.md` melengkapi skill tersebut dengan keputusan khusus Foundation.
+
+```sh
+cp .env.infrastructure.example .env.infrastructure
+# Isi password administrator lokal pada .env.infrastructure sebelum menjalankan Compose.
+docker compose --env-file .env.infrastructure up -d --wait postgres
+```
+
+`docker-compose.yml` root hanya untuk infrastruktur pendukung, saat ini PostgreSQL 18. Setelah provisioning role/schema dan migration melalui langkah terpisah, jalankan aplikasi:
 
 ```sh
 bun run doctor
@@ -519,12 +549,14 @@ Frontend development menggunakan port **8889**, backend **8888**. Worker dipilih
 
 Doctor memeriksa prasyarat tanpa mengubah database atau menghentikan proses. Serve menjalankan preflight, membersihkan listener pada port layanan terpilih, lalu menjalankan aplikasi. Lihat [aturan perintah development](docs/rules/development-commands.md).
 
+Frontend, backend, dan worker dijalankan melalui Bun/Angular CLI; Compose tidak memuat runtime aplikasi. Credential Compose terpisah dari `.env` aplikasi. Lihat [aturan infrastruktur](docs/rules/infrastructure.md) untuk port, volume, healthcheck, dan batas provisioning.
+
 Aplikasi Angular/backend/worker, tooling OpenAPI/SDK, dan runner database belum diimplementasikan. Saat ini doctor melaporkan prasyarat tersebut sebagai error dan serve berhenti sebelum cleanup/startup. Perintah tidak membuat aplikasi atau data contoh secara otomatis.
 ````
 
 ### A02. AGENTS.md
 
-Source: `AGENTS.md`. SHA-256: `0fc53710deab399fad5512e777c2cb0282a38501448498ca070d2915bb0a3c49`.
+Source: `AGENTS.md`. SHA-256: `f48d3096443476933eadb90b1ffdfcd8c04c57c4f09e25193ece0977b182397c`.
 
 ```markdown
 # Panduan agent
@@ -533,9 +565,10 @@ Aturan project berlaku untuk agent utama dan setiap subagent yang bekerja di rep
 
 ## Sumber aturan
 
+- Baca [aturan infrastruktur pendukung](docs/rules/infrastructure.md) saat menyiapkan atau mengubah layanan pendukung. `docker-compose.yml` root hanya untuk infrastruktur di luar runtime aplikasi; frontend, backend, dan worker tetap dijalankan melalui `bun run serve`. Credential administrator Compose terpisah dari credential runtime.
 - Baca [aturan keamanan](docs/rules/security.md) saat merencanakan, mengimplementasikan, atau memverifikasi fitur. Tetapkan permission backend, batas input/resource, keamanan sesi, privilege database, dan skenario serangan sesuai dampaknya.
 - Baca [perintah doctor dan serve](docs/rules/development-commands.md) saat menyiapkan atau menjalankan development. Gunakan `bun run doctor` dan `bun run serve`; frontend port `8889`, backend `8888`, worker opsional. `serve` menjalankan preflight lalu membersihkan listener pada port layanan terpilih sebelum startup.
-- Baca [workflow development](docs/rules/development-workflow.md) sebelum merencanakan, mengerjakan fitur, atau melakukan commit. Scope dan specs mengikuti fitur kecil; pekerjaan dapat berjalan paralel setelah kontrak yang diperlukan disepakati. Kelompokkan commit berdasarkan tujuan perubahan; satu commit diperbolehkan untuk perubahan kecil atau satu kelompok yang koheren, tanpa memaksakan pemecahan.
+- Baca [workflow development](docs/rules/development-workflow.md) sebelum merencanakan, mengerjakan fitur, atau melakukan commit. Scope dan specs mengikuti fitur kecil; pekerjaan dapat berjalan paralel setelah kontrak yang diperlukan disepakati. Kelompokkan commit berdasarkan tujuan perubahan; satu commit diperbolehkan untuk perubahan kecil atau satu kelompok yang koheren, tanpa memaksakan pemecahan. Setiap commit wajib diikuti pembaruan knowledge graph melalui `graphify update .`; `graphify-out/` bersifat lokal dan tidak di-commit.
 - Baca [aturan testing dan kesiapan release](docs/rules/testing.md) untuk setiap pekerjaan. Tentukan skenario dan pemeriksaan sesuai dampak perubahan, gunakan unit/integration, Playwright, dan k6 sesuai kebutuhan, serta laporkan bukti dan keterbatasan sebelum menyatakan selesai atau siap production.
 - Baca [aturan OpenAPI dan SDK](docs/rules/openapi-sdk.md) saat pekerjaan melibatkan backend atau komunikasi frontend ke backend. Backend mengekspor `openapi.json` root; SDK dihasilkan dengan `@ojiepermana/angular` ke `apps/frontend/sdk/`. Setiap perubahan backend wajib ekspor ulang, validasi, dan regenerasi SDK, termasuk ketika hasilnya identik.
 - Baca [struktur frontend Angular](docs/rules/angular.md) saat pekerjaan melibatkan frontend. Package yang digunakan adalah `@ojiepermana/angular`; layout aplikasi menggunakan default layout wrapper melalui entry point `@ojiepermana/angular/theme`.
@@ -569,7 +602,7 @@ Setiap subagent membaca rujukan tersebut, bekerja mandiri dalam batas tugasnya, 
 
 ### A03. docs/rules/development-workflow.md
 
-Source: `docs/rules/development-workflow.md`. SHA-256: `0f83a3ddf1ce19ea0665aa16d0c841320db43897ba1b4ea84b2b3289814dbf3b`.
+Source: `docs/rules/development-workflow.md`. SHA-256: `5339f3f00302ac91f3429165aeb2760fa9474f0d83debf26ed1ea2ae956741b6`.
 
 ```markdown
 # Workflow development
@@ -593,6 +626,8 @@ Scope mencatat domain data dan keputusan yang belum tersedia. Specs menetapkan s
 Ikuti [aturan keamanan](security.md) sejak perencanaan. Tentukan data sensitif, model autentikasi, permission backend, batas resource, dan skenario penyalahgunaan yang relevan. Subagent menerima keputusan schema dan keamanan bersama kontrak tugasnya; perubahan privilege atau batas akses dikoordinasikan oleh agent utama.
 
 ## Menjalankan development
+
+Siapkan layanan pendukung melalui `docker-compose.yml` root sesuai [aturan infrastruktur](infrastructure.md), lalu provision role/schema dan jalankan migration melalui langkah terpisah. Compose hanya untuk infrastruktur, bukan frontend/backend/worker, migration/seed, atau test runner. Doctor dan serve tidak otomatis mengelola Compose.
 
 Jalankan `bun run doctor` untuk memeriksa prasyarat, lalu `bun run serve` untuk frontend port `8889`, backend port `8888`, dan worker yang dipilih melalui `--worker <nama>`. Kedua perintah mengikuti [aturan doctor/serve](development-commands.md).
 
@@ -695,6 +730,14 @@ Aturan ini menggunakan pertimbangan, bukan jumlah file, batas baris, atau kewaji
 Kode, test yang membuktikannya, serta konfigurasi atau dokumentasi yang diperlukan untuk perubahan tersebut dapat berada dalam commit yang sama. Perubahan kontrak backend beserta OpenAPI dan SDK hasil regenerasinya tetap dikelompokkan bersama bila diperlukan untuk menjaga konsistensi. Perubahan independen, seperti perbaikan bug terpisah atau cleanup yang tidak terkait, menjadi kelompok commit lain.
 
 Sebelum commit, periksa diff, tentukan kelompok perubahan, stage hanya file atau bagian yang sesuai, dan tinjau staged diff. Jangan menyertakan pekerjaan pengguna atau perubahan lain yang tidak termasuk kelompok tersebut. Pesan commit menjelaskan perubahan utamanya secara konkret; verifikasi yang relevan tetap mengikuti aturan testing.
+
+## Pembaruan knowledge graph saat commit
+
+Setiap kali melakukan commit, agent memperbarui knowledge graph graphify agar sesuai dengan perubahan yang di-commit. Jalankan `graphify update .` dari root repository setelah staged diff ditinjau. Perintah ini mengekstrak ulang kode melalui AST tanpa API key atau biaya LLM.
+
+Jika perintah menolak menulis karena graph baru lebih kecil, pastikan pengurangan tersebut berasal dari kode yang memang dihapus dalam perubahan, lalu jalankan ulang dengan `--force`. Perubahan dokumen, gambar, atau file non-kode lain tidak ikut diperbarui oleh perintah tersebut; periksa melalui `graphify check-update .`. Bila graph lokal memuat ekstraksi semantik, jalankan `/graphify . --update` untuk perubahan itu atau laporkan bahwa pembaruan semantik masih tertunda.
+
+`graphify-out/` adalah artefak lokal dan tercantum di `.gitignore`; jangan men-stage atau meng-commit isinya. Pembaruan graph yang gagal dilaporkan bersama output perintahnya dan tidak boleh dinyatakan berhasil.
 
 ## Pemeriksaan sebelum production release
 
@@ -1029,7 +1072,7 @@ Perubahan komposisi aplikasi, konfigurasi, plugin bersama, client database, kont
 
 ### A07. docs/rules/database.md
 
-Source: `docs/rules/database.md`. SHA-256: `a18e0f391b955733b82082b234964c31363233427bff546c737b487652bb4c49`.
+Source: `docs/rules/database.md`. SHA-256: `9ff138c846e85bdf7ef114c7d04780dfdc276f46475bb082de7798f3f28eee34`.
 
 ````markdown
 # Aturan database
@@ -1037,6 +1080,8 @@ Source: `docs/rules/database.md`. SHA-256: `a18e0f391b955733b82082b234964c313632
 Foundation menggunakan PostgreSQL minimal versi 18. PostgreSQL 18 menjadi baseline development dan integration test. Kompatibilitas versi yang lebih baru harus diverifikasi sebelum dinyatakan didukung.
 
 Akses database menggunakan client native `Bun.SQL` dan SQL langsung tanpa ORM.
+
+Server PostgreSQL development dapat dijalankan melalui `docker-compose.yml` root sesuai [aturan infrastruktur](infrastructure.md). Compose mengelola server database saja; credential administrator provisioning dipisahkan dari role migration/backend/worker. Schema, grants, migration, dan seed tetap melalui langkah terpisah, bukan startup Compose atau aplikasi.
 
 ## Schema berdasarkan domain
 
@@ -1071,6 +1116,7 @@ Saat menjalankan `/scope` atau `/architect`, agent menanyakan schema data fitur 
 foundation/
 ├── package.json
 ├── bun.lock
+├── docker-compose.yml
 ├── apps/
 │   ├── frontend/
 │   ├── backend/
@@ -1679,7 +1725,7 @@ Agent utama menggabungkan hasil, memverifikasi alur lintas aplikasi, dan memasti
 
 ### A12. docs/rules/development-commands.md
 
-Source: `docs/rules/development-commands.md`. SHA-256: `4210d2eb101669ce84fbebc3e01d7d551f2626d96873c12ac542259a0a55d6cd`.
+Source: `docs/rules/development-commands.md`. SHA-256: `7862dfac098dcd2b5889a1daf99e377f350e4d0b874eef8fa5d405ec6e1ee6ae`.
 
 ````markdown
 # Doctor dan serve development
@@ -1694,6 +1740,8 @@ bun run serve
 `doctor` memeriksa prasyarat tanpa menyalakan aplikasi, mengubah database, menjalankan migration/seed, atau menghentikan listener. `serve` otomatis menjalankan pemeriksaan yang sama sebelum startup. Aplikasi hanya dijalankan ketika tidak ada error pemeriksaan.
 
 ## Layanan dan konfigurasi
+
+Siapkan PostgreSQL atau layanan pendukung lain melalui [Compose root untuk infrastruktur](infrastructure.md) atau layanan eksternal yang memenuhi aturan. Compose tidak memuat runtime frontend/backend/worker. Doctor dan serve tidak otomatis mengelola container, tidak memakai credential administrator Compose, dan tidak membersihkan port PostgreSQL. Provisioning role/schema serta migration tetap merupakan langkah terpisah.
 
 | Layanan | Host development | Port |
 | --- | --- | --- |
@@ -1852,6 +1900,66 @@ Jelaskan status kesiapan dengan merujuk bukti di atas. Kesiapan belum lengkap ji
 Jika ada pengecualian yang diputuskan, catat ID skenario, alasan, dampak, penanggung jawab, dan keputusan pengguna atau pemilik release. Jangan mengubah status test menjadi lulus untuk menyamarkan pengecualian.
 ```
 
+### A14. docs/rules/infrastructure.md
+
+Source: `docs/rules/infrastructure.md`. SHA-256: `c207bffb6318a1b1317b1e0af00f67d4d452358e931528ab85ab51fcd9f32aa8`.
+
+````markdown
+# Infrastruktur pendukung development
+
+`docker-compose.yml` berada di root monorepo dan hanya mengelola layanan pendukung di luar runtime aplikasi. Saat ini layanan yang didefinisikan adalah PostgreSQL 18. Frontend Angular, backend Bun/Elysia, dan worker tidak dimasukkan sebagai service Compose; jalankan melalui `bun run serve` sesuai [aturan development](development-commands.md).
+
+Cache, broker antrean, object storage, atau layanan pendukung lain dapat ditambahkan jika kebutuhan fitur telah diputuskan dalam specs. Jangan menambahkan layanan contoh tanpa kebutuhan atau menjadikan Compose root tempat build SDK, test runner, migration, seed, maupun orchestration aplikasi. Dockerfile aplikasi/worker tetap dapat digunakan untuk deployment mandiri; file deployment runtime diatur terpisah ketika diperlukan.
+
+## Konfigurasi dan pengoperasian
+
+Docker Engine dan Docker Compose v2 diperlukan untuk menjalankan infrastruktur lokal. Compose tidak menambah dependency pada `package.json`.
+
+1. Salin `.env.infrastructure.example` ke `.env.infrastructure` dan isi `FOUNDATION_POSTGRES_PASSWORD` dengan password lokal yang kuat. File asli diabaikan Git; contoh tidak berisi secret.
+2. Jalankan perintah dari root:
+
+```sh
+docker compose --env-file .env.infrastructure config --quiet
+docker compose --env-file .env.infrastructure up -d --wait postgres
+docker compose --env-file .env.infrastructure ps
+```
+
+Gunakan Compose v2 yang mendukung `up --wait`. Gunakan `config --quiet` untuk validasi tanpa mencetak konfigurasi yang telah memuat secret.
+
+PostgreSQL tersedia pada `127.0.0.1:5432`; `FOUNDATION_POSTGRES_PORT` dapat mengubah port host jika ada layanan lokal lain. Port infrastruktur bukan target cleanup `serve`. Data disimpan pada named volume `postgres_data`; PostgreSQL 18 menggunakan mount `/var/lib/postgresql` sesuai image resmi. Healthcheck membuktikan server menerima koneksi, bukan schema, grants, migration, atau kesiapan aplikasi.
+
+Port infrastruktur tidak boleh tumpang tindih dengan frontend `8889`, backend `8888`, atau port HTTP worker. Jangan mendaftarkan port PostgreSQL sebagai port layanan runtime pada `config/development.json`; seleksi dan cleanup worker hanya memakai port worker itu sendiri.
+
+Image memakai major `postgres:18` untuk baseline development. Untuk environment pembuktian release/CI yang membutuhkan hasil dapat diulang, pin tag patch atau digest dan catat identitas image. Jangan mengganti major PostgreSQL pada volume lama tanpa prosedur upgrade. Batas development saat ini adalah 1 GiB memory, 2 CPU, dan 128 MiB shared memory; sesuaikan dengan kebutuhan yang terukur dan jangan menganggapnya bukti kapasitas production.
+
+Hentikan layanan dengan:
+
+```sh
+docker compose --env-file .env.infrastructure down
+```
+
+Perintah tersebut mempertahankan named volume. Penghapusan volume merupakan reset data yang terpisah dan tidak dijalankan otomatis oleh agent, doctor, atau serve.
+
+## Provisioning database dan batas credential
+
+`foundation_admin` dibuat oleh image resmi sebagai administrator untuk provisioning awal. Jangan gunakan credential tersebut sebagai `DATABASE_URL` backend atau worker. Simpan credential Compose pada `.env.infrastructure`, yang diberikan eksplisit melalui `--env-file`, agar tidak dimuat otomatis sebagai `.env` runtime Bun. Jangan mengekspor credential administrator ke environment aplikasi.
+
+Compose hanya membuat database dasar `foundation`. Provisioning role migration/runtime, schema `common`, `users`, `auth`, grants, migration, dan seed mengikuti [aturan database](database.md) melalui langkah/runner terpisah. Jangan mount migration/seed ke `/docker-entrypoint-initdb.d` sebagai pengganti runner versioned. Setelah provisioning selesai, `.env` aplikasi berisi DSN role backend dengan host/port yang sesuai; setiap worker memakai credential sendiri.
+
+`bun run doctor` dan `bun run serve` tidak otomatis menjalankan atau menghentikan Compose. Siapkan infrastruktur serta database terlebih dahulu, lalu jalankan doctor/serve. Docker tidak menjadi prasyarat runtime jika memakai PostgreSQL eksternal yang memenuhi aturan project.
+
+## Tanggung jawab agent dan verifikasi
+
+Agent utama dan subagent yang mengubah infrastruktur wajib membaca aturan ini serta aturan database/keamanan yang relevan. Tetapkan satu pemilik Compose, port, volume, dan konfigurasi bersama. Perubahan layanan pendukung harus menyebut kebutuhan specs dan dampaknya pada credential, resource, kesiapan, serta persistensi data.
+
+Periksa konfigurasi melalui Compose tanpa mencetak secret. Ketika Docker tersedia, buktikan startup/healthcheck, koneksi dengan role yang sesuai, dan persistensi setelah restart tanpa menghapus volume. Laporkan pemeriksaan yang belum dapat dijalankan; YAML yang dapat diparse saja bukan bukti container bekerja.
+
+## Referensi
+
+- [Image PostgreSQL resmi: environment, administrator, dan lokasi volume versi 18](https://github.com/docker-library/docs/blob/master/postgres/README.md).
+- [Konfigurasi service Docker Compose](https://docs.docker.com/reference/compose-file/services/).
+````
+
 ## Lampiran B. Konfigurasi, kode, registry, dan test aktual
 
 Salinan berikut adalah sumber aktual untuk review, bukan file tambahan yang perlu dijalankan. Isi Markdown ditempatkan dalam blok agar heading/link/instruksi sumber tidak tercampur dengan narasi review.
@@ -1910,7 +2018,7 @@ NODE_ENV=development
 
 ### B04. .gitignore
 
-Source: `.gitignore`. SHA-256: `82ba7ea59951368895eed9cc7548ad29d93973e223d25657d8343acb31ea8e72`.
+Source: `.gitignore`. SHA-256: `3f9f21f0606698176d0f2e01061c23d5e950c4bb4c7c0733e1b0969069fb4135`.
 
 ```text
 node_modules/
@@ -1918,6 +2026,8 @@ node_modules/
 .env
 .env.*
 !.env.example
+!.env.infrastructure.example
+graphify-out/
 ```
 
 ### B05. scripts/lib/development.ts
@@ -2510,4 +2620,48 @@ test("TOOL-004 service failure stops the other service and its stubborn descenda
   expect(result).toBe(7);
   expect(await listeners(identity.port)).toEqual([]);
 }, 10000);
+```
+
+### B11. docker-compose.yml
+
+Source: `docker-compose.yml`. SHA-256: `8b1cbb6886e6de2ec96fd33be566eb499ea44ed72973502cf26c3fbb9a6fc185`.
+
+```yaml
+# Infrastruktur development saja; aplikasi dijalankan melalui bun run serve.
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: foundation
+      POSTGRES_USER: foundation_admin
+      POSTGRES_PASSWORD: ${FOUNDATION_POSTGRES_PASSWORD:?Isi FOUNDATION_POSTGRES_PASSWORD pada .env.infrastructure}
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    ports:
+      - "127.0.0.1:${FOUNDATION_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    shm_size: 128mb
+    mem_limit: 1g
+    cpus: 2
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:
+```
+
+### B12. .env.infrastructure.example
+
+Source: `.env.infrastructure.example`. SHA-256: `0eacce11c799bf901b2a9a0a973060ffcb0c9f3af7e5c8da0d59bbc4828aef77`.
+
+```dotenv
+# Khusus Compose; salin ke .env.infrastructure dan isi password lokal.
+# Credential ini milik administrator provisioning, bukan role runtime aplikasi.
+FOUNDATION_POSTGRES_PASSWORD=
+FOUNDATION_POSTGRES_PORT=5432
 ```
