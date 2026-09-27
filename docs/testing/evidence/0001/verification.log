@@ -1,0 +1,198 @@
+$ bun run check:dependencies && bun run test:scenarios && bun run api:check && bun run build:frontend && bun run typecheck:backend && bun run build:backend && bun run test:frontend && bun run test:integration && bun run test:tooling && bun run test:e2e
+$ bun scripts/check-dependencies.ts
+Exact dependency pins, runtime engines and installed peers passed
+$ bun scripts/validate-scenarios.ts
+Scenario references passed (8 unique IDs). Execution results remain runner evidence.
+$ bun scripts/check-api.ts
+$ bun run api:openapi && bun run api:validate && bun run sdk:generate
+$ bun scripts/export-openapi.ts
+OpenAPI exported without listener
+$ bun scripts/validate-openapi.ts
+OpenAPI project checks passed
+$ cd apps/frontend && node ../../node_modules/@angular/cli/bin/ng.js generate @ojiepermana/angular:sdk --config sdk.config.json
+    [sdk] standalone → sdk (schemas=1, operations=1, tags=1, files=9)
+UPDATE sdk/api-configuration.ts (545 bytes)
+UPDATE sdk/base-service.ts (555 bytes)
+UPDATE sdk/strict-http-response.ts (215 bytes)
+UPDATE sdk/request-builder.ts (3083 bytes)
+UPDATE sdk/api.ts (1586 bytes)
+UPDATE sdk/models/development-status.ts (140 bytes)
+UPDATE sdk/fn/development/get-development-status.ts (1071 bytes)
+UPDATE sdk/services/development.service.ts (1404 bytes)
+UPDATE sdk/public-api.ts (625 bytes)
+UPDATE sdk/.ojiepermana-sdk-manifest.json (302 bytes)
+$ bun run api:openapi && bun run api:validate && bun run sdk:generate
+$ bun scripts/export-openapi.ts
+OpenAPI exported without listener
+$ bun scripts/validate-openapi.ts
+OpenAPI project checks passed
+$ cd apps/frontend && node ../../node_modules/@angular/cli/bin/ng.js generate @ojiepermana/angular:sdk --config sdk.config.json
+    [sdk] standalone → sdk (schemas=1, operations=1, tags=1, files=9)
+UPDATE sdk/api-configuration.ts (545 bytes)
+UPDATE sdk/base-service.ts (555 bytes)
+UPDATE sdk/strict-http-response.ts (215 bytes)
+UPDATE sdk/request-builder.ts (3083 bytes)
+UPDATE sdk/api.ts (1586 bytes)
+UPDATE sdk/models/development-status.ts (140 bytes)
+UPDATE sdk/fn/development/get-development-status.ts (1071 bytes)
+UPDATE sdk/services/development.service.ts (1404 bytes)
+UPDATE sdk/public-api.ts (625 bytes)
+UPDATE sdk/.ojiepermana-sdk-manifest.json (302 bytes)
+OpenAPI and SDK match stored artifacts across two runs
+$ cd apps/frontend && node ../../node_modules/@angular/cli/bin/ng.js build
+❯ Building...
+✔ Building...
+Initial chunk files | Names                                                                     |  Raw size | Estimated transfer size
+main-HEA4FCPK.js    | main                                                                      | 344.51 kB |                76.62 kB
+chunk-cry4ANQJ.js   | -                                                                         | 189.95 kB |                55.39 kB
+styles-TQV45G4H.css | styles                                                                    | 140.65 kB |                18.81 kB
+
+                    | Initial total                                                             | 675.12 kB |               150.82 kB
+
+Lazy chunk files    | Names                                                                     |  Raw size | Estimated transfer size
+chunk-xaeKMVu2.js   | ojiepermana-angular-navigation-navigation-flyout-menu-component-DA8VPEn7  |  15.56 kB |                 4.42 kB
+chunk-BdJ4-6it.js   | -                                                                         |  12.50 kB |                 3.46 kB
+chunk-BHzc8s7G.js   | ojiepermana-angular-navigation-navigation-dockbar-menu-component-Bc7DWK3R |  11.82 kB |                 3.56 kB
+chunk-BDwHji9n.js   | ojiepermana-angular-navigation-navigation-horizontal-component-U2TJTzlW   |   9.63 kB |                 2.97 kB
+chunk-BgOZ5Cn6.js   | -                                                                         |   1.76 kB |               858 bytes
+chunk-DdHBC1c9.js   | ojiepermana-angular-component-sheet                                       | 153 bytes |               153 bytes
+chunk-B7-4bKK2.js   | ojiepermana-angular-navigation-navigation-badge-count-component-Be3IqzG4  | 138 bytes |               138 bytes
+
+Application bundle generation complete. [1.205 seconds] - 2026-09-27T16:46:08.360Z
+
+▲ [WARNING] bundle initial exceeded maximum budget. Budget 500.00 kB was not met by 175.12 kB with a total of 675.12 kB.
+
+
+Output location: /Users/ojiepermana/Development/ojiepermana/foundation/apps/frontend/dist/frontend
+
+$ tsc -p apps/backend/tsconfig.json
+$ bun build apps/backend/src/index.ts --target bun --packages external --outdir dist/backend
+Bundled 4 modules in 3ms
+
+  index.js  2.75 KB  (entry point)
+
+$ cd apps/frontend && node ../../node_modules/@angular/cli/bin/ng.js test --watch=false
+❯ Building...
+✔ Building...
+Application bundle generation complete. [0.630 seconds] - 2026-09-27T16:46:09.958Z
+
+
+ RUN  v4.1.11 /Users/ojiepermana/Development/ojiepermana/foundation/apps/frontend
+
+ ✓ |frontend| src/app/app.spec.ts (1 test) 87ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  23:46:10
+   Duration  880ms (transform 22ms, setup 132ms, import 206ms, tests 87ms, environment 365ms)
+
+JUNIT report written to /Users/ojiepermana/Development/ojiepermana/foundation/.local/feature-4/frontend.xml
+$ bun test ./tests/integration/backend ./tests/integration/contract --reporter=junit --reporter-outfile=.local/feature-4/server.xml
+bun test v1.4.2 (744846f84)
+
+tests/integration/backend/application.test.ts:
+(pass) APP-003 importing composition and exporting contracts never allocates external resources [45.04ms]
+(pass) APP-002 development route returns only the fixed status without a database [7.51ms]
+(pass) APP-004 production omits diagnostic and documentation routes [1.06ms]
+(pass) APP-004 invalid configuration fails safely before listen ({"PORT":"0"}) [36.91ms]
+(pass) APP-004 invalid configuration fails safely before listen ({"PORT":"65536"}) [37.09ms]
+(pass) APP-004 invalid configuration fails safely before listen ({"PORT":"1e3"}) [35.88ms]
+(pass) APP-004 invalid configuration fails safely before listen ({"PORT":" 8888"}) [35.96ms]
+(pass) APP-004 invalid configuration fails safely before listen ({"PORT":"secret-marker"}) [36.13ms]
+(pass) APP-004 invalid configuration fails safely before listen ({"HOST":"0.0.0.0"}) [36.34ms]
+(pass) APP-004 invalid configuration fails safely before listen ({"HOST":"secret-marker"}) [37.74ms]
+(pass) APP-004 invalid configuration fails safely before listen ({"NODE_ENV":"test"}) [37.22ms]
+(pass) APP-004 invalid configuration fails safely before listen ({"NODE_ENV":"secret-marker"}) [39.28ms]
+(pass) APP-004 configuration accepts port boundaries and production binding [0.15ms]
+(pass) APP-002 APP-004 apps/backend/src/index.ts serves HTTP then releases listener on SIGTERM [52.63ms]
+(pass) APP-002 APP-004 apps/backend/src/index.ts serves HTTP then releases listener on SIGINT [51.47ms]
+(pass) APP-002 APP-004 dist/backend/index.js serves HTTP then releases listener on SIGTERM [51.98ms]
+(pass) APP-002 APP-004 dist/backend/index.js serves HTTP then releases listener on SIGINT [51.92ms]
+(pass) APP-004 occupied listener causes safe nonzero startup exit [41.80ms]
+(pass) APP-004 bundled production listener returns 404 for development surfaces [47.34ms]
+(pass) APP-004 unexpected route errors hide secret values and stack traces [1.29ms]
+
+tests/integration/contract/openapi.test.ts:
+(pass) APP-003 checker accepts exported contract and resolvable local references [0.62ms]
+(pass) APP-003 checker rejects version [0.04ms]
+(pass) APP-003 checker rejects info [0.03ms]
+(pass) APP-003 checker rejects info title [0.02ms]
+(pass) APP-003 checker rejects info version [0.02ms]
+(pass) APP-003 checker rejects paths [0.03ms]
+(pass) APP-003 checker rejects required endpoint [0.03ms]
+(pass) APP-003 checker rejects invalid path [0.45ms]
+(pass) APP-003 checker rejects operationId [0.07ms]
+(pass) APP-003 checker rejects duplicate operationId [0.06ms]
+(pass) APP-003 checker rejects tags [0.03ms]
+(pass) APP-003 checker rejects empty tags [0.03ms]
+(pass) APP-003 checker rejects invalid tag [0.03ms]
+(pass) APP-003 checker rejects security [0.03ms]
+(pass) APP-003 checker rejects unknown security scheme [0.08ms]
+(pass) APP-003 checker rejects diagnostic authentication [0.04ms]
+(pass) APP-003 checker rejects responses [0.02ms]
+(pass) APP-003 checker rejects empty responses [0.02ms]
+(pass) APP-003 checker rejects response description [0.03ms]
+(pass) APP-003 checker rejects response schema [0.03ms]
+(pass) APP-003 checker rejects empty schema [0.03ms]
+(pass) APP-003 checker rejects wrong status literal [0.03ms]
+(pass) APP-003 checker rejects extra status property [0.03ms]
+(pass) APP-003 checker rejects additional status properties [0.03ms]
+(pass) APP-003 checker rejects unrequired status [0.03ms]
+(pass) APP-003 checker rejects external reference [0.03ms]
+(pass) APP-003 checker rejects missing local reference [0.04ms]
+(pass) APP-003 checker rejects cyclic reference [0.04ms]
+(pass) APP-003 checker rejects query schema [0.03ms]
+(pass) APP-003 checker rejects path schema [0.05ms]
+(pass) APP-003 checker rejects body schema [0.03ms]
+(pass) APP-003 checker rejects empty body content [0.03ms]
+(pass) APP-003 checker rejects invalid method [0.03ms]
+(pass) APP-003 checker rejects invalid response status [0.04ms]
+(pass) APP-003 checker rejects nonobject null [0.01ms]
+(pass) APP-003 checker rejects nonobject []
+(pass) APP-003 checker rejects nonobject true
+(pass) APP-003 checker rejects nonobject "invalid"
+(pass) APP-003 validation CLI rejects malformed JSON with safe nonzero exit [8.94ms]
+(pass) APP-003 stored contract and SDK reproduce without ports or database [1078.96ms]
+(pass) APP-003 api:check rejects changed generated artifacts [555.83ms]
+(pass) APP-003 api:check rejects missing generated artifacts [35.08ms]
+(pass) APP-003 api:check rejects new generated artifacts [542.81ms]
+(pass) APP-003 api:check rejects new-unowned generated artifacts [36.77ms]
+(pass) APP-003 api:sync stops when api:openapi fails [48.25ms]
+(pass) APP-003 api:sync stops when api:validate fails [70.77ms]
+(pass) APP-003 api:sync stops when sdk:generate fails [93.72ms]
+(pass) APP-003 generated status type accepts ok and rejects other values [382.25ms]
+
+ 68 pass
+ 0 fail
+ 143 expect() calls
+Ran 68 tests across 2 files. [3.58s]
+$ bun test ./tests/integration/tooling --reporter=junit --reporter-outfile=.local/feature-4/tooling.xml
+bun test v1.4.2 (744846f84)
+
+tests/integration/tooling/development.test.ts:
+(pass) TOOL-001 doctor reports missing prerequisites without stopping a listener or leaking credentials [155.29ms]
+(pass) TOOL-002 cleanup only stops the configured fixture listener [260.23ms]
+(pass) TOOL-002 cleanup escalates when the fixture ignores SIGTERM [212.51ms]
+(pass) TOOL-003 worker selection is explicit, deduplicated, and rejects unknown workers [0.17ms]
+(pass) TOOL-003 service configuration isolates database credentials and uses the requested ports [0.32ms]
+(pass) TOOL-003 configuration rejects overlapping worker ports and paths outside the repository [1.42ms]
+Menjalankan fixture-parent.
+Menjalankan fixture-failure.
+fixture-failure berhenti (7); menghentikan layanan lainnya.
+(pass) TOOL-004 service failure stops the other service and its stubborn descendant [1615.31ms]
+
+ 7 pass
+ 0 fail
+ 27 expect() calls
+Ran 7 tests across 1 file. [2.25s]
+$ playwright test
+[WebServer] $ bun scripts/frontend-command.ts serve
+
+Running 2 tests using 1 worker
+
+(node:7067) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/application/framework.e2e.spec.ts:3:3 › APP-002 framework loads at 1280px without server calls and proxy reaches real backend (420ms)
+  ✓  2 [chromium] › tests/e2e/application/framework.e2e.spec.ts:3:3 › APP-002 framework loads at 375px without server calls and proxy reaches real backend (374ms)
+
+  2 passed (3.2s)

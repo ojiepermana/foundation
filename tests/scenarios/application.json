@@ -1,0 +1,24 @@
+{
+  "source": "docs/specs/0001-struktur-aplikasi-dependency/index.md",
+  "scenarios": [
+    { "id": "APP-001", "criteria": ["AC-1", "AC-2", "AC-3"], "checks": [
+      {"runner":"command","file":"package.json","script":"check:dependencies"},
+      {"runner":"command","file":"package.json","script":"build:frontend"},
+      {"runner":"command","file":"package.json","script":"typecheck:backend"},
+      {"runner":"command","file":"package.json","script":"build:backend"}
+    ]},
+    { "id": "APP-002", "criteria": ["AC-2", "AC-4"], "checks": [
+      {"runner":"vitest","file":"apps/frontend/src/app/app.spec.ts","testTag":"APP-002","script":"test:frontend"},
+      {"runner":"bun:test","file":"tests/integration/backend/application.test.ts","testTag":"APP-002","script":"test:integration"},
+      {"runner":"playwright","file":"tests/e2e/application/framework.e2e.spec.ts","testTag":"APP-002","script":"test:e2e"}
+    ]},
+    { "id": "APP-003", "criteria": ["AC-3", "AC-5"], "checks": [
+      {"runner":"bun:test","file":"tests/integration/backend/application.test.ts","testTag":"APP-003","script":"test:integration"},
+      {"runner":"bun:test","file":"tests/integration/contract/openapi.test.ts","testTag":"APP-003","script":"test:integration"},
+      {"runner":"command","file":"package.json","script":"api:check"}
+    ]},
+    { "id": "APP-004", "criteria": ["AC-4", "AC-6"], "checks": [
+      {"runner":"bun:test","file":"tests/integration/backend/application.test.ts","testTag":"APP-004","script":"test:integration"}
+    ]}
+  ]
+}

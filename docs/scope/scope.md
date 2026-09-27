@@ -26,7 +26,7 @@ Versi dependency, kebijakan akses endpoint diagnostik, target layar dan aksesibi
 | 1 | Panduan dan aturan proyek | Konteks tersedia | existing |
 | 2 | Doctor dan serve pada aplikasi nyata | Fondasi | in-progress |
 | 3 | Infrastruktur PostgreSQL development | Fondasi | in-progress |
-| 4 | Struktur aplikasi dan dependency yang kompatibel | Fondasi | in-progress |
+| 4 | Struktur aplikasi dan dependency yang kompatibel | Fondasi | done |
 | 5 | Model data dan batas akses database | Fondasi | planned |
 | 6 | Migration dan seed terpisah | Fondasi | planned |
 | 7 | Kerangka UI dan navigasi | Fondasi | planned |
@@ -76,7 +76,7 @@ Data: volume database development. Struktur schema dan grant disiapkan terpisah 
 
 Kode tersedia: `docker-compose.yml`. Snapshot hanya melaporkan pemeriksaan struktur konfigurasi, bukan eksekusi container nyata.
 
-### 4. Struktur aplikasi dan dependency yang kompatibel · in-progress
+### 4. Struktur aplikasi dan dependency yang kompatibel · done
 
 Siapkan struktur minimum yang benar untuk alur awal. Gunakan pilihan runtime dan framework yang sudah disepakati tanpa membuat seluruh folder contoh.
 
@@ -88,14 +88,18 @@ Data: tidak membutuhkan perubahan database.
 
 Spec: [0001](../specs/0001-struktur-aplikasi-dependency/index.md).
 
-- [ ] Bangun: `/develop struktur aplikasi dan dependency yang kompatibel`
-  - [ ] Pasang versi kompatibel dan jalankan kerangka Angular serta backend lokal (AC-1, AC-2, AC-3, AC-4).
-  - [ ] Ekspor kontrak awal, validasi, dan generate SDK yang dapat diulang (AC-1, AC-3, AC-5).
-  - [ ] Buktikan build, startup, kegagalan aman, dan skenario APP-001 sampai APP-004 (AC-1 sampai AC-6).
-- [ ] Verifikasi: `/check verify struktur aplikasi dan dependency yang kompatibel`
-- [ ] Uji: `/test struktur aplikasi dan dependency yang kompatibel`
-- [ ] Review mandiri: `/check review struktur aplikasi dan dependency yang kompatibel`
-- [ ] Dokumentasikan perubahan: `/document struktur aplikasi dan dependency yang kompatibel`
+- [x] Bangun: `/develop struktur aplikasi dan dependency yang kompatibel`
+  - [x] Pasang versi kompatibel dan jalankan kerangka Angular serta backend lokal (AC-1, AC-2, AC-3, AC-4).
+  - [x] Ekspor kontrak awal, validasi, dan generate SDK yang dapat diulang (AC-1, AC-3, AC-5).
+  - [x] Buktikan build, startup, kegagalan aman, dan skenario APP-001 sampai APP-004 (AC-1 sampai AC-6).
+- [x] Verifikasi: `/check verify struktur aplikasi dan dependency yang kompatibel`
+- [x] Uji: `/test struktur aplikasi dan dependency yang kompatibel`
+- [x] Review mandiri: `/check review struktur aplikasi dan dependency yang kompatibel`
+- [x] Dokumentasikan perubahan: `/document struktur aplikasi dan dependency yang kompatibel`
+
+Bukti: [laporan fitur 4](../testing/0001-application-structure.md), [manifest kandidat dan checksum](../testing/evidence/0001/candidate.json), [checklist verify](../specs/0001-struktur-aplikasi-dependency/verify.md), dan [review independen GPT-6 Sol](../reviews/2026-09-27-application-structure.md). Gate lokal final: 78 passed, 0 failed/skipped. Review: Approve, tanpa temuan terbuka. Dokumentasi: [CHANGELOG](../../CHANGELOG.md). Status done berlaku untuk AC-1 sampai AC-6 spec 0001; readiness production dan alur database mengikuti scope berikutnya.
+
+Kode: `apps/frontend/`, `apps/backend/`, `scripts/export-openapi.ts`, `scripts/validate-openapi.ts`, `scripts/check-api.ts`, `openapi.json`, dan `tests/scenarios/application.json`.
 
 ### 5. Model data dan batas akses database · planned · perlu keputusan
 

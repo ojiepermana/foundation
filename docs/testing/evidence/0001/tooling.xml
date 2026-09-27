@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="7" assertions="27" failures="0" skipped="0" time="2.252675">
+  <testsuite name="tests/integration/tooling/development.test.ts" file="tests/integration/tooling/development.test.ts" tests="7" assertions="27" failures="0" skipped="0" time="2.250315" hostname="ip-103-78-36-187.moratelindo.net.id">
+    <testcase name="TOOL-001 doctor reports missing prerequisites without stopping a listener or leaking credentials" classname="" time="0.155289" file="tests/integration/tooling/development.test.ts" line="59" assertions="4" />
+    <testcase name="TOOL-002 cleanup only stops the configured fixture listener" classname="" time="0.260232" file="tests/integration/tooling/development.test.ts" line="73" assertions="3" />
+    <testcase name="TOOL-002 cleanup escalates when the fixture ignores SIGTERM" classname="" time="0.212509" file="tests/integration/tooling/development.test.ts" line="82" assertions="2" />
+    <testcase name="TOOL-003 worker selection is explicit, deduplicated, and rejects unknown workers" classname="" time="0.000168" file="tests/integration/tooling/development.test.ts" line="90" assertions="4" />
+    <testcase name="TOOL-003 service configuration isolates database credentials and uses the requested ports" classname="" time="0.000318" file="tests/integration/tooling/development.test.ts" line="99" assertions="10" />
+    <testcase name="TOOL-003 configuration rejects overlapping worker ports and paths outside the repository" classname="" time="0.001418" file="tests/integration/tooling/development.test.ts" line="119" assertions="2" />
+    <testcase name="TOOL-004 service failure stops the other service and its stubborn descendant" classname="" time="1.615307" file="tests/integration/tooling/development.test.ts" line="128" assertions="2" />
+  </testsuite>
+</testsuites>

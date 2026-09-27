@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="1" failures="0" errors="0" time="0.08715975">
+    <testsuite name="src/app/app.spec.ts" timestamp="2026-09-27T16:46:10.994Z" hostname="ip-103-78-36-187.moratelindo.net.id" tests="1" failures="0" errors="0" skipped="0" time="0.08715975">
+        <testcase classname="src/app/app.spec.ts" name="APP-002 framework page &gt; renders the static heading and content inside an accessible main landmark" time="0.086347667">
+        </testcase>
+    </testsuite>
+</testsuites>

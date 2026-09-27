@@ -5,6 +5,57 @@
   "scripts": {
     "doctor": "bun scripts/doctor.ts",
     "serve": "bun scripts/serve.ts",
-    "test:tooling": "bun test ./tests/integration/tooling"
-  }
+    "test:tooling": "bun test ./tests/integration/tooling --reporter=junit --reporter-outfile=.local/feature-4/tooling.xml",
+    "build:frontend": "cd apps/frontend && node ../../node_modules/@angular/cli/bin/ng.js build",
+    "typecheck:backend": "tsc -p apps/backend/tsconfig.json",
+    "build:backend": "bun build apps/backend/src/index.ts --target bun --packages external --outdir dist/backend",
+    "dev:frontend": "bun scripts/frontend-command.ts serve",
+    "dev:backend": "bun apps/backend/src/index.ts",
+    "api:openapi": "bun scripts/export-openapi.ts",
+    "api:validate": "bun scripts/validate-openapi.ts",
+    "sdk:generate": "cd apps/frontend && node ../../node_modules/@angular/cli/bin/ng.js generate @ojiepermana/angular:sdk --config sdk.config.json",
+    "api:sync": "bun run api:openapi && bun run api:validate && bun run sdk:generate",
+    "api:check": "bun scripts/check-api.ts",
+    "test:frontend": "cd apps/frontend && node ../../node_modules/@angular/cli/bin/ng.js test --watch=false",
+    "test:integration": "bun test ./tests/integration/backend ./tests/integration/contract --reporter=junit --reporter-outfile=.local/feature-4/server.xml",
+    "test:e2e": "playwright test",
+    "test:ci": "bun run check:dependencies && bun run test:scenarios && bun run api:check && bun run build:frontend && bun run typecheck:backend && bun run build:backend && bun run test:frontend && bun run test:integration && bun run test:tooling && bun run test:e2e",
+    "check:dependencies": "bun scripts/check-dependencies.ts",
+    "test:scenarios": "bun scripts/validate-scenarios.ts"
+  },
+  "dependencies": {
+    "@angular/common": "22.2.0",
+    "@angular/compiler": "22.2.0",
+    "@angular/core": "22.2.0",
+    "@angular/forms": "22.2.0",
+    "@angular/platform-browser": "22.2.0",
+    "@angular/router": "22.2.0",
+    "rxjs": "7.8.2",
+    "tslib": "2.8.1",
+    "@angular/cdk": "22.2.0",
+    "@angular/material": "22.2.0",
+    "@ojiepermana/angular": "22.1.14",
+    "elysia": "1.4.30",
+    "@elysia/openapi": "1.4.16",
+    "@sinclair/typebox": "0.34.41"
+  },
+  "devDependencies": {
+    "@angular/build": "22.2.0",
+    "@angular/cli": "22.2.0",
+    "@angular/compiler-cli": "22.2.0",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/bun": "1.4.2",
+    "jsdom": "30.0.1",
+    "postcss": "8.5.6",
+    "prettier": "3.8.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": "24.21.0",
+    "bun": "1.4.2"
+  },
+  "packageManager": "bun@1.4.2"
 }

@@ -24,4 +24,18 @@ Doctor memeriksa prasyarat tanpa mengubah database atau menghentikan proses. Ser
 
 Frontend, backend, dan worker dijalankan melalui Bun/Angular CLI; Compose tidak memuat runtime aplikasi. Credential Compose terpisah dari `.env` aplikasi. Lihat [aturan infrastruktur](docs/rules/infrastructure.md) untuk port, volume, healthcheck, dan batas provisioning.
 
-Aplikasi Angular/backend/worker, tooling OpenAPI/SDK, dan runner database belum diimplementasikan. Saat ini doctor melaporkan prasyarat tersebut sebagai error dan serve berhenti sebelum cleanup/startup. Perintah tidak membuat aplikasi atau data contoh secara otomatis.
+## Kerangka aplikasi (spec 0001)
+
+Gunakan Node 24.21.0 dan Bun 1.4.2 sesuai `.node-version` serta `.bun-version`.
+
+```sh
+bun install --frozen-lockfile
+bun run api:sync
+bun run test:ci
+```
+
+Frontend Angular 22.2.0 dan backend Elysia 1.4.30 sudah tersedia. Route `/api/status` hanya ada pada development. SDK standalone berasal dari `openapi.json`, memakai `@ojiepermana/angular` 22.1.14 dan tidak diedit manual.
+
+Untuk pembuktian kerangka tanpa database sesuai spec 0001, jalankan `bun run dev:backend` dan `bun run dev:frontend` pada dua terminal. Perintah ini memakai port development yang sama. Workflow aplikasi lengkap tetap melalui `doctor` dan `serve` setelah PostgreSQL, role, schema, serta metadata migration tersedia. Runner database dan worker bisnis menunggu scope terkait.
+
+`api:check` meregenerasi artefak dua kali dan gagal jika isi atau daftar file berubah. Build frontend mengompilasi SDK di luar `src/`. Laporan fitur mencatat bukti dan batasnya.

@@ -1,0 +1,18 @@
+<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="3.217085">
+<testsuite name="application/framework.e2e.spec.ts" timestamp="2026-09-27T16:46:19.207Z" hostname="chromium" tests="2" failures="0" skipped="0" time="0.794" errors="0">
+<testcase name="APP-002 framework loads at 1280px without server calls and proxy reaches real backend" classname="application/framework.e2e.spec.ts" time="0.42">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/application-framework.e2e--68980--proxy-reaches-real-backend-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="APP-002 framework loads at 375px without server calls and proxy reaches real backend" classname="application/framework.e2e.spec.ts" time="0.374">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/application-framework.e2e--97374--proxy-reaches-real-backend-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

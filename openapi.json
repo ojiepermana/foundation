@@ -1,0 +1,79 @@
+{
+  "components": {
+    "schemas": {
+      "DevelopmentStatus": {
+        "$id": "#/components/schemas/DevelopmentStatus",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "const": "ok",
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Development documentation",
+    "title": "Foundation development API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/status": {
+      "get": {
+        "operationId": "getDevelopmentStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevelopmentStatus"
+                }
+              }
+            },
+            "description": "Response for status 200"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "const": "Internal server error",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Response for status 500"
+          }
+        },
+        "security": [],
+        "summary": "Development process status",
+        "tags": [
+          "development"
+        ]
+      }
+    }
+  },
+  "security": [],
+  "tags": [
+    {
+      "name": "development"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+@import '@ojiepermana/angular/theme/theme.css';
+@import 'tailwindcss';
+@import '@ojiepermana/angular/theme/styles/css/base/tailwind.css';
+@source '../../../node_modules/@ojiepermana/angular/fesm2022';

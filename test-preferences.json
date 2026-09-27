@@ -1,0 +1,6 @@
+{
+  "tool": "bun:test (server), Vitest via Angular CLI (frontend)",
+  "e2e": "Playwright", "packageManager": "bun",
+  "runCommand": "bun run test:ci",
+  "source": "docs/rules/testing.md and spec 0001"
+}

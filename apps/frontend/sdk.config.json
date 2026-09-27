@@ -1,0 +1,7 @@
+{
+  "targets": [{
+    "input": "../../openapi.json", "output": "./sdk", "mode": "standalone",
+    "clientName": "FoundationApi", "rootUrl": "", "splitByDomain": false,
+    "features": { "models": true, "operations": true, "services": true, "client": true, "metadata": false, "navigation": false, "resources": false }
+  }]
+}

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "files": [
+    "api-configuration.ts",
+    "api.ts",
+    "base-service.ts",
+    "fn/development/get-development-status.ts",
+    "models/development-status.ts",
+    "public-api.ts",
+    "request-builder.ts",
+    "services/development.service.ts",
+    "strict-http-response.ts"
+  ]
+}

@@ -1,7 +1,7 @@
 # 0001. Struktur aplikasi dan dependency yang kompatibel
 
 **Date**: 2026-09-27
-**Status**: Proposed
+**Status**: Accepted
 
 ## Summary
 

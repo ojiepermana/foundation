@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="68" assertions="143" failures="0" skipped="0" time="3.57577">
+  <testsuite name="tests/integration/backend/application.test.ts" file="tests/integration/backend/application.test.ts" tests="20" assertions="79" failures="0" skipped="0" time="0.714315" hostname="ip-103-78-36-187.moratelindo.net.id">
+    <testcase name="APP-003 importing composition and exporting contracts never allocates external resources" classname="" time="0.045038" file="tests/integration/backend/application.test.ts" line="13" assertions="2" />
+    <testcase name="APP-002 development route returns only the fixed status without a database" classname="" time="0.007515" file="tests/integration/backend/application.test.ts" line="19" assertions="4" />
+    <testcase name="APP-004 production omits diagnostic and documentation routes" classname="" time="0.001061" file="tests/integration/backend/application.test.ts" line="28" assertions="6" />
+    <testcase name="APP-004 invalid configuration fails safely before listen ({&quot;PORT&quot;:&quot;0&quot;})" classname="" time="0.036913" file="tests/integration/backend/application.test.ts" line="38" assertions="4" />
+    <testcase name="APP-004 invalid configuration fails safely before listen ({&quot;PORT&quot;:&quot;65536&quot;})" classname="" time="0.037095" file="tests/integration/backend/application.test.ts" line="38" assertions="4" />
+    <testcase name="APP-004 invalid configuration fails safely before listen ({&quot;PORT&quot;:&quot;1e3&quot;})" classname="" time="0.035876" file="tests/integration/backend/application.test.ts" line="38" assertions="4" />
+    <testcase name="APP-004 invalid configuration fails safely before listen ({&quot;PORT&quot;:&quot; 8888&quot;})" classname="" time="0.035962" file="tests/integration/backend/application.test.ts" line="38" assertions="4" />
+    <testcase name="APP-004 invalid configuration fails safely before listen ({&quot;PORT&quot;:&quot;secret-marker&quot;})" classname="" time="0.036133" file="tests/integration/backend/application.test.ts" line="38" assertions="4" />
+    <testcase name="APP-004 invalid configuration fails safely before listen ({&quot;HOST&quot;:&quot;0.0.0.0&quot;})" classname="" time="0.036343" file="tests/integration/backend/application.test.ts" line="38" assertions="4" />
+    <testcase name="APP-004 invalid configuration fails safely before listen ({&quot;HOST&quot;:&quot;secret-marker&quot;})" classname="" time="0.037741" file="tests/integration/backend/application.test.ts" line="38" assertions="4" />
+    <testcase name="APP-004 invalid configuration fails safely before listen ({&quot;NODE_ENV&quot;:&quot;test&quot;})" classname="" time="0.037217" file="tests/integration/backend/application.test.ts" line="38" assertions="4" />
+    <testcase name="APP-004 invalid configuration fails safely before listen ({&quot;NODE_ENV&quot;:&quot;secret-marker&quot;})" classname="" time="0.039276" file="tests/integration/backend/application.test.ts" line="38" assertions="4" />
+    <testcase name="APP-004 configuration accepts port boundaries and production binding" classname="" time="0.000148" file="tests/integration/backend/application.test.ts" line="47" assertions="3" />
+    <testcase name="APP-002 APP-004 apps/backend/src/index.ts serves HTTP then releases listener on SIGTERM" classname="" time="0.052626" file="tests/integration/backend/application.test.ts" line="67" assertions="4" />
+    <testcase name="APP-002 APP-004 apps/backend/src/index.ts serves HTTP then releases listener on SIGINT" classname="" time="0.051465" file="tests/integration/backend/application.test.ts" line="67" assertions="4" />
+    <testcase name="APP-002 APP-004 dist/backend/index.js serves HTTP then releases listener on SIGTERM" classname="" time="0.051985" file="tests/integration/backend/application.test.ts" line="67" assertions="4" />
+    <testcase name="APP-002 APP-004 dist/backend/index.js serves HTTP then releases listener on SIGINT" classname="" time="0.051924" file="tests/integration/backend/application.test.ts" line="67" assertions="4" />
+    <testcase name="APP-004 occupied listener causes safe nonzero startup exit" classname="" time="0.041802" file="tests/integration/backend/application.test.ts" line="84" assertions="3" />
+    <testcase name="APP-004 bundled production listener returns 404 for development surfaces" classname="" time="0.047341" file="tests/integration/backend/application.test.ts" line="94" assertions="7" />
+    <testcase name="APP-004 unexpected route errors hide secret values and stack traces" classname="" time="0.00129" file="tests/integration/backend/application.test.ts" line="108" assertions="2" />
+  </testsuite>
+  <testsuite name="tests/integration/contract/openapi.test.ts" file="tests/integration/contract/openapi.test.ts" tests="48" assertions="64" failures="0" skipped="0" time="2.858786" hostname="ip-103-78-36-187.moratelindo.net.id">
+    <testcase name="APP-003 checker accepts exported contract and resolvable local references" classname="" time="0.000623" file="tests/integration/contract/openapi.test.ts" line="11" assertions="2" />
+    <testcase name="APP-003 checker rejects version" classname="" time="0.000045" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects info" classname="" time="0.000027" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects info title" classname="" time="0.000022" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects info version" classname="" time="0.000024" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects paths" classname="" time="0.000027" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects required endpoint" classname="" time="0.000031" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects invalid path" classname="" time="0.000446" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects operationId" classname="" time="0.000065" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects duplicate operationId" classname="" time="0.000059" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects tags" classname="" time="0.000031" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects empty tags" classname="" time="0.000026" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects invalid tag" classname="" time="0.000031" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects security" classname="" time="0.000027" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects unknown security scheme" classname="" time="0.000084" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects diagnostic authentication" classname="" time="0.000038" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects responses" classname="" time="0.000023" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects empty responses" classname="" time="0.000023" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects response description" classname="" time="0.000029" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects response schema" classname="" time="0.000032" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects empty schema" classname="" time="0.000031" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects wrong status literal" classname="" time="0.000032" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects extra status property" classname="" time="0.000029" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects additional status properties" classname="" time="0.000028" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects unrequired status" classname="" time="0.000034" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects external reference" classname="" time="0.000025" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects missing local reference" classname="" time="0.000044" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects cyclic reference" classname="" time="0.000037" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects query schema" classname="" time="0.000027" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects path schema" classname="" time="0.000053" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects body schema" classname="" time="0.00003" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects empty body content" classname="" time="0.000025" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects invalid method" classname="" time="0.000031" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects invalid response status" classname="" time="0.000039" file="tests/integration/contract/openapi.test.ts" line="34" assertions="1" />
+    <testcase name="APP-003 checker rejects nonobject null" classname="" time="0.000012" file="tests/integration/contract/openapi.test.ts" line="35" assertions="1" />
+    <testcase name="APP-003 checker rejects nonobject []" classname="" time="0.000002" file="tests/integration/contract/openapi.test.ts" line="35" assertions="1" />
+    <testcase name="APP-003 checker rejects nonobject true" classname="" time="0.000001" file="tests/integration/contract/openapi.test.ts" line="35" assertions="1" />
+    <testcase name="APP-003 checker rejects nonobject &quot;invalid&quot;" classname="" time="0.000001" file="tests/integration/contract/openapi.test.ts" line="35" assertions="1" />
+    <testcase name="APP-003 validation CLI rejects malformed JSON with safe nonzero exit" classname="" time="0.008941" file="tests/integration/contract/openapi.test.ts" line="37" assertions="2" />
+    <testcase name="APP-003 stored contract and SDK reproduce without ports or database" classname="" time="1.078965" file="tests/integration/contract/openapi.test.ts" line="54" assertions="2" />
+    <testcase name="APP-003 api:check rejects changed generated artifacts" classname="" time="0.555832" file="tests/integration/contract/openapi.test.ts" line="58" assertions="2" />
+    <testcase name="APP-003 api:check rejects missing generated artifacts" classname="" time="0.035078" file="tests/integration/contract/openapi.test.ts" line="58" assertions="2" />
+    <testcase name="APP-003 api:check rejects new generated artifacts" classname="" time="0.542811" file="tests/integration/contract/openapi.test.ts" line="58" assertions="2" />
+    <testcase name="APP-003 api:check rejects new-unowned generated artifacts" classname="" time="0.036767" file="tests/integration/contract/openapi.test.ts" line="58" assertions="2" />
+    <testcase name="APP-003 api:sync stops when api:openapi fails" classname="" time="0.048253" file="tests/integration/contract/openapi.test.ts" line="72" assertions="4" />
+    <testcase name="APP-003 api:sync stops when api:validate fails" classname="" time="0.070765" file="tests/integration/contract/openapi.test.ts" line="72" assertions="4" />
+    <testcase name="APP-003 api:sync stops when sdk:generate fails" classname="" time="0.093719" file="tests/integration/contract/openapi.test.ts" line="72" assertions="4" />
+    <testcase name="APP-003 generated status type accepts ok and rejects other values" classname="" time="0.382249" file="tests/integration/contract/openapi.test.ts" line="83" assertions="1" />
+  </testsuite>
+</testsuites>
