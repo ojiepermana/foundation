@@ -82,7 +82,7 @@ Spec: [0002](../specs/0002-infrastruktur-postgresql-development/index.md).
   - [x] Buktikan persistensi, shutdown tertib, dan inisialisasi yang terputus (AC-3, AC-5).
   - [x] Periksa batas Compose dan secret, perbarui aturan serta README, lalu kumpulkan bukti (AC-4, AC-6, AC-7, AC-9).
 - [x] Verifikasi: `/check verify infrastruktur PostgreSQL development`
-- [ ] Uji: `/test infrastruktur PostgreSQL development`
+- [x] Uji: `/test infrastruktur PostgreSQL development`
 - [ ] Review mandiri: `/check review infrastruktur PostgreSQL development`
 - [ ] Dokumentasikan perubahan: `/document infrastruktur PostgreSQL development`
 

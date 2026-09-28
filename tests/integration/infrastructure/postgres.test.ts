@@ -33,6 +33,9 @@ const docker = await detectDocker();
 const cliTest = test.skipIf(!docker.cli);
 const daemonTest = test.skipIf(!docker.daemon);
 const label = (name: string, available: boolean) => available ? name : `${name} (dilewati: ${docker.reason})`;
+// Run bersarang tanpa daemon (INFRA-005) menandai dirinya agar tidak memanggil dirinya sendiri lagi.
+const nested = process.env.FOUNDATION_INFRA_NESTED === "1";
+const nestedLabel = " (dilewati: sudah di dalam run bersarang)";
 
 beforeAll(async () => {
   workspace = await mkdtemp(resolve(tmpdir(), testPrefix));
@@ -152,6 +155,11 @@ function connect(stack: Stack, password = stack.password): SQL {
   return new SQL({ hostname: "127.0.0.1", port: stack.port, username: "foundation_admin", password, database: "foundation", max: 1, connectionTimeout: 5 });
 }
 
+async function rejection(stack: Stack, password: string): Promise<string> {
+  const intruder = connect(stack, password);
+  try { await intruder`SELECT 1`; return ""; } catch (error) { return String((error as Error).message); } finally { await intruder.close(); }
+}
+
 async function systemIdentifier(stack: Stack): Promise<string> {
   const sql = connect(stack);
   try {
@@ -195,7 +203,9 @@ async function foundationState(): Promise<string> {
     const found = await run(["docker", "volume", "inspect", "--format", "{{.Name}} {{.CreatedAt}}", name]);
     volumes.push(found.code === 0 ? found.stdout.trim() : `${name} tidak ada`);
   }
-  return [containers.stdout.trim(), networks.stdout.trim(), ...volumes.sort()].join("\n");
+  const devImage = await run(["docker", "image", "inspect", "--format", "{{.Id}}", "foundation-postgres:18-dev"]);
+  const image = devImage.code === 0 ? `foundation-postgres:18-dev ${devImage.stdout.trim()}` : "foundation-postgres:18-dev tidak ada";
+  return [containers.stdout.trim(), networks.stdout.trim(), ...volumes.sort(), image].join("\n");
 }
 
 test("INFRA-001 Compose root hanya berisi postgres dan secret admin tidak masuk Git atau Bun", async () => {
@@ -263,6 +273,27 @@ test("INFRA-005 cleanup menolak nama project tanpa awalan uji", () => {
   expect(() => assertTestProject(`${testPrefix}0a1b2c3d`)).not.toThrow();
 });
 
+const nestedName = "INFRA-005 tanpa daemon skenario Docker dilaporkan dilewati dengan alasan, bukan lulus";
+test.skipIf(nested)(nested ? nestedName + nestedLabel : nestedName, async () => {
+  const report = resolve(workspace, "tanpa-daemon.xml");
+  const env = cleanEnvironment();
+  delete env.DOCKER_CONTEXT;
+  Object.assign(env, { DOCKER_HOST: "unix:///nonexistent/docker.sock", FOUNDATION_INFRA_NESTED: "1" });
+  const result = await run([process.execPath, "test", import.meta.path, "--reporter=junit", `--reporter-outfile=${report}`], { env, timeout: 120000 });
+  expect(result.code).toBe(0);
+
+  const cases = [...(await Bun.file(report).text()).matchAll(/<testcase name="([^"]*)"[^>]*?(\/)?>(\s*<(skipped|failure|error)\b)?/g)]
+    .map(([, name, selfClosing, , state]) => ({ name, state: selfClosing ? "pass" : state ?? "pass" }))
+    .filter((testCase) => !testCase.name.endsWith(nestedLabel));
+  const source = await Bun.file(import.meta.path).text();
+  const requiresDocker = (source.match(/^daemonTest\(/gm)?.length ?? 0) + (docker.cli ? 0 : source.match(/^cliTest\(/gm)?.length ?? 0);
+  const reason = docker.cli ? "Docker daemon tidak dapat dihubungi" : docker.reason;
+  expect(cases.filter((testCase) => testCase.state === "failure" || testCase.state === "error")).toEqual([]);
+  expect(cases.filter((testCase) => testCase.state === "skipped").length).toBe(requiresDocker);
+  for (const testCase of cases) expect(testCase.name.endsWith(`(dilewati: ${reason})`)).toBe(testCase.state === "skipped");
+  expect(cases.some((testCase) => testCase.state === "pass")).toBe(true);
+}, 120000);
+
 daemonTest(label("INFRA-002 build terkunci dari pins.json tanpa secret pada metadata image", docker.daemon), async () => {
   expect(docker.wait).toBe(true);
   expect(pins.baseImage).toMatch(/^oraclelinux:10-slim@sha256:[0-9a-f]{64}$/);
@@ -274,6 +305,7 @@ daemonTest(label("INFRA-002 build terkunci dari pins.json tanpa secret pada meta
   expect(image.Config.Labels["org.opencontainers.image.base.name"]).toBe(pins.baseImage);
   expect(image.Config.User).toBe("postgres");
   expect(image.Config.Env).toContain("TZ=UTC");
+  expect(image.Config.Env.map((entry: string) => entry.split("=")[0]).sort()).toEqual(["PATH", "PGDATA", "TZ"]);
   await dockerCommand(["pull", "--quiet", pins.baseImage], 300000);
   const [base] = JSON.parse((await dockerCommand(["image", "inspect", pins.baseImage])).stdout);
   expect(image.RootFS.Layers.slice(0, base.RootFS.Layers.length)).toEqual(base.RootFS.Layers);
@@ -315,10 +347,7 @@ daemonTest(label("INFRA-003 up --wait sampai healthy dan admin terhubung lewat s
     Object.assign(identity, { serverVersion: server.version, serverVersionNum: server.num });
   } finally { await sql.close(); }
 
-  const intruder = connect(main, randomBytes(32).toString("hex"));
-  let rejection = "";
-  try { await intruder`SELECT 1`; } catch (error) { rejection = String((error as Error).message); } finally { await intruder.close(); }
-  expect(rejection).toMatch(/password authentication failed/i);
+  expect(await rejection(main, randomBytes(32).toString("hex"))).toMatch(/password authentication failed/i);
 
   expect((await compose(main, ["port", "postgres", "5432"])).stdout.trim()).toBe(`127.0.0.1:${main.port}`);
   const bindings = JSON.parse((await dockerCommand(["inspect", "--format", "{{json .NetworkSettings.Ports}}", await containerId(main)])).stdout);
@@ -326,6 +355,24 @@ daemonTest(label("INFRA-003 up --wait sampai healthy dan admin terhubung lewat s
   const environ = await exec(main, "cat", "/proc/1/environ");
   expect(environ.includes("POSTGRES_PASSWORD=") || environ.includes(main.password)).toBe(false);
 }, 300000);
+
+// Harus berjalan sebelum INFRA-004: down lalu up membuat container baru dan membuang log serta /tmp inisialisasi.
+daemonTest(label("INFRA-003 password admin tidak muncul di log inisialisasi dan file password sementara sudah dihapus", docker.daemon), async () => {
+  const result = await compose(main, ["logs", "--no-color", "postgres"]);
+  const logs = result.stdout + result.stderr;
+  expect(logs).toContain("Cluster baru siap");
+  expect(logs.includes(main.password)).toBe(false);
+  // Socket Unix server dan lock-nya memang tinggal di /tmp; selain itu tidak boleh ada sisa file.
+  expect(await exec(main, "find", "/tmp", "-mindepth", "1", "!", "-name", ".s.PGSQL.5432*")).toBe("");
+}, 60000);
+
+daemonTest(label("INFRA-003 zona waktu bernama seperti Asia/Jakarta diterima karena tzdata terpasang", docker.daemon), async () => {
+  const sql = connect(main);
+  try {
+    const [row] = await sql`SELECT (TIMESTAMPTZ '2026-01-01 00:00:00+00' AT TIME ZONE 'Asia/Jakarta')::text AS local`;
+    expect(row.local).toBe("2026-01-01 07:00:00");
+  } finally { await sql.close(); }
+}, 60000);
 
 daemonTest(label("INFRA-003 doctor menolak DATABASE_URL superuser tanpa mencetak password", docker.daemon), async () => {
   const url = `postgres://foundation_admin:${main.password}@127.0.0.1:${main.port}/foundation`;
@@ -383,6 +430,43 @@ daemonTest(label("INFRA-004 data bertahan setelah down tanpa -v dan shutdown ter
   await up(main);
   expectCleanStart(await lastStartLog(main));
   expect(await systemIdentifier(main)).toBe(before);
+}, 600000);
+
+daemonTest(label("INFRA-006 cluster yang ada tidak diinisialisasi ulang saat password di env berubah", docker.daemon), async () => {
+  const before = await systemIdentifier(main);
+  const original = await Bun.file(main.envFile).text();
+  const replacement = randomBytes(32).toString("hex");
+  secrets.push(replacement);
+  await writeFile(main.envFile, original.replace(`FOUNDATION_POSTGRES_PASSWORD=${main.password}\n`, `FOUNDATION_POSTGRES_PASSWORD=${replacement}\n`), { mode: 0o600 });
+  try {
+    await up(main);
+    const env: string[] = JSON.parse((await dockerCommand(["inspect", "--format", "{{json .Config.Env}}", await containerId(main)])).stdout);
+    expect(env.includes(`POSTGRES_PASSWORD=${replacement}`)).toBe(true);
+    expect(await systemIdentifier(main)).toBe(before);
+    expect(await rejection(main, replacement)).toMatch(/password authentication failed/i);
+  } finally { await writeFile(main.envFile, original, { mode: 0o600 }); }
+}, 300000);
+
+daemonTest(label("INFRA-006 volume baru menolak password pendek dan identifier tidak valid tanpa membuat cluster", docker.daemon), async () => {
+  const stack = await createStack();
+  const short = randomBytes(8).toString("hex").slice(0, 15);
+  secrets.push(short);
+  const attempts: [variable: string, value: string, message: string][] = [
+    ["POSTGRES_PASSWORD", short, "minimal 16 karakter"],
+    ["POSTGRES_PASSWORD", "", "minimal 16 karakter"],
+    ["POSTGRES_PASSWORD", `${stack.password}\nbaris-kedua`, "tidak boleh memuat baris baru"],
+    ["POSTGRES_USER", "Admin", "POSTGRES_USER harus identifier"],
+    ["POSTGRES_DB", 'foundation"; DROP DATABASE postgres; --', "POSTGRES_DB harus identifier"],
+  ];
+  for (const [variable, value, message] of attempts) {
+    const attempt = await compose(stack, ["run", "--rm", "-T", "--no-deps", "-e", `${variable}=${value}`, "postgres"], { allowFailure: true, timeout: 120000 });
+    const output = attempt.stdout + attempt.stderr;
+    expect(attempt.code).not.toBe(0);
+    expect(output).toContain(message);
+    if (variable === "POSTGRES_PASSWORD" && value) expect(output.includes(value.split("\n")[0])).toBe(false);
+  }
+  expect((await oneOff(stack, "ls -A /var/lib/pgsql/18")).split(/\s+/).filter(Boolean)).toEqual(["backups"]);
+  await removeStack(stack);
 }, 600000);
 
 daemonTest(label("INFRA-006 staging sisa inisialisasi terputus diganti cluster sehat", docker.daemon), async () => {
