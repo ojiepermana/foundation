@@ -64,7 +64,7 @@ Data: membaca metadata `common`; tidak menambah entitas bisnis. Akses tulis meta
 
 Kode tersedia: `scripts/doctor.ts`, `scripts/serve.ts`, `scripts/lib/`, `config/development.json`, dan `tests/integration/tooling/development.test.ts`. Registry memuat TOOL-001 sampai TOOL-004. Snapshot melaporkan 7 test lulus, tetapi suite tidak dijalankan ulang saat menyusun scope ini.
 
-### 3. Infrastruktur PostgreSQL development · in-progress · perlu keputusan
+### 3. Infrastruktur PostgreSQL development · in-progress
 
 Buktikan konfigurasi layanan pendukung yang sudah tersedia agar Anda dapat memakai database development secara konsisten.
 
@@ -72,7 +72,9 @@ Buktikan konfigurasi layanan pendukung yang sudah tersedia agar Anda dapat memak
 
 Data: volume database development. Struktur schema dan grant disiapkan terpisah melalui fitur 5 dan 6. Tidak menambah entitas bisnis.
 
-- [ ] Rinci verifikasi infrastruktur (spec): `/architect infrastruktur PostgreSQL development`
+- [x] Rinci verifikasi infrastruktur (spec): `/architect infrastruktur PostgreSQL development`
+
+Spec: [0002](../specs/0002-infrastruktur-postgresql-development/index.md).
 
 Kode tersedia: `docker-compose.yml`. Snapshot hanya melaporkan pemeriksaan struktur konfigurasi, bukan eksekusi container nyata.
 
