@@ -76,7 +76,17 @@ Data: volume database development. Struktur schema dan grant disiapkan terpisah 
 
 Spec: [0002](../specs/0002-infrastruktur-postgresql-development/index.md).
 
-Kode tersedia: `docker-compose.yml`. Snapshot hanya melaporkan pemeriksaan struktur konfigurasi, bukan eksekusi container nyata.
+- [x] Bangun: `/develop infrastruktur PostgreSQL development`
+  - [x] Amankan batas secret, lalu bangun jalur tipis image Oracle Linux 10 dengan PGDG, Compose, dan suite terisolasi pertama (AC-1, AC-3, AC-4, AC-7, AC-8).
+  - [x] Kunci build untuk test dan CI lewat `pins.json` serta catat identitas image (AC-1, AC-2).
+  - [x] Buktikan persistensi, shutdown tertib, dan inisialisasi yang terputus (AC-3, AC-5).
+  - [x] Periksa batas Compose dan secret, perbarui aturan serta README, lalu kumpulkan bukti (AC-4, AC-6, AC-7, AC-9).
+- [x] Verifikasi: `/check verify infrastruktur PostgreSQL development`
+- [ ] Uji: `/test infrastruktur PostgreSQL development`
+- [ ] Review mandiri: `/check review infrastruktur PostgreSQL development`
+- [ ] Dokumentasikan perubahan: `/document infrastruktur PostgreSQL development`
+
+Kode tersedia: `infrastructure/postgres/` (Dockerfile, entrypoint, `pins.json`), `docker-compose.yml`, `.env.infrastructure.example`, dan `tests/integration/infrastructure/` (registry `tests/scenarios/infrastructure.json`, script `test:infrastructure`). Suite INFRA-001 sampai INFRA-006 lulus 11/11 dengan Docker nyata; bukti di `.local/feature-3/`.
 
 ### 4. Struktur aplikasi dan dependency yang kompatibel · done
 

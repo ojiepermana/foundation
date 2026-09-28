@@ -4,7 +4,7 @@ Foundation menggunakan PostgreSQL minimal versi 18. PostgreSQL 18 menjadi baseli
 
 Akses database menggunakan client native `Bun.SQL` dan SQL langsung tanpa ORM.
 
-Server PostgreSQL development dapat dijalankan melalui `docker-compose.yml` root sesuai [aturan infrastruktur](infrastructure.md). Compose mengelola server database saja; credential administrator provisioning dipisahkan dari role migration/backend/worker. Schema, grants, migration, dan seed tetap melalui langkah terpisah, bukan startup Compose atau aplikasi.
+Server PostgreSQL development dapat dijalankan melalui `docker-compose.yml` root sesuai [aturan infrastruktur](infrastructure.md), memakai image buatan proyek dari `infrastructure/postgres/` (Oracle Linux 10 slim dengan paket PGDG), bukan image resmi `postgres:18`. Compose mengelola server database saja; credential administrator provisioning dipisahkan dari role migration/backend/worker. Schema, grants, migration, dan seed tetap melalui langkah terpisah, bukan startup Compose atau aplikasi.
 
 ## Schema berdasarkan domain
 
@@ -40,6 +40,11 @@ foundation/
 ├── package.json
 ├── bun.lock
 ├── docker-compose.yml
+├── infrastructure/
+│   └── postgres/
+│       ├── Dockerfile
+│       ├── docker-entrypoint.sh
+│       └── pins.json
 ├── apps/
 │   ├── frontend/
 │   ├── backend/
@@ -61,12 +66,13 @@ foundation/
         └── initial-data.sql
 ```
 
-Nama migration dan seed merupakan contoh. Dockerfile pada `database/` diperlukan jika runner dijalankan melalui container. Struktur ini tidak mewajibkan pembuatan file contoh sebelum ada kebutuhan.
+Nama migration dan seed merupakan contoh. `infrastructure/postgres/` berisi image server PostgreSQL development yang dibangun Compose root; data cluster berada pada volume `pgsql_data` di `/var/lib/pgsql`. Dockerfile pada `database/` diperlukan jika runner dijalankan melalui container. Struktur ini tidak mewajibkan pembuatan file contoh sebelum ada kebutuhan.
 
 | Lokasi | Tanggung jawab |
 | --- | --- |
 | `apps/backend/` | Endpoint, aturan bisnis, dan query operasional fitur. |
 | `apps/worker/` | Pekerjaan bisnis di latar belakang dan query yang dibutuhkan pekerjaan tersebut. |
+| `infrastructure/postgres/` | Image server PostgreSQL 18 proyek, entrypoint inisialisasi, dan pin build untuk test serta CI. Tidak berisi migration, seed, atau SQL aplikasi. |
 | `libs/server/database/` | Infrastruktur koneksi PostgreSQL yang dapat digunakan backend, worker, dan runner database. |
 | `database/` | Migration, seed, dan runner pengelolaan skema atau data awal. |
 
@@ -103,7 +109,7 @@ Jalankan migration sebagai langkah deployment tersendiri sebelum aplikasi yang m
 
 Script dikelola melalui `package.json` root. Jika menggunakan container, Dockerfile berada di `database/Dockerfile` dan build context tetap root monorepo. Runner tidak memiliki `package.json` terpisah.
 
-Image PostgreSQL yang dipakai untuk environment project harus memenuhi minimum versi 18. Dockerfile runner menjalankan proses Bun dan tidak menjadi container server PostgreSQL.
+Image PostgreSQL yang dipakai untuk environment project harus memenuhi minimum versi 18. Server development memakai `infrastructure/postgres/Dockerfile`; Dockerfile runner di `database/` menjalankan proses Bun dan tidak menjadi container server PostgreSQL.
 
 ## Koordinasi agent
 

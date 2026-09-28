@@ -1,26 +1,33 @@
-# Infrastruktur development saja; aplikasi dijalankan melalui bun run serve.
+# Infrastruktur development saja; aplikasi dijalankan melalui bun run serve (spec 0002).
+name: foundation
+
 services:
   postgres:
-    image: postgres:18
+    build:
+      context: infrastructure/postgres
+      args:
+        BASE_IMAGE: ${FOUNDATION_POSTGRES_BASE_IMAGE:-oraclelinux:10-slim}
+        POSTGRES_PACKAGE_VERSION: ${FOUNDATION_POSTGRES_PACKAGE_VERSION:-}
+    image: ${FOUNDATION_POSTGRES_IMAGE:-foundation-postgres:18-dev}
     restart: unless-stopped
     environment:
       POSTGRES_DB: foundation
       POSTGRES_USER: foundation_admin
       POSTGRES_PASSWORD: ${FOUNDATION_POSTGRES_PASSWORD:?Isi FOUNDATION_POSTGRES_PASSWORD pada .env.infrastructure}
-      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     ports:
       - "127.0.0.1:${FOUNDATION_POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - pgsql_data:/var/lib/pgsql
     shm_size: 128mb
     mem_limit: 1g
     cpus: 2
+    stop_grace_period: 30s
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 3s
       retries: 10
       start_period: 10s
 
 volumes:
-  postgres_data:
+  pgsql_data:

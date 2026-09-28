@@ -1,0 +1,11 @@
+# Override khusus suite infrastruktur (spec 0002): tanpa restart otomatis dan berlabel uji.
+services:
+  postgres:
+    restart: "no"
+    labels:
+      dev.foundation.purpose: infrastructure-test
+
+volumes:
+  pgsql_data:
+    labels:
+      dev.foundation.purpose: infrastructure-test

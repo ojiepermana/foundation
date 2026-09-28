@@ -6,11 +6,19 @@ Workflow development menggunakan [Engineering Workflow Skills dari JS Mastery](h
 
 ```sh
 cp .env.infrastructure.example .env.infrastructure
-# Isi password administrator lokal pada .env.infrastructure sebelum menjalankan Compose.
+# Isi FOUNDATION_POSTGRES_PASSWORD dengan hasil: openssl rand -hex 32
 docker compose --env-file .env.infrastructure up -d --wait postgres
 ```
 
-`docker-compose.yml` root hanya untuk infrastruktur pendukung, saat ini PostgreSQL 18. Setelah provisioning role/schema dan migration melalui langkah terpisah, jalankan aplikasi:
+`docker-compose.yml` root hanya untuk infrastruktur pendukung, saat ini PostgreSQL 18 dari image buatan proyek di `infrastructure/postgres/` (Oracle Linux 10 slim dengan paket PGDG), bukan image resmi `postgres:18`. Build pertama membutuhkan internet. Data tersimpan pada volume `foundation_pgsql_data` di `/var/lib/pgsql` dan tetap ada setelah `down` tanpa `-v`. Perbarui patch dev secara berkala dengan `docker compose --env-file .env.infrastructure build --pull postgres`.
+
+```sh
+bun run test:infrastructure
+```
+
+Suite infrastruktur membangun image terkunci dari `infrastructure/postgres/pins.json` dan membuktikan startup, koneksi, persistensi, serta batas secret pada project Compose uji yang terisolasi, tanpa menyentuh data dev Anda. Cara memperbarui pin ada di [aturan infrastruktur](docs/rules/infrastructure.md).
+
+Setelah provisioning role/schema dan migration melalui langkah terpisah, jalankan aplikasi:
 
 ```sh
 bun run doctor

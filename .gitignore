@@ -8,3 +8,4 @@ node_modules/
 !.env.infrastructure.example
 graphify-out/
 test-results/
+dist/
