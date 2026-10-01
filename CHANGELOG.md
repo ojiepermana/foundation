@@ -12,3 +12,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Route status development lokal dan proxy frontend, dengan diagnostic serta dokumentasi development tidak tersedia pada komposisi production.
 - Ekspor OpenAPI tanpa listener/database, pemeriksaan kontrak, generator SDK standalone, serta pemeriksaan reproduksibilitas dan drift artefak.
 - Skenario APP-001 sampai APP-004, gate build/test, dan bukti 78 test lulus dengan review independen Approve. [Laporan bukti fitur 4](docs/testing/0001-application-structure.md) mencatat kandidat, JUnit, riwayat perbaikan, dan batas verifikasi.
+- Infrastruktur PostgreSQL 18 development dari image proyek berbasis Oracle Linux 10 dan paket PGDG, dengan volume persisten, autentikasi SCRAM, dan credential administrator terpisah dari runtime aplikasi (spec 0002).
+- Suite INFRA-001 sampai INFRA-006 untuk build terkunci, startup, koneksi, persistensi, kegagalan inisialisasi, dan batas secret. [Laporan bukti fitur 3](docs/testing/0002-postgresql-development-infrastructure.md) mencatat hasil 16 test lulus serta batas review dan CI.

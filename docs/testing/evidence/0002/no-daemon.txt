@@ -1,0 +1,25 @@
+bun test v1.4.2 (744846f84)
+
+tests/integration/infrastructure/postgres.test.ts:
+(pass) INFRA-001 Compose root hanya berisi postgres dan secret admin tidak masuk Git atau Bun [75.16ms]
+(pass) INFRA-001 config --quiet menolak password kosong dan tidak mencetak secret [90.16ms]
+(pass) INFRA-005 cleanup menolak nama project tanpa awalan uji [0.15ms]
+(pass) INFRA-005 tanpa daemon skenario Docker dilaporkan dilewati dengan alasan, bukan lulus [386.87ms]
+(skip) INFRA-002 build terkunci dari pins.json tanpa secret pada metadata image (dilewati: Docker daemon tidak dapat dihubungi)
+(skip) INFRA-003 up --wait sampai healthy dan admin terhubung lewat scram dengan konfigurasi cluster sesuai (dilewati: Docker daemon tidak dapat dihubungi)
+(skip) INFRA-003 password admin tidak muncul di log inisialisasi dan file password sementara sudah dihapus (dilewati: Docker daemon tidak dapat dihubungi)
+(skip) INFRA-003 zona waktu bernama seperti Asia/Jakarta diterima karena tzdata terpasang (dilewati: Docker daemon tidak dapat dihubungi)
+(skip) INFRA-003 doctor menolak DATABASE_URL superuser tanpa mencetak password (dilewati: Docker daemon tidak dapat dihubungi)
+(skip) INFRA-002 identitas image tercatat dan proses server bukan root (dilewati: Docker daemon tidak dapat dihubungi)
+(skip) INFRA-004 data bertahan setelah down tanpa -v dan shutdown tertib tanpa recovery (dilewati: Docker daemon tidak dapat dihubungi)
+(skip) INFRA-006 cluster yang ada tidak diinisialisasi ulang saat password di env berubah (dilewati: Docker daemon tidak dapat dihubungi)
+(skip) INFRA-006 volume baru menolak password pendek dan identifier tidak valid tanpa membuat cluster (dilewati: Docker daemon tidak dapat dihubungi)
+(skip) INFRA-006 staging sisa inisialisasi terputus diganti cluster sehat (dilewati: Docker daemon tidak dapat dihubungi)
+(skip) INFRA-006 PGDATA tanpa PG_VERSION menghentikan container tanpa mengubah isinya (dilewati: Docker daemon tidak dapat dihubungi)
+(skip) INFRA-005 suite hanya menghapus resource project uji dan project foundation tidak berubah (dilewati: Docker daemon tidak dapat dihubungi)
+
+ 4 pass
+ 12 skip
+ 0 fail
+ 58 expect() calls
+Ran 16 tests across 1 file. [863.00ms]

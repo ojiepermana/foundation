@@ -83,10 +83,10 @@ Spec: [0002](../specs/0002-infrastruktur-postgresql-development/index.md).
   - [x] Periksa batas Compose dan secret, perbarui aturan serta README, lalu kumpulkan bukti (AC-4, AC-6, AC-7, AC-9).
 - [x] Verifikasi: `/check verify infrastruktur PostgreSQL development`
 - [x] Uji: `/test infrastruktur PostgreSQL development`
-- [ ] Review mandiri: `/check review infrastruktur PostgreSQL development`
-- [ ] Dokumentasikan perubahan: `/document infrastruktur PostgreSQL development`
+- [ ] Review ulang: `/check review infrastruktur PostgreSQL development` (review awal meminta perubahan; perbaikannya sudah diuji)
+- [x] Dokumentasikan perubahan: `/document infrastruktur PostgreSQL development`
 
-Kode tersedia: `infrastructure/postgres/` (Dockerfile, entrypoint, `pins.json`), `docker-compose.yml`, `.env.infrastructure.example`, dan `tests/integration/infrastructure/` (registry `tests/scenarios/infrastructure.json`, script `test:infrastructure`). Suite INFRA-001 sampai INFRA-006 lulus 11/11 dengan Docker nyata; bukti di `.local/feature-3/`.
+Kode tersedia: `infrastructure/postgres/` (Dockerfile, entrypoint, `pins.json`), `docker-compose.yml`, `.env.infrastructure.example`, dan `tests/integration/infrastructure/` (registry `tests/scenarios/infrastructure.json`, script `test:infrastructure`). Suite INFRA-001 sampai INFRA-006 lulus 16/16 dengan Docker nyata pada 2026-10-01; [laporan bukti](../testing/0002-postgresql-development-infrastructure.md) dan salinan JUnit ada di repo. Review awal meminta perbaikan pada jumlah test yang dilaporkan dan bukti password lama; kedua perbaikan sudah diuji, tetapi hasil review ulang belum tersedia. Dokumentasi perubahan tercatat pada [CHANGELOG](../../CHANGELOG.md).
 
 ### 4. Struktur aplikasi dan dependency yang kompatibel · done
 

@@ -444,6 +444,11 @@ daemonTest(label("INFRA-006 cluster yang ada tidak diinisialisasi ulang saat pas
     expect(env.includes(`POSTGRES_PASSWORD=${replacement}`)).toBe(true);
     expect(await systemIdentifier(main)).toBe(before);
     expect(await rejection(main, replacement)).toMatch(/password authentication failed/i);
+    const originalConnection = connect(main);
+    try {
+      const [row] = await originalConnection`SELECT current_user AS "user"`;
+      expect(row.user).toBe("foundation_admin");
+    } finally { await originalConnection.close(); }
   } finally { await writeFile(main.envFile, original, { mode: 0o600 }); }
 }, 300000);
 

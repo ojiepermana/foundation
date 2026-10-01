@@ -1,4 +1,4 @@
-# Verify: Infrastruktur PostgreSQL development · spec 0002 · updated 2026-09-28
+# Verify: Infrastruktur PostgreSQL development · spec 0002 · updated 2026-10-01
 _Langkah diturunkan dari acceptance criteria spec 0002 dan tabel Value sourcing. `/check verify` menjalankannya; `/test` mengunci langkah yang tahan lama._
 
 Semua perintah dijalankan dari root. Untuk langkah pada volume baru, pakai project uji `-p foundation-infra-test-<8 hex>` dengan env file sementara, lalu `down --volumes` untuk project itu saja. Jangan menghapus volume `foundation_pgsql_data` milik dev.
@@ -22,7 +22,7 @@ Semua perintah dijalankan dari root. Untuk langkah pada volume baru, pakai proje
 - [x] `SELECT type, auth_method, error FROM pg_hba_file_rules` → tiga baris (`local`, `host`, `host`), semua `scram-sha-256`, tanpa error; `pg_authid.rolpassword` admin berawalan `SCRAM-SHA-256$` → AC-3
 - [x] `current_user` → `foundation_admin` dengan `rolsuper = true`; database `foundation` ada → AC-3 (value sourcing: `POSTGRES_USER`, `POSTGRES_DB`)
 - [x] Volume baru dengan password 15 karakter → container berhenti, log memuat `minimal 16 karakter`, volume tanpa `18/data` → AC-3 (value sourcing: password)
-- [x] Setelah cluster ada, ganti `FOUNDATION_POSTGRES_PASSWORD` di env lalu `up` → password lama tetap berlaku, password baru ditolak; cluster tidak diinisialisasi ulang (`system_identifier` sama) → AC-3
+- [x] Setelah cluster ada, ganti `FOUNDATION_POSTGRES_PASSWORD` di env lalu `up` → koneksi baru dengan password lama berhasil, password baru ditolak; cluster tidak diinisialisasi ulang (`system_identifier` sama) → AC-3
 - [x] Volume uji berisi `18/data.init` sisa → `up --wait` sehat, log memuat `Menghapus staging sisa inisialisasi`, `ls -A /var/lib/pgsql/18` → `backups data` → AC-3
 - [x] Volume uji berisi `18/data` tanpa `PG_VERSION` → container `exited` dengan exit bukan nol, log memuat `tanpa PG_VERSION`, isi folder identik sebelum dan sesudah → AC-3
 - [x] `docker compose exec postgres cat /proc/1/environ` → tidak memuat `POSTGRES_PASSWORD=`; `/proc/1/status` Uid 26 → AC-1, security model
@@ -52,10 +52,10 @@ Semua perintah dijalankan dari root. Untuk langkah pada volume baru, pakai proje
 
 ## Commands: suite terisolasi
 
-- [x] `bun run test:infrastructure` → 11 pass, 0 skip, 0 fail; JUnit `.local/feature-3/infrastructure.xml` → AC-8
+- [x] `bun run test:infrastructure` pada 2026-10-01 → 16 pass, 0 skip, 0 fail; JUnit `.local/feature-3/infrastructure.xml` → AC-8. Lima test yang ditambahkan setelah hasil 11 pass mencakup mode tanpa daemon, kebocoran password di log, zona waktu bernama, perubahan password di env, serta password pendek dan identifier tidak valid.
 - [x] Setelah suite: `docker ps -a`, `docker network ls`, `docker volume ls` tanpa `foundation-infra-test-*`; `CreatedAt` volume `foundation_pgsql_data` tidak berubah; tag `foundation-postgres:18-dev` tidak berubah → AC-8 (value sourcing: nama project dan tag image uji)
 - [x] Buat satu test gagal secara sengaja → cleanup tetap menghapus resource project uji → AC-8
-- [x] `DOCKER_HOST=unix:///nonexistent/docker.sock bun test ./tests/integration/infrastructure` → 3 pass, 8 skip dengan alasan `Docker daemon tidak dapat dihubungi`, 0 fail → AC-8
+- [x] `DOCKER_HOST=unix:///nonexistent/docker.sock bun test ./tests/integration/infrastructure` pada 2026-10-01 → 4 pass, 12 skip dengan alasan `Docker daemon tidak dapat dihubungi`, 0 fail → AC-8
 
 ## UI / manual
 
