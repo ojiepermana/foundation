@@ -13,11 +13,16 @@ try {
     if (stopping) return;
     stopping = true;
     const deadline = setTimeout(() => process.exit(1), 5000);
+    let failed = false;
     try {
       await app.stop(true);
+    } catch { failed = true; console.error('Backend listener shutdown failed'); }
+    try {
       if (pool) await pool.close();
-      console.log('Backend stopped');
-    } finally { clearTimeout(deadline); }
+    } catch { failed = true; console.error('Backend database shutdown failed'); }
+    if (failed) { process.exitCode = 1; return; }
+    clearTimeout(deadline);
+    console.log('Backend stopped');
   };
   process.once('SIGTERM', shutdown);
   process.once('SIGINT', shutdown);

@@ -1,17 +1,18 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { SQL } from 'bun';
-import { randomBytes } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { createDatabasePool } from '../../../libs/server/database/client';
 
 const root = resolve(import.meta.dir, '../../..');
-const token = () => randomBytes(24).toString('hex');
+const testSeed = Bun.env.FOUNDATION_TEST_SECRET_SEED;
+const token = (role: string) => testSeed ? createHmac('sha256', testSeed).update(role).digest('hex') : randomBytes(24).toString('hex');
 const name = `foundation-db-test-${randomBytes(4).toString('hex')}`;
-const adminPassword = token();
-const migratorPassword = token();
-const backendPassword = token();
+const adminPassword = token('admin');
+const migratorPassword = token('migrator');
+const backendPassword = token('backend');
 let directory = '';
 let port = 0;
 let adminUrl = '';
@@ -128,6 +129,29 @@ test('DATA-002 wrong target and structural drift fail without exposing credentia
     expect(drift.output).not.toContain(adminPassword);
   } finally {
     await admin`ALTER TABLE common.schema_migrations ALTER COLUMN applied_at SET DEFAULT transaction_timestamp()`;
+    await admin.close();
+  }
+}, 20000);
+
+test('DATA-002 checksum constraint drift fails even when the expected pattern remains in the definition', async () => {
+  const admin = new SQL(adminUrl);
+  try {
+    await admin`ALTER TABLE common.schema_migrations DROP CONSTRAINT schema_migrations_checksum_hex`;
+    await admin.unsafe("ALTER TABLE common.schema_migrations ADD CONSTRAINT schema_migrations_checksum_hex CHECK (checksum ~ '^[0-9a-f]{64}$' OR true)");
+    const drift = await runProvision();
+    expect(drift.code).toBe(1);
+    expect(drift.output).toContain('Metadata constraint drift');
+    expect(drift.output).not.toContain(adminPassword);
+    const [constraint] = await admin`SELECT pg_catalog.pg_get_constraintdef(oid) AS definition FROM pg_catalog.pg_constraint WHERE conrelid = 'common.schema_migrations'::regclass AND conname = 'schema_migrations_checksum_hex'`;
+    expect(String(constraint?.definition)).toContain('OR true');
+    await admin`ALTER TABLE common.schema_migrations DROP CONSTRAINT schema_migrations_checksum_hex`;
+    await admin.unsafe("ALTER TABLE common.schema_migrations ADD CONSTRAINT schema_migrations_checksum_hex CHECK (checksum ~ '^[0-9a-f]{64}$') NOT VALID");
+    const unvalidated = await runProvision();
+    expect(unvalidated.code).toBe(1);
+    expect(unvalidated.output).toContain('Metadata constraint drift');
+  } finally {
+    await admin`ALTER TABLE common.schema_migrations DROP CONSTRAINT schema_migrations_checksum_hex`;
+    await admin.unsafe("ALTER TABLE common.schema_migrations ADD CONSTRAINT schema_migrations_checksum_hex CHECK (checksum ~ '^[0-9a-f]{64}$')");
     await admin.close();
   }
 }, 20000);
@@ -252,6 +276,30 @@ test('DATA-005 backend keeps base route alive with a lazy pool and stops on SIGT
       expect((await admin`SELECT count(*)::integer AS count FROM pg_catalog.pg_stat_activity WHERE usename = 'foundation_backend' AND datname = 'foundation'`)[0]?.count).toBe(0);
     } finally { await admin.close(); }
     child.kill('SIGTERM');
+    expect(await Promise.race([child.exited, Bun.sleep(6000).then(() => { throw new Error('Backend shutdown timeout'); })])).toBe(0);
+    expect(await new Response(child.stdout).text()).toContain('Backend stopped');
+  } finally { if (child.exitCode === null) { child.kill('SIGKILL'); await child.exited; } }
+}, 12000);
+
+test('DATA-005 backend serves the base route without a database URL and stops on SIGINT', async () => {
+  const temporary = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: () => new Response('fixture') });
+  const backendPort = temporary.port!;
+  await temporary.stop(true);
+  const child = Bun.spawn([process.execPath, '--no-env-file', 'apps/backend/src/index.ts'], {
+    cwd: root,
+    env: { PATH: process.env.PATH ?? '', NODE_ENV: 'development', HOST: '127.0.0.1', PORT: String(backendPort) },
+    stdout: 'pipe', stderr: 'pipe',
+  });
+  try {
+    const deadline = Date.now() + 5000;
+    let response: Response | undefined;
+    while (Date.now() < deadline) {
+      try { response = await fetch(`http://127.0.0.1:${backendPort}/api/status`); break; }
+      catch { await Bun.sleep(30); }
+    }
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({ status: 'ok' });
+    child.kill('SIGINT');
     expect(await Promise.race([child.exited, Bun.sleep(6000).then(() => { throw new Error('Backend shutdown timeout'); })])).toBe(0);
     expect(await new Response(child.stdout).text()).toContain('Backend stopped');
   } finally { if (child.exitCode === null) { child.kill('SIGKILL'); await child.exited; } }

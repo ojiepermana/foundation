@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites name="bun test" tests="17" assertions="133" failures="0" skipped="0" time="25.952811">
+  <testsuite name="tests/integration/database/migration.test.ts" file="tests/integration/database/migration.test.ts" tests="5" assertions="59" failures="0" skipped="0" time="16.702712">
+    <testcase name="MIG-001 baseline applies once, records bytes, and doctor accepts it" classname="" time="2.302321" file="tests/integration/database/migration.test.ts" line="89" assertions="12" />
+    <testcase name="MIG-002 rejects changed, missing, malformed, and linked SQL files before mutation" classname="" time="2.009563" file="tests/integration/database/migration.test.ts" line="111" assertions="13" />
+    <testcase name="MIG-003 rolls back a pending batch and rejects transaction controls" classname="" time="2.013993" file="tests/integration/database/migration.test.ts" line="158" assertions="13" />
+    <testcase name="MIG-004 serializes runners, restores role, times out on lock, and rejects wrong identity" classname="" time="8.313241" file="tests/integration/database/migration.test.ts" line="184" assertions="12" />
+    <testcase name="MIG-005 requires current migrations, repeats an idempotent seed, and rolls back a batch" classname="" time="2.055731" file="tests/integration/database/migration.test.ts" line="215" assertions="9" />
+  </testsuite>
+  <testsuite name="tests/integration/database/provision.test.ts" file="tests/integration/database/provision.test.ts" tests="12" assertions="74" failures="0" skipped="0" time="9.246767">
+    <testcase name="DATA-001 rejects absent flag without mutation, provisions roles, and repeats without passwords" classname="" time="0.204169" file="tests/integration/database/provision.test.ts" line="62" assertions="21" />
+    <testcase name="DATA-003 backend is denied mutations, temporary tables, owner role, and unqualified metadata" classname="" time="0.021399" file="tests/integration/database/provision.test.ts" line="87" assertions="11" />
+    <testcase name="DATA-002 wrong target and structural drift fail without exposing credentials" classname="" time="0.054657" file="tests/integration/database/provision.test.ts" line="119" assertions="5" />
+    <testcase name="DATA-002 checksum constraint drift fails even when the expected pattern remains in the definition" classname="" time="0.071603" file="tests/integration/database/provision.test.ts" line="136" assertions="6" />
+    <testcase name="DATA-002 role drift fails and known PUBLIC grant is repaired" classname="" time="0.076145" file="tests/integration/database/provision.test.ts" line="159" assertions="5" />
+    <testcase name="DATA-002 default ACL and grant option drift fail without changing privileges" classname="" time="0.085267" file="tests/integration/database/provision.test.ts" line="179" assertions="4" />
+    <testcase name="DATA-002 unexpected owner membership is rejected" classname="" time="0.035857" file="tests/integration/database/provision.test.ts" line="198" assertions="2" />
+    <testcase name="DATA-004 concurrent provisioning serializes and leaves one valid state" classname="" time="0.075387" file="tests/integration/database/provision.test.ts" line="213" assertions="3" />
+    <testcase name="DATA-004 lock timeout leaves existing state intact" classname="" time="6.52032" file="tests/integration/database/provision.test.ts" line="222" assertions="4" />
+    <testcase name="DATA-005 pool validates URL, reuses a connection, and closes" classname="" time="0.01607" file="tests/integration/database/provision.test.ts" line="243" assertions="4" />
+    <testcase name="DATA-005 backend keeps base route alive with a lazy pool and stops on SIGTERM" classname="" time="0.12276" file="tests/integration/database/provision.test.ts" line="256" assertions="5" />
+    <testcase name="DATA-005 backend serves the base route without a database URL and stops on SIGINT" classname="" time="0.073857" file="tests/integration/database/provision.test.ts" line="284" assertions="4" />
+  </testsuite>
+</testsuites>

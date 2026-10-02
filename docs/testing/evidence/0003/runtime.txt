@@ -1,0 +1,39 @@
+CLI absent --apply: {"exit":1,"output":"Use --apply"}
+CLI first provisioning: {"exit":0,"output":"foundation_owner: created\nfoundation_migrator: created\nfoundation_backend: created\nfoundation_migrator membership: created\ncommon: created\nusers: created\nauth: created\ncommon.schema_migrations: created\ndatabase privileges: repaired"}
+CLI rerun without passwords: {"exit":0,"output":"foundation_owner: verified\nfoundation_migrator: verified\nfoundation_backend: verified\nfoundation_migrator membership: verified\ncommon: verified\nusers: verified\nauth: verified\ncommon.schema_migrations: verified\ndatabase privileges: verified"}
+CLI wrong database: {"exit":1,"output":"Database provisioning failed"}
+Database identity: {"database":"foundation","version":180006}
+Schema owners: [{"schema":"auth","owner":"foundation_owner"},{"schema":"common","owner":"foundation_owner"},{"schema":"users","owner":"foundation_owner"}]
+Metadata columns: [{"name":"name","type":"text","required":true,"default":null},{"name":"checksum","type":"text","required":true,"default":null},{"name":"applied_at","type":"timestamp with time zone","required":true,"default":"transaction_timestamp()"}]
+Metadata constraints: [{"name":"schema_migrations_applied_at_not_null","type":"n","definition":"NOT NULL applied_at"},{"name":"schema_migrations_checksum_hex","type":"c","definition":"CHECK ((checksum ~ '^[0-9a-f]{64}$'::text))"},{"name":"schema_migrations_checksum_not_null","type":"n","definition":"NOT NULL checksum"},{"name":"schema_migrations_name_not_null","type":"n","definition":"NOT NULL name"},{"name":"schema_migrations_pkey","type":"p","definition":"PRIMARY KEY (name)"}]
+Metadata indexes: [{"name":"schema_migrations_pkey"}]
+Business tables: []
+Role attributes: [{"role":"foundation_backend","login":true,"inherit":false,"superuser":false,"createdb":false,"createrole":false,"replication":false,"bypassrls":false},{"role":"foundation_migrator","login":true,"inherit":false,"superuser":false,"createdb":false,"createrole":false,"replication":false,"bypassrls":false},{"role":"foundation_owner","login":false,"inherit":false,"superuser":false,"createdb":false,"createrole":false,"replication":false,"bypassrls":false}]
+Owner membership: [{"member":"foundation_migrator","granted":"foundation_owner","admin":false,"inherit":false,"settable":true}]
+Backend effective privileges: {"connect":true,"db_create":false,"temp":false,"common_usage":true,"common_create":false,"read_metadata":true,"write_metadata":false}
+Default ACL count: {"count":0}
+Metadata count: {"count":0}
+Runtime identity and path: {"role":"foundation_backend","path":"pg_catalog"}
+backend insert: {"rejected":true}
+backend DDL: {"rejected":true}
+backend temp table: {"rejected":true}
+backend owner role: {"rejected":true}
+backend unqualified lookup: {"rejected":true}
+migrator direct read: {"rejected":true}
+migrator owner role: {"role":"foundation_owner"}
+Structural drift: {"exit":1,"output":"Metadata column drift"}
+Known grant repair: {"exit":0,"output":"foundation_owner: verified\nfoundation_migrator: verified\nfoundation_backend: verified\nfoundation_migrator membership: verified\ncommon: verified\nusers: verified\nauth: verified\ncommon.schema_migrations: verified\ndatabase privileges: repaired","temp_allowed":false}
+Lock timeout: {"exit":1,"elapsed_ms":5048,"output":"Database provisioning failed"}
+Concurrent rerun: {"first":0,"second":0}
+Migration first: {"exit":0,"output":"Applied: 0001-common-metadata-comment.sql\nMigrations: 1 applied, 0 skipped"}
+Migration rerun: {"exit":0,"output":"Skipped: 0001-common-metadata-comment.sql\nMigrations: 0 applied, 1 skipped"}
+Migration history: [{"name":"0001-common-metadata-comment.sql","checksum":"b962c26298844d431efc4fa465887cda9b4aefe22c5c60224d2407131f9e1324","timestamp_present":true}]
+Migration comment: {"description":"Foundation migration history"}
+Seed empty: {"exit":0,"output":"Seeds: 0 executed"}
+Pool reuse and close: {"reused":true,"closedRejected":true}
+Backend base route: {"status":200,"body":{"status":"ok"}}
+Backend lazy connections: {"before_start":10,"after_status":10,"no_new_connection":true}
+Backend SIGTERM: {"exit":0,"output":"Backend listening at http://127.0.0.1:54577\nBackend stopped"}
+Backend SIGINT: {"exit":0,"output":"Backend listening at http://127.0.0.1:54577\nBackend stopped"}
+Backend occupied startup: {"exit":1,"output":"Backend startup failed: invalid configuration or listener unavailable"}
+CLI secrets absent: true

@@ -112,11 +112,11 @@ async function ensureMetadata(tx: Tx, report: Report): Promise<void> {
     ['applied_at', 'timestamp with time zone', true, 'transaction_timestamp()'],
   ];
   if (JSON.stringify(columns.map((c: Record<string, unknown>) => [c.name, c.type, c.required, c.default])) !== JSON.stringify(expected)) fail('Metadata column drift');
-  const constraints = await tx`SELECT conname AS name, contype AS type, pg_catalog.pg_get_constraintdef(oid) AS definition
+  const constraints = await tx`SELECT conname AS name, contype AS type, convalidated AS validated, pg_catalog.pg_get_constraintdef(oid) AS definition
     FROM pg_catalog.pg_constraint WHERE conrelid = ${row.oid} ORDER BY conname`;
   const notNull = ['name', 'checksum', 'applied_at'].every((name) => constraints.some((c: Record<string, unknown>) => c.name === `schema_migrations_${name}_not_null` && c.type === 'n' && c.definition === `NOT NULL ${name}`));
   if (constraints.length !== 5 || !notNull || !constraints.some((c: Record<string, unknown>) => c.name === 'schema_migrations_pkey' && c.type === 'p' && c.definition === 'PRIMARY KEY (name)') ||
-    !constraints.some((c: Record<string, unknown>) => c.name === 'schema_migrations_checksum_hex' && c.type === 'c' && String(c.definition).includes("'^[0-9a-f]{64}$'"))) fail('Metadata constraint drift');
+    !constraints.some((c: Record<string, unknown>) => c.name === 'schema_migrations_checksum_hex' && c.type === 'c' && c.validated === true && c.definition === "CHECK ((checksum ~ '^[0-9a-f]{64}$'::text))")) fail('Metadata constraint drift');
   const [extras] = await tx`SELECT
     (SELECT count(*)::integer FROM pg_catalog.pg_index WHERE indrelid = ${row.oid}) AS indexes,
     (SELECT count(*)::integer FROM pg_catalog.pg_trigger WHERE tgrelid = ${row.oid} AND NOT tgisinternal) AS triggers,

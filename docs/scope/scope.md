@@ -27,7 +27,7 @@ Versi dependency, kebijakan akses endpoint diagnostik, target layar dan aksesibi
 | 2 | Doctor dan serve pada aplikasi nyata | Fondasi | in-progress |
 | 3 | Infrastruktur PostgreSQL development | Fondasi | in-progress |
 | 4 | Struktur aplikasi dan dependency yang kompatibel | Fondasi | done |
-| 5 | Model data dan batas akses database | Fondasi | in-progress |
+| 5 | Model data dan batas akses database | Fondasi | done |
 | 6 | Migration dan seed terpisah | Fondasi | done |
 | 7 | Kerangka UI dan navigasi | Fondasi | planned |
 | 8 | Ekspor dan pemeriksaan kontrak OpenAPI | Alur awal | planned |
@@ -125,7 +125,7 @@ Bukti: [laporan fitur 4](../testing/0001-application-structure.md), [manifest ka
 
 Kode: `apps/frontend/`, `apps/backend/`, `scripts/export-openapi.ts`, `scripts/validate-openapi.ts`, `scripts/check-api.ts`, `openapi.json`, dan `tests/scenarios/application.json`.
 
-### 5. Model data dan batas akses database · in-progress
+### 5. Model data dan batas akses database · done
 
 Tetapkan model minimum yang diperlukan alur awal, koneksi bersama, dan pembagian akses antarpelaku. Entitas produk dibahas ketika kebutuhannya nyata.
 
@@ -141,12 +141,12 @@ Spec: [0004](../specs/0004-model-data-akses-database/index.md).
   - [x] Provision role, schema, metadata, dan privilege pada PostgreSQL 18 terisolasi (AC-1 sampai AC-5).
   - [x] Hubungkan pool bersama ke lifecycle backend dan sinkronkan kontrak OpenAPI serta SDK (AC-6, AC-7).
   - [x] Buktikan penolakan akses, drift, rerun, persaingan provisioning, dan perlindungan credential (AC-1 sampai AC-7).
-- [ ] Verifikasi: `/check verify model data dan batas akses database`
-- [ ] Uji: `/test model data dan batas akses database`
-- [ ] Review mandiri: `/check review model data dan batas akses database`
-- [ ] Dokumentasikan perubahan: `/document model data dan batas akses database`
+- [x] Verifikasi: `/check verify model data dan batas akses database`
+- [x] Uji: `/test model data dan batas akses database`
+- [x] Review mandiri: `/check review model data dan batas akses database`
+- [x] Dokumentasikan perubahan: `/document model data dan batas akses database`
 
-Kode tersedia: `database/provision.ts`, `libs/server/database/client.ts`, dan lifecycle di `apps/backend/src/index.ts`. Skenario DATA-001 sampai DATA-005 terdaftar pada `tests/scenarios/database.json`; suite PostgreSQL 18 terisolasi lulus 10 test pada 2026-10-02. Verifikasi terpisah, review, dan dokumentasi masih terbuka.
+Kode tersedia: `database/provision.ts`, `libs/server/database/client.ts`, dan lifecycle di `apps/backend/src/index.ts`. Skenario DATA-001 sampai DATA-005 terdaftar pada `tests/scenarios/database.json`; dua belas test DATA lulus dengan 74 assertion pada PostgreSQL 18 terisolasi. [Laporan bukti](../testing/0003-database-access.md) memuat hasil runtime serta CI. [Review awal](../reviews/2026-10-02-database-access.md) menemukan tiga celah; [review ulang](../reviews/2026-10-02-database-access-followup.md) menyetujui perbaikannya. Perubahan tercatat pada [CHANGELOG](../../CHANGELOG.md). Status done berlaku untuk AC-1 sampai AC-7 spec 0004; alur UI fitur 10 dan kesiapan production mengikuti fitur terkait.
 
 ### 6. Migration dan seed terpisah · done
 

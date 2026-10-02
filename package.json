@@ -8,7 +8,7 @@
     "db:provision": "bun database/provision.ts",
     "db:migrate": "bun database/migrate.ts",
     "db:seed": "bun database/seed.ts",
-    "test:database:real": "mkdir -p .local/feature-5 && bun test ./tests/integration/database --reporter=junit --reporter-outfile=.local/feature-5/database.xml",
+    "test:database:real": "bun scripts/test-database-real.ts",
     "test:database:migration": "mkdir -p .local/feature-6 && bun test ./tests/integration/database/migration.test.ts --reporter=junit --reporter-outfile=.local/feature-6/migration.xml",
     "test:tooling": "bun test ./tests/integration/tooling --reporter=junit --reporter-outfile=.local/feature-4/tooling.xml",
     "test:tooling:real": "bun tests/integration/tooling-real/doctor-smoke.ts",
