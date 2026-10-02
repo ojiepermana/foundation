@@ -1,142 +1,188 @@
-import { randomBytes } from "node:crypto";
-import { access, mkdtemp, mkdir, rm, rmdir, unlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { resolve } from "node:path";
-import { SQL } from "bun";
-import { runDoctor } from "../../../scripts/doctor";
-import { loadConfig } from "../../../scripts/lib/development";
-import { listeners } from "../../../scripts/lib/ports";
+import { randomBytes } from 'node:crypto';
+import { strict as assert } from 'node:assert';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+import { SQL } from 'bun';
+import { runDoctor } from '../../../scripts/doctor';
+import { loadConfig } from '../../../scripts/lib/development';
+import { listeners } from '../../../scripts/lib/ports';
 
-const name = `foundation-tooling-probe-${randomBytes(4).toString("hex")}`;
-const password = randomBytes(24).toString("hex");
-const root = await mkdtemp(resolve(tmpdir(), "foundation-tooling-db-"));
-const projectRoot = resolve(import.meta.dir, "../../..");
-const projectMigrationDirectory = resolve(projectRoot, "database/migrations");
-let createdProjectMigration = false;
-async function docker(args: string[]): Promise<string> {
-  const child = Bun.spawn(["docker", ...args], { stdout: "pipe", stderr: "pipe" });
-  const [out, err, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
-  if (code !== 0) throw new Error(`Docker step failed: ${args[0]} ${err.split("\n")[0]}`);
-  return out.trim();
+const projectRoot = resolve(import.meta.dir, '../../..');
+const name = `foundation-tooling-probe-${randomBytes(4).toString('hex')}`;
+const directory = await mkdtemp(resolve(tmpdir(), 'foundation-tooling-db-'));
+const [adminPassword, migratorPassword, backendPassword] = Array.from({ length: 3 }, () => randomBytes(24).toString('hex'));
+const secrets: string[] = [adminPassword, migratorPassword, backendPassword];
+let admin: SQL | undefined;
+let backendUrl = '';
+let containerStarted = false;
+const originalDatabaseUrl = process.env.DATABASE_URL;
+
+const redacted = (value: string) => secrets.reduce((text, secret) => text.replaceAll(secret, '[redacted]'), value);
+
+async function command(args: string[], env = process.env, timeout = 30000) {
+  const child = Bun.spawn(args, { cwd: projectRoot, env, stdout: 'pipe', stderr: 'pipe', timeout });
+  const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  const output = stdout + stderr;
+  return { code, output: redacted(output), leaked: secrets.some((secret) => output.includes(secret)) };
+}
+
+async function docker(args: string[]) {
+  const result = await command(['docker', ...args]);
+  if (result.code !== 0) throw new Error(`Docker ${args[0]} failed`);
+  return result.output.trim();
+}
+
+async function databaseChecks(config: Awaited<ReturnType<typeof loadConfig>>, root = projectRoot) {
+  return (await runDoctor(config, [], root)).filter((check) => check.name.startsWith('Database backend'));
+}
+
+async function waitForDatabase(url: string) {
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    const probe = new SQL({ url, max: 1, connectionTimeout: 1 });
+    try { await probe`SELECT 1`; await probe.close(); return; }
+    catch { await probe.close().catch(() => {}); await Bun.sleep(200); }
+  }
+  throw new Error('Isolated PostgreSQL 18 did not become ready');
+}
+
+async function serveRealApplication() {
+  assert.equal((await listeners(8888)).length, 0, 'Backend port must be free for real application smoke');
+  assert.equal((await listeners(8889)).length, 0, 'Frontend port must be free for real application smoke');
+  const child = Bun.spawn([process.execPath, '--no-env-file', 'scripts/serve.ts'], {
+    cwd: projectRoot, env: { ...process.env, NODE_ENV: 'development', DATABASE_URL: backendUrl },
+    stdout: 'pipe', stderr: 'pipe',
+  });
+  let output = '';
+  let signalReady: () => void = () => {};
+  const ready = new Promise<void>((resolve) => { signalReady = resolve; });
+  const consume = async (stream: ReadableStream<Uint8Array>) => {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    try {
+      while (true) {
+        const part = await reader.read();
+        if (part.done) break;
+        output += decoder.decode(part.value, { stream: true });
+        if (output.includes('Layanan development siap.')) signalReady();
+      }
+    } finally { reader.releaseLock(); }
+  };
+  const drains = Promise.all([consume(child.stdout), consume(child.stderr)]);
+  let readyTimer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      ready,
+      child.exited.then((code) => { throw new Error(`Serve exited before readiness (${code})`); }),
+      new Promise<never>((_, reject) => {
+        readyTimer = setTimeout(() => reject(new Error('Serve readiness exceeded 65 seconds')), 65000);
+      }),
+    ]);
+    const backend = await fetch('http://127.0.0.1:8888/api/status');
+    const frontend = await fetch('http://127.0.0.1:8889/');
+    assert.equal(backend.status, 200);
+    assert.deepEqual(await backend.json(), { status: 'ok' });
+    assert.equal(frontend.status, 200);
+    assert.match(frontend.headers.get('content-type') ?? '', /text\/html/);
+    console.log('TOOL-007 partial: serve reported ready; backend and frontend HTTP passed');
+  } catch (error) {
+    throw new Error(`${(error as Error).message}; ${redacted(output).slice(-800)}`);
+  } finally {
+    if (readyTimer) clearTimeout(readyTimer);
+    if (child.exitCode === null) child.kill('SIGTERM');
+    let shutdownTimer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        child.exited,
+        new Promise<never>((_, reject) => {
+          shutdownTimer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('Serve shutdown exceeded 10 seconds')); }, 10000);
+        }),
+      ]);
+    } finally { if (shutdownTimer) clearTimeout(shutdownTimer); }
+    await drains;
+    assert.equal((await listeners(8888)).length, 0, 'Backend listener remains after shutdown');
+    assert.equal((await listeners(8889)).length, 0, 'Frontend listener remains after shutdown');
+  }
 }
 
 try {
-  const temporaryListener = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response() });
-  const port = temporaryListener.port;
-  temporaryListener.stop();
-  await docker(["run", "-d", "--rm", "--name", name,
-    "-e", "PGDATA=/var/lib/pgsql/18/data", "-e", "POSTGRES_USER=foundation_admin",
-    "-e", "POSTGRES_DB=foundation", "-e", `POSTGRES_PASSWORD=${password}`,
-    "-p", `127.0.0.1:${port}:5432`, "foundation-postgres:18-pinned"]);
-  const adminUrl = `postgres://foundation_admin:${password}@127.0.0.1:${port}/foundation`;
-  let admin: SQL | undefined;
-  for (let attempt = 0; attempt < 80; attempt++) {
-    try { admin = new SQL({ url: adminUrl, max: 1, connectionTimeout: 1 }); await admin`SELECT 1`; break; }
-    catch { await admin?.close({ timeout: 0 }).catch(() => {}); admin = undefined; await Bun.sleep(250); }
-  }
-  if (!admin) throw new Error("PostgreSQL did not start");
-  try {
-    await admin`CREATE SCHEMA common`;
-    await admin`CREATE SCHEMA users`;
-    await admin`CREATE SCHEMA auth`;
-    await admin`CREATE TABLE common.schema_migrations (name text PRIMARY KEY, checksum text NOT NULL)`;
-    await admin.unsafe(`CREATE ROLE foundation_backend LOGIN PASSWORD '${password}'`);
-    await admin`GRANT USAGE ON SCHEMA common, users, auth TO foundation_backend`;
-    await admin`GRANT SELECT ON common.schema_migrations TO foundation_backend`;
-    await admin`REVOKE CREATE ON SCHEMA public FROM PUBLIC`;
-    const migrations = resolve(root, "database/migrations");
-    await mkdir(migrations, { recursive: true });
-    const filename = "0001-test.sql";
-    const sql = "SELECT 1;\n";
-    await Bun.write(resolve(migrations, filename), sql);
-    const checksum = new Bun.CryptoHasher("sha256").update(sql).digest("hex");
-    await admin`INSERT INTO common.schema_migrations (name, checksum) VALUES (${filename}, ${checksum})`;
-    const config = await loadConfig();
-    process.env.DATABASE_URL = `postgres://foundation_backend:${password}@127.0.0.1:${port}/foundation`;
-    const checks = await runDoctor(config, [], root);
-    const db = checks.filter((item) => item.name.startsWith("Database backend"));
-    if (db.some((item) => item.status === "error")) {
-      for (const item of db) console.log(`${item.name}: ${item.status}`);
-      throw new Error("Doctor rejected the expected runtime role");
-    }
-    console.log(`PostgreSQL 18 runtime role: ${db.length} checks passed`);
-    if ((await listeners(8888)).length === 0 && (await listeners(8889)).length === 0) {
-      let migrationDirectoryExists = true;
-      try { await access(projectMigrationDirectory); } catch { migrationDirectoryExists = false; }
-      if (migrationDirectoryExists) throw new Error("Project migration directory already exists; refusing temporary smoke setup");
-      await mkdir(projectMigrationDirectory, { recursive: true });
-      createdProjectMigration = true;
-      await Bun.write(resolve(projectMigrationDirectory, filename), sql);
-      const child = Bun.spawn([process.execPath, "scripts/serve.ts"], {
-        cwd: projectRoot, env: { ...process.env, NODE_ENV: "development", DATABASE_URL: process.env.DATABASE_URL },
-        stdout: "pipe", stderr: "pipe",
-      });
-      let output = "";
-      const readOutput = (async () => {
-        const reader = child.stdout.getReader();
-        try {
-          while (true) {
-            const part = await reader.read();
-            if (part.done) return false;
-            output += new TextDecoder().decode(part.value);
-            if (output.includes("Layanan development siap.")) return true;
-          }
-        } finally { reader.releaseLock(); }
-      })();
-      try {
-        let timeout: ReturnType<typeof setTimeout> | undefined;
-        const deadline = new Promise<boolean>((resolve) => { timeout = setTimeout(() => resolve(false), 65000); });
-        const ready = await Promise.race([readOutput, deadline]);
-        clearTimeout(timeout);
-        if (!ready) throw new Error(`Serve did not become ready: ${output.replaceAll(password, "[redacted]")}`);
-        const backend = await fetch("http://127.0.0.1:8888/api/status").then((response) => response.json());
-        const frontend = await fetch("http://127.0.0.1:8889/");
-        if (backend.status !== "ok" || frontend.status !== 200) throw new Error("Real application HTTP smoke failed");
-        console.log("Real frontend and backend: ready through serve");
-      } finally {
-        child.kill("SIGTERM");
-        await child.exited;
-        if ((await listeners(8888)).length || (await listeners(8889)).length) {
-          throw new Error("Serve shutdown left application listeners alive");
-        }
-        console.log("Serve shutdown: application ports free");
-      }
-    }
-    const wrongTarget = structuredClone(config);
-    wrongTarget.database.expectedName = "other_database";
-    if (!((await runDoctor(wrongTarget, [], root)).some((item) => item.name.includes("Target database") && item.status === "error"))) {
-      throw new Error("Doctor accepted the wrong target database");
-    }
-    await admin`GRANT INSERT ON common.schema_migrations TO foundation_backend`;
-    if (!((await runDoctor(config, [], root)).some((item) => item.name.includes("Privilege metadata") && item.status === "error"))) {
-      throw new Error("Doctor accepted metadata write privilege");
-    }
-    await admin`REVOKE INSERT ON common.schema_migrations FROM foundation_backend`;
-    await admin`CREATE ROLE metadata_writer NOLOGIN`;
-    await admin`GRANT INSERT ON common.schema_migrations TO metadata_writer`;
-    await admin`GRANT metadata_writer TO foundation_backend`;
-    if (!((await runDoctor(config, [], root)).some((item) => item.name.includes("Privilege metadata") && item.status === "error"))) {
-      throw new Error("Doctor accepted writer role membership");
-    }
-    await admin`REVOKE metadata_writer FROM foundation_backend`;
-    await Bun.write(resolve(migrations, filename), "SELECT 2;\n");
-    if (!((await runDoctor(config, [], root)).some((item) => item.name.includes("Migration") && item.status === "error"))) {
-      throw new Error("Doctor accepted altered migration");
-    }
-    console.log("Wrong target, metadata writes, role membership, and changed migration: rejected");
-    process.env.DATABASE_URL = adminUrl;
-    const denied = await runDoctor(config, [], root);
-    if (!denied.some((item) => item.name.includes("Role database") && item.status === "error")) {
-      throw new Error("Doctor accepted administrator role");
-    }
-    console.log("Administrator role: rejected");
-  } finally { await admin.close({ timeout: 0 }); }
+  const envFile = resolve(directory, 'postgres.env');
+  await writeFile(envFile, `POSTGRES_DB=foundation\nPOSTGRES_USER=foundation_admin\nPOSTGRES_PASSWORD=${adminPassword}\n`, { mode: 0o600 });
+  await docker(['run', '--rm', '-d', '--name', name, '--env-file', envFile, '-p', '127.0.0.1::5432', 'foundation-postgres:18-pinned']);
+  containerStarted = true;
+  const mapped = await docker(['port', name, '5432/tcp']);
+  const port = Number(mapped.split('\n')[0]?.split(':').at(-1));
+  assert(Number.isInteger(port) && port > 0, 'Isolated PostgreSQL port unavailable');
+  const adminUrl = `postgres://foundation_admin:${adminPassword}@127.0.0.1:${port}/foundation`;
+  const migratorUrl = `postgres://foundation_migrator:${migratorPassword}@127.0.0.1:${port}/foundation`;
+  backendUrl = `postgres://foundation_backend:${backendPassword}@127.0.0.1:${port}/foundation`;
+  secrets.push(adminUrl, migratorUrl, backendUrl);
+  await waitForDatabase(adminUrl);
+  const provision = await command([process.execPath, '--no-env-file', 'database/provision.ts', '--apply'], {
+    PATH: process.env.PATH ?? '', FOUNDATION_ADMIN_DATABASE_URL: adminUrl,
+    FOUNDATION_MIGRATOR_PASSWORD: migratorPassword, FOUNDATION_BACKEND_PASSWORD: backendPassword,
+  });
+  assert.equal(provision.code, 0, 'Isolated provisioning failed');
+  assert.equal(provision.leaked, false, 'Provisioning printed a credential');
+  const migration = await command([process.execPath, '--no-env-file', 'database/migrate.ts', '--apply'], {
+    PATH: process.env.PATH ?? '', FOUNDATION_MIGRATOR_DATABASE_URL: migratorUrl,
+  });
+  assert.equal(migration.code, 0, 'Baseline migration failed');
+  assert.equal(migration.leaked, false, 'Migration printed a credential');
+  admin = new SQL({ url: adminUrl, max: 1 });
+  const config = await loadConfig();
+  process.env.DATABASE_URL = backendUrl;
+  const positive = await databaseChecks(config);
+  assert(positive.length > 0 && positive.every((check) => check.status === 'ok'), 'Doctor rejected provisioned backend role');
+  assert(positive.every((check) => !secrets.some((secret) => check.message.includes(secret))));
+  const cli = await command([process.execPath, '--no-env-file', 'scripts/doctor.ts'], {
+    ...process.env, NODE_ENV: 'development', DATABASE_URL: backendUrl,
+  });
+  assert.equal(cli.code, 0, 'Doctor CLI rejected provisioned database');
+  assert.equal(cli.leaked, false, 'Doctor printed a credential');
+  assert(cli.output.includes('[OK] Database backend: Migration:'));
+  console.log(`TOOL-001: ${positive.length} database checks passed with the real provisioned role`);
+
+  const wrongTarget = structuredClone(config);
+  wrongTarget.database.expectedName = 'other_database';
+  assert((await databaseChecks(wrongTarget)).some((check) => check.name.includes('Target database') && check.status === 'error'));
+  await admin`GRANT INSERT ON common.schema_migrations TO foundation_backend`;
+  assert((await databaseChecks(config)).some((check) => check.name.includes('Privilege metadata') && check.status === 'error'));
+  await admin`REVOKE INSERT ON common.schema_migrations FROM foundation_backend`;
+  await admin`CREATE ROLE metadata_writer NOLOGIN`;
+  await admin`GRANT INSERT ON common.schema_migrations TO metadata_writer`;
+  await admin`GRANT metadata_writer TO foundation_backend`;
+  assert((await databaseChecks(config)).some((check) => check.name.includes('Privilege metadata') && check.status === 'error'));
+  await admin`REVOKE metadata_writer FROM foundation_backend`;
+  const [baseline] = await admin`SELECT checksum FROM common.schema_migrations WHERE name = '0001-common-metadata-comment.sql'`;
+  await admin`UPDATE common.schema_migrations SET checksum = ${'a'.repeat(64)} WHERE name = '0001-common-metadata-comment.sql'`;
+  assert((await databaseChecks(config)).some((check) => check.name.includes('Migration') && check.status === 'error'));
+  await admin`UPDATE common.schema_migrations SET checksum = ${baseline.checksum} WHERE name = '0001-common-metadata-comment.sql'`;
+  const emptyRoot = resolve(directory, 'empty-repository');
+  await mkdir(resolve(emptyRoot, 'database/migrations'), { recursive: true });
+  assert((await databaseChecks(config, emptyRoot)).some((check) => check.name.includes('Migration') && check.status === 'error'));
+  process.env.DATABASE_URL = adminUrl;
+  assert((await databaseChecks(config)).some((check) => check.name.includes('Role database') && check.status === 'error'));
+  process.env.DATABASE_URL = backendUrl;
+  console.log('TOOL-001: wrong target, metadata write, writer membership, checksum, empty migrations, and admin role rejected');
+
+  await serveRealApplication();
+  await admin.close();
+  admin = undefined;
+  await docker(['rm', '-f', name]);
+  containerStarted = false;
+  const unavailable = await databaseChecks(config);
+  assert(unavailable.some((check) => check.status === 'error'), 'Doctor accepted an unavailable database');
+  assert(unavailable.every((check) => !secrets.some((secret) => check.message.includes(secret))));
+  console.log('TOOL-001: unavailable database rejected without credential output');
+} catch (error) {
+  console.error(redacted((error as Error).message));
+  process.exitCode = 1;
 } finally {
-  await docker(["rm", "-f", name]).catch(() => {});
-  if (createdProjectMigration) {
-    await unlink(resolve(projectMigrationDirectory, "0001-test.sql"));
-    await rmdir(projectMigrationDirectory);
-    await rmdir(resolve(projectRoot, "database"));
-  }
-  await rm(root, { recursive: true, force: true });
+  if (admin) await admin.close().catch(() => {});
+  if (containerStarted) await docker(['rm', '-f', name]).catch(() => {});
+  if (originalDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = originalDatabaseUrl;
+  await rm(directory, { recursive: true, force: true });
 }

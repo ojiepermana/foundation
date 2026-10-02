@@ -74,7 +74,7 @@ Spec: [0003](../specs/0003-doctor-serve-aplikasi-nyata/index.md).
 - [ ] Review mandiri: `/check review doctor dan serve pada aplikasi nyata`
 - [ ] Dokumentasikan perubahan: `/document doctor dan serve pada aplikasi nyata`
 
-Kode tersedia: `scripts/doctor.ts`, `scripts/serve.ts`, `scripts/lib/`, `config/development.json`, dan `tests/integration/tooling/development.test.ts`. Registry memuat TOOL-001 sampai TOOL-006 serta TOOL-008. Suite tooling lulus 20 test pada 2026-10-01. TOOL-007 dan pembuktian browser menunggu fitur 5, 6, dan 10.
+Kode tersedia: `scripts/doctor.ts`, `scripts/serve.ts`, `scripts/lib/`, `config/development.json`, dan `tests/integration/tooling/development.test.ts`. Registry memuat TOOL-001 sampai TOOL-006 serta TOOL-008. Suite tooling lulus 20 test pada 2026-10-02. [Smoke test PostgreSQL dan aplikasi nyata](../testing/0005-doctor-serve-real-smoke.md) membuktikan doctor, preflight, HTTP, dan shutdown terhadap provisioning serta migration fitur 5 dan 6. TOOL-007 tetap parsial sampai alur browser fitur 10 tersedia.
 
 ### 3. Infrastruktur PostgreSQL development · in-progress
 
