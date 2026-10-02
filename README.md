@@ -18,6 +18,17 @@ bun run test:infrastructure
 
 Suite infrastruktur membangun image terkunci dari `infrastructure/postgres/pins.json` dan membuktikan startup, koneksi, persistensi, serta batas secret pada project Compose uji yang terisolasi, tanpa menyentuh data dev Anda. Cara memperbarui pin ada di [aturan infrastruktur](docs/rules/infrastructure.md).
 
+## Provisioning database (spec 0004)
+
+Siapkan `FOUNDATION_ADMIN_DATABASE_URL` untuk login `foundation_admin` ke database `foundation`, serta `FOUNDATION_MIGRATOR_PASSWORD` dan `FOUNDATION_BACKEND_PASSWORD` untuk role baru. Ketiganya berasal dari environment lokal atau secret manager. Jangan menaruhnya di `config/development.json`, `.env.infrastructure`, argumen perintah, atau Git. Password role baru minimal 16 karakter. Jalankan dari root:
+
+```sh
+bun run db:provision --apply
+bun run test:database:real
+```
+
+Provisioning membuat role `foundation_owner`, `foundation_migrator`, `foundation_backend`, schema `common`, `users`, `auth`, dan `common.schema_migrations`. Pengulangan tidak mengganti password role yang sudah ada. Test database memakai container PostgreSQL 18 dan credential acak tersendiri, tanpa mengubah database development. Setelah provisioning, isi `DATABASE_URL` dalam `.env` dengan URL role `foundation_backend`. Migration masih dijalankan terpisah oleh fitur 6; `doctor` akan tetap gagal sampai migration yang diwajibkan tersedia dan diterapkan.
+
 Setelah provisioning role/schema dan migration melalui langkah terpisah, jalankan aplikasi:
 
 ```sh

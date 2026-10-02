@@ -94,7 +94,7 @@ Migration dan seed tidak berada di `apps/`. Backend dan worker tidak menjalankan
 - Migration berupa file SQL berurutan di `database/migrations/`.
 - Gunakan satu urutan global untuk seluruh schema agar FK dan dependensi lintas schema dapat diterapkan konsisten. Nama file menyebut domain; jangan membuat penomoran independen yang mengabaikan dependensi antarschema.
 - `migrate.ts` merupakan runner project menggunakan Bun dan Bun.SQL, bukan fitur migration otomatis dari ORM.
-- Bootstrap runner menyiapkan schema `common` dan tabel `common.schema_migrations` sebelum membaca riwayat. Metadata mempunyai `name` unik untuk nama file lengkap, `checksum` SHA-256 dari byte file SQL, dan waktu penerapan; migration berikutnya menyiapkan schema serta objek domain sesuai urutan. Bootstrap dan perubahan tetap menggunakan role migration serta lock yang sama.
+- Provisioning terpisah fitur 5 menyiapkan role, schema `common`, `users`, `auth`, dan tabel `common.schema_migrations` sebelum runner membaca riwayat. Runner fitur 6 memverifikasi bentuk metadata lalu mengisi `name` unik untuk nama file lengkap, `checksum` SHA-256 dari byte file SQL, dan waktu penerapan. Migration berikutnya menyiapkan objek domain sesuai urutan. Perubahan runner memakai role migrator dan lock yang ditetapkan spec fitur 6.
 - Runner memvalidasi target database dan minimum versi PostgreSQL sebelum menjalankan perubahan.
 - Catat migration yang berhasil beserta checksum. Jangan mengubah migration yang sudah diterapkan; buat migration baru untuk perubahan berikutnya.
 - Koordinasikan eksekusi dengan lock database agar beberapa runner tidak menerapkan migration bersamaan.
