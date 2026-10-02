@@ -10,6 +10,7 @@
     "entry": "apps/backend/src/index.ts"
   },
   "database": {
+    "expectedName": "foundation",
     "schemas": ["common", "users", "auth"],
     "migrationSchema": "common"
   },

@@ -6,6 +6,7 @@
     "doctor": "bun scripts/doctor.ts",
     "serve": "bun scripts/serve.ts",
     "test:tooling": "bun test ./tests/integration/tooling --reporter=junit --reporter-outfile=.local/feature-4/tooling.xml",
+    "test:tooling:real": "bun tests/integration/tooling-real/doctor-smoke.ts",
     "test:infrastructure": "bun test ./tests/integration/infrastructure --reporter=junit --reporter-outfile=.local/feature-3/infrastructure.xml",
     "build:frontend": "cd apps/frontend && node ../../node_modules/@angular/cli/bin/ng.js build",
     "typecheck:backend": "tsc -p apps/backend/tsconfig.json",

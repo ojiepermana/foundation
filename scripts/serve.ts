@@ -2,6 +2,9 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { resolve } from "node:path";
 import { runDoctor, printChecks } from "./doctor";
 import { clearPorts } from "./lib/ports";
+import { Invocation } from "./lib/invocation";
+import { captureProcess, groupAlive, processIdentity, sameProcess, type ProcessIdentity } from "./lib/process-identity";
+import { waitForReadiness, type ReadyTarget } from "./lib/readiness";
 import { insideRoot, loadConfig, projectRoot, selectWorkers, servicePorts, withTimeout, type DevelopmentConfig } from "./lib/development";
 
 export interface Service { name: string; command: string[]; cwd: string; env: NodeJS.ProcessEnv }
@@ -31,24 +34,48 @@ export function services(config: DevelopmentConfig, workers: string[], root = pr
 }
 
 // Independent process groups let Ctrl+C also stop child build/watch processes.
-export async function supervise(definitions: Service[]): Promise<number> {
+export async function supervise(definitions: Service[], options: {
+  onSpawn?: (group: ProcessIdentity) => Promise<void>;
+  ready?: ReadyTarget[];
+  onReady?: () => void;
+  timeoutMs?: number;
+} = {}): Promise<number> {
   if (!definitions.length) throw new Error("Tidak ada layanan development yang dipilih.");
   const children: ChildProcess[] = [];
   const closed: Promise<void>[] = [];
+  const groups: ProcessIdentity[] = [];
+  const abort = new AbortController();
+  const startupAt = performance.now();
   let stopping = false;
   let resolveDone!: (code: number) => void;
   const done = new Promise<number>((resolve) => { resolveDone = resolve; });
-  const signalGroup = (child: ChildProcess, signal: NodeJS.Signals) => {
-    if (!child.pid) return;
-    try { process.kill(-child.pid, signal); }
-    catch (error) { if ((error as NodeJS.ErrnoException).code !== "ESRCH") console.error("Grup proses development tidak dapat dihentikan."); }
+  const signalGroups = async (signal: NodeJS.Signals): Promise<boolean> => {
+    let safe = true;
+    for (const child of children) {
+      if (!child.pid) continue;
+      try {
+        const group = groups.find((item) => item.pid === child.pid);
+        if (!group) { child.kill(signal); continue; }
+        const current = await processIdentity(group.pid);
+        if (!current || !sameProcess(current, group)) {
+          if (await groupAlive(group.pgid)) safe = false;
+          continue;
+        }
+        if (!await groupAlive(group.pgid)) continue;
+        process.kill(-group.pgid, signal);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ESRCH") safe = false;
+      }
+    }
+    return safe;
   };
   const stop = async (code: number) => {
     if (stopping) return;
     stopping = true;
-    children.forEach((child) => signalGroup(child, "SIGTERM"));
+    abort.abort();
+    if (!await signalGroups("SIGTERM")) code = 1;
     await Bun.sleep(1500);
-    children.forEach((child) => signalGroup(child, "SIGKILL"));
+    if (!await signalGroups("SIGKILL")) code = 1;
     try { await withTimeout(Promise.all(closed), 2000); }
     catch { code = 1; console.error("Sebagian proses development belum terkonfirmasi berhenti."); }
     resolveDone(code);
@@ -76,6 +103,30 @@ export async function supervise(definitions: Service[]): Promise<number> {
           void stop(code && code > 0 ? code : 1);
         }
       });
+      if (!child.pid) { await stop(1); break; }
+      try {
+        const group = await captureProcess(child.pid);
+        if (group.pgid !== child.pid) throw new Error("Grup layanan tidak terpisah.");
+        groups.push(group);
+        await options.onSpawn?.(group);
+      } catch {
+        console.error(`${service.name} tidak dapat diverifikasi saat startup.`);
+        await stop(1);
+        break;
+      }
+    }
+    if (!stopping && options.ready?.length) {
+      try {
+        const ready = await Promise.race([
+          waitForReadiness(options.ready, groups, abort.signal,
+            Math.max(0, (options.timeoutMs ?? 60000) - (performance.now() - startupAt))).then(() => true),
+          done.then(() => false),
+        ]);
+        if (ready && !stopping) options.onReady?.();
+      } catch (error) {
+        console.error((error as Error).message);
+        await stop(1);
+      }
     }
     return await done;
   } finally {
@@ -85,15 +136,31 @@ export async function supervise(definitions: Service[]): Promise<number> {
 }
 
 if (import.meta.main) {
+  let invocation: Invocation | undefined;
   try {
     const config = await loadConfig();
     const workers = selectWorkers(process.argv.slice(2), config);
+    invocation = await Invocation.acquire(projectRoot);
     if (!printChecks(await runDoctor(config, workers))) process.exitCode = 1;
     else {
-      await clearPorts(servicePorts(config, workers));
-      console.log(`Frontend: http://${config.host}:${config.frontend.port}`);
-      console.log(`Backend: http://${config.host}:${config.backend.port}`);
-      process.exitCode = await supervise(services(config, workers));
+      await clearPorts(servicePorts(config, workers), invocation.staleGroups);
+      await invocation.clearStale();
+      const ready: ReadyTarget[] = [
+        { name: "frontend", port: config.frontend.port, path: "/", kind: "frontend" },
+        { name: "backend", port: config.backend.port, path: "/api/status", kind: "backend" },
+        ...workers.flatMap((name): ReadyTarget[] => config.workers[name].port === undefined ? [] : [
+          { name: `worker:${name}`, port: config.workers[name].port!, path: config.workers[name].readinessPath!, kind: "worker" },
+        ]),
+      ];
+      process.exitCode = await supervise(services(config, workers), {
+        onSpawn: (group) => invocation!.recordGroup(group), ready,
+        onReady: () => {
+          console.log(`Frontend: http://${config.host}:${config.frontend.port}`);
+          console.log(`Backend: http://${config.host}:${config.backend.port}`);
+          console.log("Layanan development siap.");
+        },
+      });
     }
   } catch (error) { console.error((error as Error).message); process.exitCode = 1; }
+  finally { await invocation?.release(); }
 }

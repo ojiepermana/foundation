@@ -6,8 +6,8 @@ export interface DevelopmentConfig {
   host: string;
   frontend: { port: number; workspace: string; proxyConfig: string };
   backend: { port: number; entry: string };
-  database: { schemas: string[]; migrationSchema: string };
-  workers: Record<string, { entry: string; port?: number; databaseUrlEnv?: string; schemas?: string[]; env?: string[] }>;
+  database: { expectedName: string; schemas: string[]; migrationSchema: string };
+  workers: Record<string, { entry: string; port?: number; readinessPath?: string; databaseUrlEnv?: string; schemas?: string[]; env?: string[] }>;
 }
 
 export function insideRoot(root: string, path: string): string {
@@ -25,7 +25,8 @@ export async function loadConfig(root = projectRoot): Promise<DevelopmentConfig>
   if (config.frontend?.port !== 8889 || config.backend?.port !== 8888) {
     throw new Error("Port frontend harus 8889 dan backend harus 8888.");
   }
-  if (!Array.isArray(config.database?.schemas) || !config.database.schemas.length ||
+  if (typeof config.database?.expectedName !== "string" || !/^[a-z][a-z0-9_]*$/.test(config.database.expectedName) ||
+      !Array.isArray(config.database?.schemas) || !config.database.schemas.length ||
       config.database.schemas.some((schema: unknown) => typeof schema !== "string" || !/^[a-z][a-z0-9_]*$/.test(schema)) ||
       !config.database.schemas.includes(config.database.migrationSchema)) {
     throw new Error("Daftar schema dan migrationSchema development tidak valid.");
@@ -54,10 +55,23 @@ export async function loadConfig(root = projectRoot): Promise<DevelopmentConfig>
       if (!Number.isInteger(worker.port) || worker.port < 1024 || worker.port > 65535 || ports.has(worker.port)) {
         throw new Error("Port worker harus valid dan tidak tumpang tindih.");
       }
+      if (typeof worker.readinessPath !== "string" || !validReadinessPath(worker.readinessPath)) {
+        throw new Error("Worker HTTP memerlukan readinessPath lokal yang valid.");
+      }
       ports.add(worker.port);
+    } else if (worker.readinessPath !== undefined) {
+      throw new Error("readinessPath hanya berlaku untuk worker dengan port HTTP.");
     }
   }
   return config;
+}
+
+function validReadinessPath(path: string): boolean {
+  if (!path.startsWith("/") || path.startsWith("//") || /[?#\s\\]/.test(path)) return false;
+  try {
+    const parsed = new URL(path, "http://127.0.0.1");
+    return parsed.pathname === path && parsed.origin === "http://127.0.0.1";
+  } catch { return false; }
 }
 
 export function selectWorkers(args: string[], config: DevelopmentConfig): string[] {

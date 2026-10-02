@@ -69,7 +69,7 @@ export async function runDoctor(config: DevelopmentConfig, workers: string[], ro
       checks.push(...findings.map((finding) => ({ ...finding, name: `${database.label}: ${finding.name}` })));
     } catch {
       add(database.label, "error", "PostgreSQL tidak dapat diverifikasi. Periksa koneksi, role, schema, dan metadata migration; kredensial tidak dicetak.");
-    } finally { await sql?.close({ timeout: 0 }); }
+    } finally { try { await sql?.close({ timeout: 0 }); } catch { add(database.label, "error", "Koneksi PostgreSQL tidak dapat ditutup dengan tertib."); } }
   }
   return checks;
 }
@@ -78,6 +78,9 @@ async function checkDatabase(sql: SQL, config: DevelopmentConfig, root: string, 
   const result: Check[] = [];
   const [version] = await sql`SELECT pg_catalog.current_setting('server_version_num') AS version`;
   result.push({ name: "PostgreSQL", status: Number(version.version) >= 180000 ? "ok" : "error", message: "Minimum versi 18." });
+  const [identity] = await sql`SELECT pg_catalog.current_database() AS database_name, current_user AS role_name`;
+  if (migrations) result.push({ name: "Target database", status: identity.database_name === config.database.expectedName ? "ok" : "error",
+    message: "Nama database harus sesuai konfigurasi development." });
   const namespaces = await sql`SELECT nspname, pg_catalog.has_schema_privilege(current_user, oid, 'USAGE') AS usable,
     pg_catalog.has_schema_privilege(current_user, oid, 'CREATE') AS creatable FROM pg_catalog.pg_namespace`;
   for (const name of expectedSchemas) {
@@ -86,13 +89,35 @@ async function checkDatabase(sql: SQL, config: DevelopmentConfig, root: string, 
     result.push({ name: `Privilege schema ${name}`, status: schema && !schema.creatable ? "ok" : "error", message: "Role runtime tidak boleh mempunyai CREATE pada schema aplikasi." });
   }
   const [role] = await sql`SELECT rolsuper, rolcreatedb, rolcreaterole FROM pg_catalog.pg_roles WHERE rolname = current_user`;
-  result.push({ name: "Role database", status: role.rolsuper || role.rolcreatedb || role.rolcreaterole ? "error" : "ok", message: "Role runtime tidak boleh menjadi superuser atau dapat membuat database/role." });
+  const [databasePrivilege] = await sql`SELECT pg_catalog.has_database_privilege(current_user, current_database(), 'CREATE') AS creatable`;
+  result.push({ name: "Role database", status: role.rolsuper || role.rolcreatedb || role.rolcreaterole || databasePrivilege.creatable ? "error" : "ok",
+    message: "Role runtime tidak boleh menjadi superuser atau dapat membuat database, role, maupun schema." });
+  const publicSchema = namespaces.find((item: { nspname: string }) => item.nspname === "public");
+  result.push({ name: "Privilege schema public", status: !publicSchema || !publicSchema.creatable ? "ok" : "error",
+    message: "Role runtime tidak boleh membuat objek pada schema public." });
   if (!migrations) return result;
+  const relation = `${config.database.migrationSchema}.schema_migrations`;
+  const [metadata] = await sql`SELECT c.oid AS table_oid, c.relowner AS owner_oid
+    FROM pg_catalog.pg_class c WHERE c.oid = pg_catalog.to_regclass(${relation})`;
+  if (!metadata) {
+    result.push({ name: "Privilege metadata migration", status: "error", message: "Metadata migration belum tersedia." });
+    return result;
+  }
+  const privileges = await sql`SELECT r.rolname, r.rolsuper, r.rolcreatedb, r.rolcreaterole,
+    pg_catalog.pg_has_role(current_user, r.oid, 'SET') AS can_set,
+    pg_catalog.pg_has_role(current_user, r.oid, 'USAGE') AS can_use,
+    pg_catalog.has_table_privilege(r.oid, ${metadata.table_oid}::oid, 'INSERT, UPDATE, DELETE, TRUNCATE') AS can_write,
+    r.oid = ${metadata.owner_oid}::oid AS is_owner
+    FROM pg_catalog.pg_roles r`;
+  const elevated = privileges.some((item: { can_set: boolean; can_use: boolean; rolsuper: boolean; rolcreatedb: boolean; rolcreaterole: boolean; can_write: boolean; is_owner: boolean }) =>
+    (item.can_set || item.can_use) && (item.rolsuper || item.rolcreatedb || item.rolcreaterole || item.can_write || item.is_owner));
+  result.push({ name: "Privilege metadata migration", status: elevated ? "error" : "ok",
+    message: "Role runtime hanya boleh membaca metadata dan tidak boleh mengambil alih role penulis atau pemilik." });
   const applied = await sql`SELECT name, checksum FROM ${sql(config.database.migrationSchema)}.${sql("schema_migrations")}`;
   const path = resolve(root, "database/migrations");
   const files = (await readdir(path)).filter((name) => name.endsWith(".sql")).sort();
   const local = new Set(files);
-  let matched = files.length > 0 && !applied.some((item: { name: string }) => !local.has(item.name));
+  let matched = files.length > 0 && applied.length === files.length && !applied.some((item: { name: string }) => !local.has(item.name));
   for (const name of files) {
     const checksum = new Bun.CryptoHasher("sha256").update(await Bun.file(resolve(path, name)).arrayBuffer()).digest("hex");
     if (!applied.some((item: { name: string; checksum: string }) => item.name === name && item.checksum === checksum)) matched = false;

@@ -28,7 +28,7 @@ bun run test:tooling
 
 Frontend development menggunakan port **8889**, backend **8888**. Worker dipilih dengan `--worker <nama>` setelah didaftarkan di `config/development.json`.
 
-Doctor memeriksa prasyarat tanpa mengubah database atau menghentikan proses. Serve menjalankan preflight, membersihkan listener pada port layanan terpilih, lalu menjalankan aplikasi. Lihat [aturan perintah development](docs/rules/development-commands.md).
+Doctor memeriksa prasyarat tanpa mengubah database atau menghentikan proses. Serve menjalankan preflight, hanya mengganti proses Foundation lama dari checkout yang sama jika identitasnya terbukti, lalu menunggu respons HTTP aplikasi sebelum menampilkan URL. Lihat [aturan perintah development](docs/rules/development-commands.md).
 
 Frontend, backend, dan worker dijalankan melalui Bun/Angular CLI; Compose tidak memuat runtime aplikasi. Credential Compose terpisah dari `.env` aplikasi. Lihat [aturan infrastruktur](docs/rules/infrastructure.md) untuk port, volume, healthcheck, dan batas provisioning.
 

@@ -52,7 +52,7 @@ Kode dan dokumen: `AGENTS.md`, `README.md`, `docs/rules/`, dan `docs/testing/rel
 
 ## Fondasi
 
-### 2. Doctor dan serve pada aplikasi nyata · in-progress · perlu keputusan
+### 2. Doctor dan serve pada aplikasi nyata · in-progress
 
 Lengkapi pembuktian tooling yang sudah ada ketika frontend, backend, dan database nyata tersedia. Pekerjaan ini dimulai dari alur awal fitur 10, tanpa membuat ulang supervisor yang sudah ada.
 
@@ -60,9 +60,21 @@ Lengkapi pembuktian tooling yang sudah ada ketika frontend, backend, dan databas
 
 Data: membaca metadata `common`; tidak menambah entitas bisnis. Akses tulis metadata tetap milik runner migration.
 
-- [ ] Rinci penyelesaian dan pembuktian (spec): `/architect doctor dan serve pada aplikasi nyata`
+- [x] Rinci penyelesaian dan pembuktian (spec): `/architect doctor dan serve pada aplikasi nyata`
 
-Kode tersedia: `scripts/doctor.ts`, `scripts/serve.ts`, `scripts/lib/`, `config/development.json`, dan `tests/integration/tooling/development.test.ts`. Registry memuat TOOL-001 sampai TOOL-004. Snapshot melaporkan 7 test lulus, tetapi suite tidak dijalankan ulang saat menyusun scope ini.
+Spec: [0003](../specs/0003-doctor-serve-aplikasi-nyata/index.md).
+
+- [ ] Bangun: `/develop doctor dan serve pada aplikasi nyata`
+  - [ ] Selaraskan doctor dengan database, role runtime, dan migration nyata dari fitur 5 dan 6; buktikan preflight serta respons HTTP awal (AC-1 sampai AC-4).
+  - [x] Lindungi invocation dan cleanup berdasarkan identitas proses, grup, serta checkout; buktikan pergantian listener dan race (AC-3, AC-6, AC-7).
+  - [x] Lengkapi readiness 60 detik, worker terpilih, dan shutdown seluruh grup proses (AC-4, AC-5, AC-8).
+  - [ ] Selaraskan aturan dan registry, lalu kumpulkan bukti fixture serta aplikasi nyata melalui alur fitur 10 (AC-1 sampai AC-9).
+- [ ] Verifikasi: `/check verify doctor dan serve pada aplikasi nyata`
+- [ ] Uji: `/test doctor dan serve pada aplikasi nyata`
+- [ ] Review mandiri: `/check review doctor dan serve pada aplikasi nyata`
+- [ ] Dokumentasikan perubahan: `/document doctor dan serve pada aplikasi nyata`
+
+Kode tersedia: `scripts/doctor.ts`, `scripts/serve.ts`, `scripts/lib/`, `config/development.json`, dan `tests/integration/tooling/development.test.ts`. Registry memuat TOOL-001 sampai TOOL-006 serta TOOL-008. Suite tooling lulus 20 test pada 2026-10-01. TOOL-007 dan pembuktian browser menunggu fitur 5, 6, dan 10.
 
 ### 3. Infrastruktur PostgreSQL development · in-progress
 
