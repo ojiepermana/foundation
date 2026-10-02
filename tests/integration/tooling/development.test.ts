@@ -114,17 +114,27 @@ test("TOOL-003 service configuration isolates database credentials and uses the 
   process.env.DATABASE_URL = "backend-private-url";
   process.env.NOTIFICATION_DATABASE_URL = "notification-private-url";
   process.env.SESSION_SECRET = "private-session-key";
+  process.env.FOUNDATION_ADMIN_DATABASE_URL = "admin-private-url";
+  process.env.FOUNDATION_MIGRATOR_DATABASE_URL = "migrator-private-url";
+  process.env.FOUNDATION_MIGRATOR_PASSWORD = "migrator-private-password";
+  process.env.FOUNDATION_BACKEND_PASSWORD = "backend-private-password";
   const definitions = services(selected, ["notification", "report"]);
   expect(definitions[0].env.PORT).toBe("8888");
   expect(definitions[0].env.DATABASE_URL).toBe("backend-private-url");
+  expect(definitions[0].command).toContain("--no-env-file");
   expect(definitions[1].command).toContain("8889");
   expect(definitions[1].env.DATABASE_URL).toBeUndefined();
   expect(definitions[1].env.SESSION_SECRET).toBeUndefined();
   expect(definitions[2].env.DATABASE_URL).toBe("notification-private-url");
+  expect(definitions[2].command).toContain("--no-env-file");
   expect(definitions[3].env.DATABASE_URL).toBeUndefined();
   expect(definitions[2].env.SESSION_SECRET).toBeUndefined();
   expect(definitions[3].env.SESSION_SECRET).toBeUndefined();
   expect(definitions.every((item) => item.env.NOTIFICATION_DATABASE_URL === undefined)).toBe(true);
+  for (const key of ["FOUNDATION_ADMIN_DATABASE_URL", "FOUNDATION_MIGRATOR_DATABASE_URL", "FOUNDATION_MIGRATOR_PASSWORD", "FOUNDATION_BACKEND_PASSWORD"]) {
+    expect(definitions.every((item) => item.env[key] === undefined)).toBe(true);
+    delete process.env[key];
+  }
 });
 
 test("TOOL-003 configuration rejects overlapping worker ports and paths outside the repository", async () => {

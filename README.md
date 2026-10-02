@@ -27,7 +27,20 @@ bun run db:provision --apply
 bun run test:database:real
 ```
 
-Provisioning membuat role `foundation_owner`, `foundation_migrator`, `foundation_backend`, schema `common`, `users`, `auth`, dan `common.schema_migrations`. Pengulangan tidak mengganti password role yang sudah ada. Test database memakai container PostgreSQL 18 dan credential acak tersendiri, tanpa mengubah database development. Setelah provisioning, isi `DATABASE_URL` dalam `.env` dengan URL role `foundation_backend`. Migration masih dijalankan terpisah oleh fitur 6; `doctor` akan tetap gagal sampai migration yang diwajibkan tersedia dan diterapkan.
+Provisioning membuat role `foundation_owner`, `foundation_migrator`, `foundation_backend`, schema `common`, `users`, `auth`, dan `common.schema_migrations`. Pengulangan tidak mengganti password role yang sudah ada. Test database memakai container PostgreSQL 18 dan credential acak tersendiri, tanpa mengubah database development.
+
+## Migration dan seed (spec 0005)
+
+Setelah provisioning, sediakan `FOUNDATION_MIGRATOR_DATABASE_URL` untuk login `foundation_migrator` ke database `foundation` lewat environment lokal hanya saat menjalankan runner. Gunakan password migrator yang dibuat saat provisioning. Jangan simpan URL ini dalam `.env` backend, JSON, frontend, atau Git. Jalankan perintah dari root:
+
+```sh
+bun run db:migrate --apply
+bun run db:seed --apply
+```
+
+Migration baseline memberi komentar pada tabel metadata dan mencatat checksum file. Pengulangan migration yang sama melewati file yang sudah terapan. Seed awal tidak berisi data bisnis dan melaporkan nol seed; direktori `database/seeds/` dibuat saat file seed pertama ditambahkan. Kedua perintah memakai transaksi dan menolak perubahan file migration yang sudah terapan. Tambahkan file SQL berikutnya dengan nomor empat digit berurutan dan satu statement per file. Seed baru harus idempotent dan dibuktikan oleh test fiturnya. Runner tidak berjalan otomatis dari Compose, backend, `doctor`, atau `serve`.
+
+Isi `DATABASE_URL` dalam `.env` dengan URL role `foundation_backend` sebelum menjalankan `doctor` dan `serve`. URL admin, migrator, dan backend berbeda.
 
 Setelah provisioning role/schema dan migration melalui langkah terpisah, jalankan aplikasi:
 
@@ -55,6 +68,6 @@ bun run test:ci
 
 Frontend Angular 22.2.0 dan backend Elysia 1.4.30 sudah tersedia. Route `/api/status` hanya ada pada development. SDK standalone berasal dari `openapi.json`, memakai `@ojiepermana/angular` 22.1.14 dan tidak diedit manual.
 
-Untuk pembuktian kerangka tanpa database sesuai spec 0001, jalankan `bun run dev:backend` dan `bun run dev:frontend` pada dua terminal. Perintah ini memakai port development yang sama. Workflow aplikasi lengkap tetap melalui `doctor` dan `serve` setelah PostgreSQL, role, schema, serta metadata migration tersedia. Runner database dan worker bisnis menunggu scope terkait.
+Untuk pembuktian kerangka tanpa database sesuai spec 0001, jalankan `bun run dev:backend` dan `bun run dev:frontend` pada dua terminal. Perintah ini memakai port development yang sama. Workflow aplikasi lengkap berjalan melalui `doctor` dan `serve` setelah PostgreSQL, role, schema, serta metadata migration tersedia. Worker bisnis menunggu scope terkait.
 
 `api:check` meregenerasi artefak dua kali dan gagal jika isi atau daftar file berubah. Build frontend mengompilasi SDK di luar `src/`. Laporan fitur mencatat bukti dan batasnya.

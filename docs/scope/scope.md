@@ -28,7 +28,7 @@ Versi dependency, kebijakan akses endpoint diagnostik, target layar dan aksesibi
 | 3 | Infrastruktur PostgreSQL development | Fondasi | in-progress |
 | 4 | Struktur aplikasi dan dependency yang kompatibel | Fondasi | done |
 | 5 | Model data dan batas akses database | Fondasi | in-progress |
-| 6 | Migration dan seed terpisah | Fondasi | planned |
+| 6 | Migration dan seed terpisah | Fondasi | done |
 | 7 | Kerangka UI dan navigasi | Fondasi | planned |
 | 8 | Ekspor dan pemeriksaan kontrak OpenAPI | Alur awal | planned |
 | 9 | SDK yang sesuai kontrak backend | Alur awal | planned |
@@ -148,7 +148,7 @@ Spec: [0004](../specs/0004-model-data-akses-database/index.md).
 
 Kode tersedia: `database/provision.ts`, `libs/server/database/client.ts`, dan lifecycle di `apps/backend/src/index.ts`. Skenario DATA-001 sampai DATA-005 terdaftar pada `tests/scenarios/database.json`; suite PostgreSQL 18 terisolasi lulus 10 test pada 2026-10-02. Verifikasi terpisah, review, dan dokumentasi masih terbuka.
 
-### 6. Migration dan seed terpisah · planned · perlu keputusan
+### 6. Migration dan seed terpisah · done
 
 Sediakan runner sekali jalan untuk perubahan schema serta data awal, terpisah dari startup aplikasi dan worker.
 
@@ -156,7 +156,20 @@ Sediakan runner sekali jalan untuk perubahan schema serta data awal, terpisah da
 
 Data: riwayat migration di `common`; objek domain dan seed mengikuti keputusan fitur 5 atau specs fitur pemiliknya. Hanya runner yang menulis metadata dan mengubah struktur.
 
-- [ ] Rinci runner dan keamanan pengulangan (spec): `/architect migration dan seed terpisah`
+- [x] Rinci runner dan keamanan pengulangan (spec): `/architect migration dan seed terpisah`
+
+Spec: [0005](../specs/0005-migration-seed-terpisah/index.md).
+
+- [x] Bangun: `/develop migration dan seed terpisah`
+  - [x] Buat baseline, discovery file, pemeriksaan metadata, checksum, transaksi, dan lock; buktikan penerapan serta rerun (AC-1 sampai AC-4, AC-7).
+  - [x] Batasi satu statement dan buktikan penolakan drift, rollback, persaingan runner, serta keluaran aman (AC-2 sampai AC-4, AC-6, AC-7).
+  - [x] Tambah seed terpisah, fixture pengulangan, registry, panduan, serta bukti doctor terhadap riwayat nyata (AC-1, AC-5 sampai AC-7).
+- [x] Verifikasi: `/check verify migration dan seed terpisah`
+- [x] Uji: `/test migration dan seed terpisah`
+- [x] Review mandiri: `/check review migration dan seed terpisah`
+- [x] Dokumentasikan perubahan: `/document migration dan seed terpisah`
+
+Kode tersedia: `database/runner.ts`, `database/migrate.ts`, `database/seed.ts`, dan `database/migrations/0001-common-metadata-comment.sql`. Skenario MIG-001 sampai MIG-005 terdaftar di `tests/scenarios/migration.json`. [Laporan bukti](../testing/0004-migration-seed.md) mencatat 15 test database lulus, termasuk 5 test MIG, serta gate proyek. [Review awal](../reviews/2026-10-02-migration-seed.md) menemukan satu celah pemeriksaan SQL; [review ulang](../reviews/2026-10-02-migration-seed-followup.md) menyetujui perbaikannya. Perubahan tercatat pada [CHANGELOG](../../CHANGELOG.md). Status done hanya untuk AC-1 sampai AC-7 spec 0005; CI database dan kesiapan production mengikuti scope berikutnya.
 
 ### 7. Kerangka UI dan navigasi · planned · perlu keputusan
 

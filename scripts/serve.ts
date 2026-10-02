@@ -11,6 +11,9 @@ export interface Service { name: string; command: string[]; cwd: string; env: No
 
 export function services(config: DevelopmentConfig, workers: string[], root = projectRoot): Service[] {
   const environment: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "development", HOST: config.host };
+  for (const key of ["FOUNDATION_ADMIN_DATABASE_URL", "FOUNDATION_MIGRATOR_DATABASE_URL", "FOUNDATION_MIGRATOR_PASSWORD", "FOUNDATION_BACKEND_PASSWORD"]) {
+    delete environment[key];
+  }
   for (const worker of Object.values(config.workers)) {
     if (worker.databaseUrlEnv) delete environment[worker.databaseUrlEnv];
     for (const key of worker.env ?? []) delete environment[key];
@@ -20,12 +23,12 @@ export function services(config: DevelopmentConfig, workers: string[], root = pr
     if (process.env[key]) frontendEnvironment[key] = process.env[key];
   }
   return [
-    { name: "backend", command: [process.execPath, "--watch", insideRoot(root, config.backend.entry)], cwd: root,
+    { name: "backend", command: [process.execPath, "--no-env-file", "--watch", insideRoot(root, config.backend.entry)], cwd: root,
       env: { ...environment, PORT: String(config.backend.port) } },
     { name: "frontend", command: [Bun.which("node")!, resolve(root, "node_modules/@angular/cli/bin/ng.js"), "serve", "--host", config.host,
         "--port", String(config.frontend.port), "--proxy-config", config.frontend.proxyConfig],
       cwd: resolve(root, config.frontend.workspace), env: frontendEnvironment },
-    ...workers.map((name) => ({ name: `worker:${name}`, command: [process.execPath, "--watch", insideRoot(root, config.workers[name].entry)], cwd: root,
+    ...workers.map((name) => ({ name: `worker:${name}`, command: [process.execPath, "--no-env-file", "--watch", insideRoot(root, config.workers[name].entry)], cwd: root,
       env: { ...frontendEnvironment, HOST: config.host,
         ...Object.fromEntries((config.workers[name].env ?? []).map((key) => [key, process.env[key]])),
         ...(config.workers[name].databaseUrlEnv === undefined ? {} : { DATABASE_URL: process.env[config.workers[name].databaseUrlEnv!] }),

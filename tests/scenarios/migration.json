@@ -1,0 +1,20 @@
+{
+  "source": "docs/specs/0005-migration-seed-terpisah/index.md",
+  "scenarios": [
+    { "id": "MIG-001", "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-7"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/migration.test.ts", "testTag": "MIG-001", "script": "test:database:migration" }
+    ] },
+    { "id": "MIG-002", "criteria": ["AC-2", "AC-3", "AC-6", "AC-7"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/migration.test.ts", "testTag": "MIG-002", "script": "test:database:migration" }
+    ] },
+    { "id": "MIG-003", "criteria": ["AC-4", "AC-7"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/migration.test.ts", "testTag": "MIG-003", "script": "test:database:migration" }
+    ] },
+    { "id": "MIG-004", "criteria": ["AC-1", "AC-4", "AC-6", "AC-7"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/migration.test.ts", "testTag": "MIG-004", "script": "test:database:migration" }
+    ] },
+    { "id": "MIG-005", "criteria": ["AC-5", "AC-6", "AC-7"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/migration.test.ts", "testTag": "MIG-005", "script": "test:database:migration" }
+    ] }
+  ]
+}
