@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ESNext", "module": "Preserve", "moduleResolution": "bundler",
+    "types": ["bun"], "strict": true, "noEmit": true, "skipLibCheck": true,
+    "allowImportingTsExtensions": true, "noUncheckedIndexedAccess": true
+  },
+  "files": ["scripts/export-openapi.ts", "scripts/validate-openapi.ts", "scripts/lib/canonical-json.ts"],
+  "include": ["tests/integration/contract/*.ts"]
+}

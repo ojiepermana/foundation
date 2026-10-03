@@ -1,18 +1,19 @@
 import { expect, test } from 'bun:test';
 import { validateOpenApi } from '../../../scripts/validate-openapi';
-import { cp, mkdtemp, rm, symlink, mkdir } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-const root = new URL('../../../', import.meta.url).pathname;
+import { root, run, workspace } from './workspace';
 const valid = await Bun.file(join(root,'tests/fixtures/openapi/valid.json')).json();
 const operation = (d: any) => d.paths['/api/status'].get;
-const model = (d: any) => operation(d).responses['200'].content['application/json'].schema;
+// The fixture follows the current export: the 200 response references the DevelopmentStatus component (spec 0008).
+const reference = (d: any) => operation(d).responses['200'].content['application/json'].schema;
+const model = (d: any) => d.components.schemas.DevelopmentStatus;
 
 test('APP-003 checker accepts exported contract and resolvable local references', () => {
   expect(() => validateOpenApi(valid)).not.toThrow();
   const d = structuredClone(valid);
-  d.components.schemas.Status=model(d);
-  operation(d).responses['200'].content['application/json'].schema={$ref:'#/components/schemas/Status'};
+  d.components.schemas.Failure={$id:'#/components/schemas/Failure',...structuredClone(operation(d).responses['500'].content['application/json'].schema)};
+  operation(d).responses['500'].content['application/json'].schema={$ref:'#/components/schemas/Failure'};
   expect(() => validateOpenApi(d)).not.toThrow();
 });
 const violations: [string,(d:any)=>void][] = [
@@ -25,8 +26,8 @@ const violations: [string,(d:any)=>void][] = [
   ['responses',d=>delete operation(d).responses],['empty responses',d=>operation(d).responses={}],['response description',d=>delete operation(d).responses['200'].description],
   ['response schema',d=>delete operation(d).responses['200'].content['application/json'].schema],['empty schema',d=>operation(d).responses['200'].content['application/json'].schema={}],
   ['wrong status literal',d=>model(d).properties.status.enum=['bad']],['extra status property',d=>model(d).properties.extra={type:'string'}],['additional status properties',d=>model(d).additionalProperties=true],
-  ['unrequired status',d=>model(d).required=[]],['external reference',d=>model(d).$ref='https://example.invalid/schema'],['missing local reference',d=>model(d).$ref='#/components/schemas/Missing'],
-  ['cyclic reference',d=>{d.components.schemas.Loop={$ref:'#/components/schemas/Loop'};model(d).$ref='#/components/schemas/Loop'}],
+  ['unrequired status',d=>model(d).required=[]],['external reference',d=>reference(d).$ref='https://example.invalid/schema'],['missing local reference',d=>reference(d).$ref='#/components/schemas/Missing'],
+  ['cyclic reference',d=>{d.components.schemas.Loop={type:'object',properties:{next:{$ref:'#/components/schemas/Loop'}}};model(d).properties.loop={$ref:'#/components/schemas/Loop'}}],
   ['query schema',d=>operation(d).parameters=[{name:'q',in:'query'}]],['path schema',d=>{d.paths['/api/{id}']={get:{...structuredClone(operation(d)),operationId:'getId'}}}],
   ['body schema',d=>operation(d).requestBody={content:{'application/json':{}}}],['empty body content',d=>operation(d).requestBody={content:{}}],
   ['invalid method',d=>d.paths['/api/status'].fetch={}],['invalid response status',d=>operation(d).responses.bad=structuredClone(operation(d).responses['200'])],
@@ -39,18 +40,6 @@ test('APP-003 validation CLI rejects malformed JSON with safe nonzero exit', asy
   expect(await p.exited).toBe(1);expect((await new Response(p.stderr).text()).trim()).toBe('OpenAPI validation failed');
 });
 
-async function workspace() {
-  const dir=await mkdtemp(join(tmpdir(),'foundation-app-'));
-  for(const path of ['package.json','scripts','apps/backend','apps/frontend/.prettierrc','apps/frontend/angular.json','apps/frontend/sdk.config.json','apps/frontend/sdk','openapi.json']) {
-    const dest=join(dir,path);await mkdir(join(dest,'..'),{recursive:true});await cp(join(root,path),dest,{recursive:true});
-  }
-  await symlink(join(root,'node_modules'),join(dir,'node_modules'),'dir');
-  return dir;
-}
-async function run(dir:string,script:string) {
-  const p=Bun.spawn([process.execPath,'--no-env-file','run',script],{cwd:dir,env:{PATH:process.env['PATH']!,HOME:process.env['HOME']!},stdout:'pipe',stderr:'pipe'});
-  const [code,out,err]=await Promise.all([p.exited,new Response(p.stdout).text(),new Response(p.stderr).text()]);return {code,output:out+err};
-}
 test('APP-003 stored contract and SDK reproduce without ports or database', async () => {
   const dir=await workspace();try {const result=await run(dir,'api:check');expect(result.code, result.output).toBe(0);expect(result.output).toContain('across two runs');}finally{await rm(dir,{recursive:true,force:true});}
 },20000);

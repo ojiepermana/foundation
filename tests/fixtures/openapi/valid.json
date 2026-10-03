@@ -35,21 +35,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$id": "#/components/schemas/DevelopmentStatus",
-                  "additionalProperties": false,
-                  "properties": {
-                    "status": {
-                      "const": "ok",
-                      "enum": [
-                        "ok"
-                      ],
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "status"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/DevelopmentStatus"
                 }
               }
             },

@@ -1,0 +1,28 @@
+{
+  "source": "docs/specs/0008-ekspor-pemeriksaan-kontrak-openapi/index.md",
+  "scenarios": [
+    { "id": "OPENAPI-001", "criteria": ["AC-1", "AC-2"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/openapi-contract.test.ts", "testTag": "OPENAPI-001", "script": "test:integration" },
+      { "runner": "command", "file": "package.json", "script": "api:check" }
+    ] },
+    { "id": "OPENAPI-002", "criteria": ["AC-3"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/openapi-contract.test.ts", "testTag": "OPENAPI-002", "script": "test:integration" }
+    ] },
+    { "id": "OPENAPI-003", "criteria": ["AC-4"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/openapi-contract.test.ts", "testTag": "OPENAPI-003", "script": "test:integration" }
+    ] },
+    { "id": "OPENAPI-004", "criteria": ["AC-5"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/openapi-contract.test.ts", "testTag": "OPENAPI-004", "script": "test:integration" }
+    ] },
+    { "id": "OPENAPI-005", "criteria": ["AC-6"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/openapi-contract.test.ts", "testTag": "OPENAPI-005", "script": "test:integration" }
+    ] },
+    { "id": "OPENAPI-006", "criteria": ["AC-7"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/openapi-contract.test.ts", "testTag": "OPENAPI-006", "script": "test:integration" }
+    ] },
+    { "id": "OPENAPI-007", "criteria": ["AC-8"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/openapi-contract.test.ts", "testTag": "OPENAPI-007", "script": "test:integration" },
+      { "runner": "command", "file": "package.json", "script": "check:dependencies" }
+    ] }
+  ]
+}

@@ -62,7 +62,7 @@ Struktur ini menetapkan lokasi saat tooling dan aplikasi diimplementasikan. Nama
 
 ## Ekspor dan validasi OpenAPI
 
-`scripts/export-openapi.ts` menggunakan Bun untuk merangkai komposisi route yang sama dengan backend, memperoleh JSON dari plugin, dan menulis `openapi.json` melalui `Bun.write()`. Script dapat menggunakan `app.handle()` untuk raw spec tanpa membuka port server; pastikan lifecycle plugin versi yang dipakai sudah siap sebelum membaca hasil.
+`scripts/export-openapi.ts` menggunakan Bun untuk memuat komposisi route yang sama dengan backend melalui `await import()` di dalam blok penanganan kegagalan, membuat `createApp('development')`, lalu membaca raw spec `/openapi/json` melalui `app.handle()` tanpa membuka port server; pastikan lifecycle plugin versi yang dipakai sudah siap sebelum membaca hasil. Exporter memeriksa dokumen dengan checker yang sama, menulis teks kanonik dari `canonicalJson` (`scripts/lib/canonical-json.ts`) ke file sementara di direktori root, lalu memindahkannya ke `openapi.json` dengan rename. Dengan begitu kegagalan di tengah tidak meninggalkan file terpotong, dan setiap kegagalan hanya mencetak `OpenAPI export failed`, ditambah `rule: <ID>` untuk pelanggaran kontrak. Root script `api:openapi` dan `api:validate` menjalankan kedua script dengan `bun --no-env-file`, sehingga `.env` checkout yang memuat secret aplikasi tidak masuk proses yang memuat komposisi backend.
 
 Komposisi `app.ts` tidak menjalankan `listen()` saat diimpor. Pisahkan pembuatan resource dari startup agar ekspor tidak memerlukan database aktif, migration, seed, worker, atau pemanggilan layanan eksternal. Jangan mengganti route dengan endpoint mock untuk keperluan ekspor. Middleware autentikasi aplikasi tidak boleh menghalangi pembacaan spec oleh script ekspor.
 
@@ -79,7 +79,24 @@ Pelanggaran pemeriksaan wajib menghasilkan exit code bukan nol dan menghentikan 
 
 Pemeriksaan Bun ini terbatas pada aturan kontrak dan bentuk OpenAPI yang digunakan project, bukan validator seluruh standar OpenAPI atau pengganti validasi request/response di server. Catat cakupan dan keterbatasannya; jangan melaporkan kelulusan sebagai sertifikasi kepatuhan penuh. Keberhasilan generate SDK, build Angular, dan test integrasi request/response nyata tetap diperlukan. Bentuk kontrak baru memerlukan pembaruan pemeriksaan dan bukti dukungan generator sebelum digunakan.
 
-Hasil ekspor harus deterministik untuk kode dan konfigurasi kontrak yang sama. Gunakan formatting tetap dan urutan key object yang konsisten tanpa mengubah urutan array yang bermakna. Jangan memasukkan waktu generate, URL environment sementara, atau data runtime yang berubah ke artefak. Simpan seluruh schema yang dirujuk dalam dokumen yang dapat dikonsumsi lokal.
+Hasil ekspor harus deterministik untuk kode dan konfigurasi kontrak yang sama. Gunakan formatting tetap dan urutan key object yang konsisten tanpa mengubah urutan array yang bermakna; `canonicalJson` mengurutkan key menurut code unit, sehingga hasilnya tidak bergantung pada locale mesin. Jangan memasukkan waktu generate, URL environment sementara, atau data runtime yang berubah ke artefak. Simpan seluruh schema yang dirujuk dalam dokumen yang dapat dikonsumsi lokal.
+
+### Batas checker
+
+Batas resmi checker adalah tabel *Aturan checker* pada [spec 0008](../specs/0008-ekspor-pemeriksaan-kontrak-openapi/index.md). Checker berupa allow list (daftar bentuk yang diizinkan): bentuk yang tidak tercantum di tabel ditolak. Rule diperiksa satu per satu menurut urutan baris tabel, yang sama dengan `OPENAPI_RULE_IDS` di `scripts/validate-openapi.ts`, dan checker berhenti pada pelanggaran pertama. Karena itu satu dokumen selalu menghasilkan rule ID yang sama. Kegagalan hanya mencetak teks tetap `OpenAPI validation failed` atau `OpenAPI export failed`, ditambah baris `rule: <ID>` untuk pelanggaran kontrak, tanpa isi dokumen, path file, pesan parser, atau stack. Cari ID itu di tabel untuk mengetahui bentuk yang diizinkan. Setiap operasi wajib mendeklarasikan `security` sendiri, termasuk `security: []` untuk route publik; `security` dokumen tidak diwarisi.
+
+Kelulusan checker bukan sertifikasi penuh OpenAPI atau JSON Schema. Kelulusan hanya membuktikan subset proyek. Klaim bahwa bentuk yang lolos checker dibaca generator dengan benar hanya berlaku untuk bentuk yang tercantum di AC-7 spec 0008 dan dibuktikan oleh `tests/fixtures/openapi/subset-full.json`. Bentuk baru, misalnya nullable, union, schema rekursif, `oauth2`, parameter cookie atau array, parameter tingkat path item, response `default`, atau header response, memerlukan pembaruan tabel aturan, fixture, dan bukti generator SDK pada spec fitur yang membutuhkannya sebelum dipakai route. Entri `REQUIRED_OPERATIONS` hanya bertambah melalui spec fitur pemilik route, bersama test yang membuktikan entri barunya.
+
+### Bentuk route yang diekspor bersih
+
+Resep berikut terbukti dengan Elysia 1.4.30 dan `@elysia/openapi` 1.4.16 pada spec 0008. Route yang mengikutinya diekspor dalam bentuk yang diterima checker:
+
+- Model body dan response 2xx didaftarkan dengan `.model({ Nama: schema })` lalu dirujuk dengan string nama pada `body` atau `response`, sehingga diekspor sebagai `#/components/schemas/Nama`.
+- Bilangan bulat memakai `Type.Integer` dari `@sinclair/typebox` yang sudah dipin, bukan `t.Integer` atau `t.Numeric`.
+- Route tidak memakai `t.Nullable`, union campuran tipe, `t.Ref` di dalam model, `t.Array(t.Ref(...))`, atau `t.Array` berisi schema ber `$id`, karena keluarannya `anyOf`, nullable, nama telanjang, atau `$id` bersarang.
+- Response 204 dideklarasikan dengan `detail.responses` berisi `{ 204: { description } }` tanpa schema `response[204]`. `t.Void`, `t.Undefined`, `t.Null`, `t.Object({})`, dan `t.Never` mengekspor bentuk yang ditolak.
+- Parameter `path`, `query`, dan `header` hanya skalar. Header response seperti `Cache-Control` tidak dideklarasikan di OpenAPI sampai rule `response` diperluas.
+- `operationId`, `tags` berisi satu tag, dan `security` dinyatakan pada `detail` setiap route.
 
 ## Konfigurasi dan perintah SDK
 
