@@ -103,6 +103,8 @@ Import tipe dan service melalui barrel SDK yang dihasilkan. Konfigurasikan alias
 
 File `<fitur>-api.ts` di fitur mengadaptasi service/operasi SDK; component dan store menggunakannya. Jangan mengedit SDK atau menulis ulang endpoint serta DTO yang sudah tersedia dari hasil generate. Setiap perubahan backend wajib diikuti regenerasi dan verifikasi pemakaian SDK sebelum integrasi dinyatakan selesai.
 
+Batas impor `@sdk` yang ditegakkan `check:frontend:bundle`, kontrak adapter fitur, dan harness backend nyata untuk test SDK mengikuti [spec 0009](../specs/0009-sdk-sesuai-kontrak-backend/index.md) yang dirangkum pada [aturan OpenAPI dan SDK](openapi-sdk.md): hanya `src/app/app.config.ts` dan adapter `src/app/features/<fitur>/<fitur>-api.ts` yang boleh mengimpor `@sdk`.
+
 ## Routing
 
 `app.routes.ts` menghubungkan route utama. Setiap area fitur memiliki konfigurasi route sendiri ketika diperlukan.

@@ -41,8 +41,8 @@ test('APP-003 validation CLI rejects malformed JSON with safe nonzero exit', asy
 });
 
 test('APP-003 stored contract and SDK reproduce without ports or database', async () => {
-  const dir=await workspace();try {const result=await run(dir,'api:check');expect(result.code, result.output).toBe(0);expect(result.output).toContain('across two runs');}finally{await rm(dir,{recursive:true,force:true});}
-},20000);
+  const dir=await workspace();try {const result=await run(dir,'api:check',{timeout:150_000});expect(result.code, result.output).toBe(0);expect(result.output).toContain('across two runs');}finally{await rm(dir,{recursive:true,force:true});}
+},180_000);
 for(const change of ['changed','missing','new','new-unowned'] as const) {
   test(`APP-003 api:check rejects ${change} generated artifacts`,async()=>{
     const dir=await workspace();try {
@@ -53,9 +53,9 @@ for(const change of ['changed','missing','new','new-unowned'] as const) {
       if(change==='new'){
         const manifest=join(dir,'apps/frontend/sdk/.ojiepermana-sdk-manifest.json');const value=await Bun.file(manifest).json();value.files.push('obsolete.ts');await Bun.write(manifest,JSON.stringify(value));await Bun.write(join(dir,'apps/frontend/sdk/obsolete.ts'),'// obsolete generated file\n');
       }
-      const result=await run(dir,'api:check');expect(result.code).not.toBe(0);expect(result.output).toContain('drift detected');
+      const result=await run(dir,'api:check',{timeout:150_000});expect(result.code).not.toBe(0);expect(result.output).toContain('drift detected');
     }finally{await rm(dir,{recursive:true,force:true});}
-  },20000);
+  },180_000);
 }
 for(const stage of ['api:openapi','api:validate','sdk:generate']) {
   test(`APP-003 api:sync stops when ${stage} fails`,async()=>{

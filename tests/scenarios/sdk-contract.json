@@ -1,0 +1,44 @@
+{
+  "source": "docs/specs/0009-sdk-sesuai-kontrak-backend/index.md",
+  "scenarios": [
+    { "id": "SDK-001", "criteria": ["AC-1"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/sdk.test.ts", "testTag": "SDK-001", "script": "test:integration" },
+      { "runner": "bun:test", "file": "tests/integration/contract/openapi.test.ts", "testTag": "APP-003", "script": "test:integration" }
+    ] },
+    { "id": "SDK-002", "criteria": ["AC-2"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/sdk.test.ts", "testTag": "SDK-002", "script": "test:integration" },
+      { "runner": "command", "file": "package.json", "script": "build:frontend" }
+    ] },
+    { "id": "SDK-003", "criteria": ["AC-3"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/frontend-bundle.test.ts", "testTag": "SDK-003", "script": "test:integration" },
+      { "runner": "command", "file": "scripts/check-frontend-bundle.ts", "script": "check:frontend:bundle" }
+    ] },
+    { "id": "SDK-004", "criteria": ["AC-4"], "checks": [
+      { "runner": "vitest", "file": "apps/frontend/src/app/sdk-contract.integration.spec.ts", "testTag": "SDK-004", "script": "test:frontend" },
+      { "runner": "bun:test", "file": "tests/integration/contract/sdk.test.ts", "testTag": "SDK-004", "script": "test:integration" }
+    ] },
+    { "id": "SDK-005", "criteria": ["AC-5"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/sdk.test.ts", "testTag": "SDK-005", "script": "test:integration" }
+    ] },
+    { "id": "SDK-006", "criteria": ["AC-6"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/sdk.test.ts", "testTag": "SDK-006", "script": "test:integration" },
+      { "runner": "bun:test", "file": "tests/integration/contract/openapi.test.ts", "testTag": "APP-003", "script": "test:integration" },
+      { "runner": "command", "file": "scripts/check-api.ts", "script": "api:check" }
+    ] },
+    { "id": "SDK-007", "criteria": ["AC-7"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/sdk.test.ts", "testTag": "SDK-007", "script": "test:integration" },
+      { "runner": "command", "file": "scripts/check-api.ts", "script": "api:check" }
+    ] },
+    { "id": "SDK-008", "criteria": ["AC-8"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/sdk.test.ts", "testTag": "SDK-008", "script": "test:integration" },
+      { "runner": "command", "file": ".github/workflows/application.yml", "script": "test:ci" }
+    ] },
+    { "id": "SDK-009", "criteria": ["AC-9"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/sdk.test.ts", "testTag": "SDK-009", "script": "test:integration" },
+      { "runner": "command", "file": "package.json", "script": "check:dependencies" }
+    ] },
+    { "id": "SDK-010", "criteria": ["AC-10"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/sdk.test.ts", "testTag": "SDK-010", "script": "test:integration" }
+    ] }
+  ]
+}

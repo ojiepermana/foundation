@@ -29,7 +29,7 @@ export async function processIdentity(pid: number): Promise<ProcessIdentity | nu
   let cwd: string;
   try { cwd = await realpath(path); }
   catch { throw new Error("Direktori proses tidak dapat diverifikasi."); }
-  return { pid, uid: Number(match[1]), pgid: Number(match[2]), started: match[3].replace(/\s+/g, " ").trim(), cwd };
+  return { pid, uid: Number(match[1]), pgid: Number(match[2]), started: match[3]!.replace(/\s+/g, " ").trim(), cwd };
 }
 
 export async function captureProcess(pid: number): Promise<ProcessIdentity> {
@@ -65,6 +65,6 @@ export async function groupAlive(pgid: number): Promise<boolean> {
   if (ps.code !== 0) throw new Error("Grup proses tidak dapat diperiksa.");
   return ps.output.split("\n").some((line) => {
     const match = line.trim().match(/^(\d+)\s+(\S+)/);
-    return match && Number(match[1]) === pgid && !match[2].startsWith("Z");
+    return match && Number(match[1]) === pgid && !match[2]!.startsWith("Z");
   });
 }
