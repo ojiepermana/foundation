@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provisioning PostgreSQL 18 yang membuat role owner, migrator, dan backend terpisah, tiga schema awal, serta metadata migration dengan privilege runtime minimum (spec 0004). [Laporan bukti fitur 5](docs/testing/0003-database-access.md) mencatat verifikasi runtime dan batas review.
 - Perintah `db:migrate --apply` dan `db:seed --apply` yang terpisah dari startup aplikasi, dengan baseline metadata, checksum, transaksi, lock, dan penolakan file SQL yang tidak valid (spec 0005).
 - Skenario MIG-001 sampai MIG-005 pada PostgreSQL 18 terisolasi, termasuk pengulangan, rollback, persaingan runner, dan batas akses role. [Laporan bukti fitur 6](docs/testing/0004-migration-seed.md) mencatat hasil dan batas verifikasinya.
+- Shell Angular responsif dengan navigasi Kesiapan, skip link, dan dukungan keyboard pada desktop serta mobile (spec 0007).
 
 ### Changed
 

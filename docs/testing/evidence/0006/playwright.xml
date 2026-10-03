@@ -1,0 +1,34 @@
+<testsuites id="" name="" tests="4" failures="0" skipped="0" errors="0" time="5.860596999999999">
+<testsuite name="application/framework.e2e.spec.ts" timestamp="2026-10-03T04:40:52.716Z" hostname="chromium" tests="2" failures="0" skipped="0" time="1.975" errors="0">
+<testcase name="APP-002 framework loads at 1280px without server calls and proxy reaches real backend" classname="application/framework.e2e.spec.ts" time="1.531">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/application-framework.e2e--68980--proxy-reaches-real-backend-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="APP-002 framework loads at 375px without server calls and proxy reaches real backend" classname="application/framework.e2e.spec.ts" time="0.444">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/application-framework.e2e--97374--proxy-reaches-real-backend-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="ui-shell/foundation-shell.e2e.spec.ts" timestamp="2026-10-03T04:40:52.716Z" hostname="chromium" tests="2" failures="0" skipped="0" time="3.263" errors="0">
+<testcase name="UI-001 shell navigation, focus, and responsive layout work at target sizes" classname="ui-shell/foundation-shell.e2e.spec.ts" time="2.584">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/ui-shell-foundation-shell.-2fd3d-layout-work-at-target-sizes-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="UI-002 the static root page does not call the backend API" classname="ui-shell/foundation-shell.e2e.spec.ts" time="0.679">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/ui-shell-foundation-shell.-a4de2-es-not-call-the-backend-API-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

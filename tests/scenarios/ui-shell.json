@@ -1,0 +1,46 @@
+{
+  "source": "docs/specs/0007-kerangka-ui-navigasi/index.md",
+  "scenarios": [
+    {
+      "id": "UI-001",
+      "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-6"],
+      "checks": [
+        {
+          "runner": "playwright",
+          "file": "tests/e2e/ui-shell/foundation-shell.e2e.spec.ts",
+          "testTag": "UI-001",
+          "script": "test:e2e"
+        }
+      ]
+    },
+    {
+      "id": "UI-002",
+      "criteria": ["AC-5"],
+      "checks": [
+        {
+          "runner": "playwright",
+          "file": "tests/e2e/ui-shell/foundation-shell.e2e.spec.ts",
+          "testTag": "UI-002",
+          "script": "test:e2e"
+        },
+        {
+          "runner": "command",
+          "file": "scripts/check-frontend-bundle.ts",
+          "script": "check:frontend:bundle"
+        }
+      ]
+    },
+    {
+      "id": "UI-003",
+      "criteria": ["AC-5"],
+      "checks": [
+        {
+          "runner": "bun:test",
+          "file": "tests/integration/contract/frontend-bundle.test.ts",
+          "testTag": "UI-003",
+          "script": "test:integration"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="13" assertions="29" failures="0" skipped="0" time="1.458988">
+  <testsuite name="tests/integration/contract/frontend-bundle.test.ts" file="tests/integration/contract/frontend-bundle.test.ts" tests="13" assertions="29" failures="0" skipped="0" time="1.455541" hostname="ip-103-78-36-187.moratelindo.net.id">
+    <testcase name="UI-003 frontend bundle checker accepts clean source and production assets" classname="" time="0.115276" file="tests/integration/contract/frontend-bundle.test.ts" line="39" assertions="2" />
+    <testcase name="UI-003 frontend bundle checker rejects side-effect server import" classname="" time="0.106711" file="tests/integration/contract/frontend-bundle.test.ts" line="72" assertions="2" />
+    <testcase name="UI-003 frontend bundle checker rejects bare Node builtin import" classname="" time="0.105584" file="tests/integration/contract/frontend-bundle.test.ts" line="72" assertions="2" />
+    <testcase name="UI-003 frontend bundle checker rejects bare Bun runtime import" classname="" time="0.108641" file="tests/integration/contract/frontend-bundle.test.ts" line="72" assertions="2" />
+    <testcase name="UI-003 frontend bundle checker rejects dynamic Node builtin import" classname="" time="0.108461" file="tests/integration/contract/frontend-bundle.test.ts" line="72" assertions="2" />
+    <testcase name="UI-003 frontend bundle checker rejects Bun require import" classname="" time="0.108051" file="tests/integration/contract/frontend-bundle.test.ts" line="72" assertions="2" />
+    <testcase name="UI-003 frontend bundle checker rejects TypeScript import equals" classname="" time="0.106609" file="tests/integration/contract/frontend-bundle.test.ts" line="72" assertions="2" />
+    <testcase name="UI-003 frontend bundle checker rejects TypeScript import type expression" classname="" time="0.10776" file="tests/integration/contract/frontend-bundle.test.ts" line="72" assertions="2" />
+    <testcase name="UI-003 frontend bundle checker rejects server export import" classname="" time="0.106137" file="tests/integration/contract/frontend-bundle.test.ts" line="72" assertions="2" />
+    <testcase name="UI-003 frontend bundle checker rejects uninspectable dynamic imports" classname="" time="0.108239" file="tests/integration/contract/frontend-bundle.test.ts" line="84" assertions="2" />
+    <testcase name="UI-003 frontend bundle checker rejects database URL without printing its value" classname="" time="0.109191" file="tests/integration/contract/frontend-bundle.test.ts" line="105" assertions="3" />
+    <testcase name="UI-003 frontend bundle checker rejects private key without printing its value" classname="" time="0.152622" file="tests/integration/contract/frontend-bundle.test.ts" line="105" assertions="3" />
+    <testcase name="UI-003 frontend bundle checker rejects configured credential without printing its value" classname="" time="0.108403" file="tests/integration/contract/frontend-bundle.test.ts" line="105" assertions="3" />
+  </testsuite>
+</testsuites>

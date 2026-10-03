@@ -29,7 +29,7 @@ Versi dependency, kebijakan akses endpoint diagnostik, target layar dan aksesibi
 | 4 | Struktur aplikasi dan dependency yang kompatibel | Fondasi | done |
 | 5 | Model data dan batas akses database | Fondasi | done |
 | 6 | Migration dan seed terpisah | Fondasi | done |
-| 7 | Kerangka UI dan navigasi | Fondasi | planned |
+| 7 | Kerangka UI dan navigasi | Fondasi | done |
 | 8 | Ekspor dan pemeriksaan kontrak OpenAPI | Alur awal | planned |
 | 9 | SDK yang sesuai kontrak backend | Alur awal | planned |
 | 10 | Alur pemeriksaan kesiapan lintas aplikasi | Alur awal | planned |
@@ -171,7 +171,7 @@ Spec: [0005](../specs/0005-migration-seed-terpisah/index.md).
 
 Kode tersedia: `database/runner.ts`, `database/migrate.ts`, `database/seed.ts`, dan `database/migrations/0001-common-metadata-comment.sql`. Skenario MIG-001 sampai MIG-005 terdaftar di `tests/scenarios/migration.json`. [Laporan bukti](../testing/0004-migration-seed.md) mencatat 15 test database lulus, termasuk 5 test MIG, serta gate proyek. [Review awal](../reviews/2026-10-02-migration-seed.md) menemukan satu celah pemeriksaan SQL; [review ulang](../reviews/2026-10-02-migration-seed-followup.md) menyetujui perbaikannya. Perubahan tercatat pada [CHANGELOG](../../CHANGELOG.md). Status done hanya untuk AC-1 sampai AC-7 spec 0005; CI database dan kesiapan production mengikuti scope berikutnya.
 
-### 7. Kerangka UI dan navigasi · planned · perlu keputusan
+### 7. Kerangka UI dan navigasi · done
 
 Siapkan tampilan minimum bagi alur awal menggunakan komponen dan default layout yang telah disepakati. Halaman mengikuti fitur, bukan kumpulan komponen global.
 
@@ -179,7 +179,20 @@ Siapkan tampilan minimum bagi alur awal menggunakan komponen dan default layout 
 
 Data: tidak membutuhkan perubahan database. Sasaran layar dan aksesibilitas dirinci sebelum verifikasi UI.
 
-- [ ] Rinci kerangka UI (spec): `/architect kerangka UI dan navigasi`
+- [x] Rinci kerangka UI (spec): `/architect kerangka UI dan navigasi`
+
+Spec: [0007](../specs/0007-kerangka-ui-navigasi/index.md).
+
+- [x] Bangun: `/develop kerangka UI dan navigasi`
+  - [x] Integrasikan wrapper layout publik, router outlet, item Kesiapan, dan halaman root statis (AC-1, AC-2).
+  - [x] Atur fallback route, skip link, focus perpindahan route, serta label dan perilaku drawer mobile (AC-3, AC-6).
+  - [x] Buktikan layout pada viewport target dan pastikan bundle serta halaman tidak mengandung akses server atau credential (AC-4, AC-5).
+- [x] Verifikasi: `/check verify kerangka UI dan navigasi`
+- [x] Uji: `/test kerangka UI dan navigasi`
+- [x] Review mandiri: `/check review kerangka UI dan navigasi` ([review final GPT-6 Astra](../reviews/2026-10-03-main-ui-shell-followup.md), Approve; tidak ada temuan terbuka)
+- [x] Dokumentasikan perubahan: `/document kerangka UI dan navigasi`
+
+Kode: `apps/frontend/src/app/`, `scripts/lib/frontend-bundle.ts`, dan `tests/e2e/ui-shell/`. Gate akhir: 30 ID skenario terdaftar; 1 frontend test, 81 integration test dengan 172 assertion, 26 tooling test dengan 75 assertion, dan 4 E2E pass. [Laporan bukti](../testing/0006-ui-navigation.md) memuat screenshot, JUnit, batas verifikasi, dan warning bundle awal 654,09 kB terhadap anggaran 500 kB. [Review awal](../reviews/2026-10-03-main-ui-shell.md) menemukan satu major pada checker; [review final](../reviews/2026-10-03-main-ui-shell-followup.md) menyetujui perbaikannya tanpa temuan terbuka. Status done berlaku untuk AC-1 sampai AC-6 spec 0007.
 
 ## Alur awal
 

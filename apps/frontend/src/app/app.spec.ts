@@ -1,20 +1,21 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { App } from './app';
+import { RouterTestingHarness } from '@angular/router/testing';
+import { routes } from './app.routes';
+import { FoundationHome } from './features/foundation-home/foundation-home';
 
 describe('APP-002 framework page', () => {
   beforeEach(async () => {
-    await TestBed.configureTestingModule({imports:[App],providers:[provideRouter([]),provideHttpClient(),provideHttpClientTesting()]}).compileComponents();
+    await TestBed.configureTestingModule({ providers: [provideRouter(routes)] }).compileComponents();
   });
-  it('renders the static heading and content inside an accessible main landmark', async () => {
-    const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
-    const page: HTMLElement = fixture.nativeElement;
-    expect(page.querySelector('[role=main] h1')?.textContent).toBe('Foundation');
-    expect(page.querySelector('[role=main] p')?.textContent).toBe('Kerangka aplikasi siap dikembangkan.');
-    expect(page.querySelector('section')?.getAttribute('aria-labelledby')).toBe(page.querySelector('h1')?.id);
-    TestBed.inject(HttpTestingController).expectNone(() => true);
+  it('renders the static home page through the root route', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/', FoundationHome);
+    await harness.fixture.whenStable();
+
+    const page = harness.routeNativeElement;
+    expect(page?.querySelector('h1')?.textContent).toBe('Foundation');
+    expect(page?.querySelector('p')?.textContent).toBe('Kerangka aplikasi siap dikembangkan.');
+    expect(page?.querySelector('section')?.getAttribute('aria-labelledby')).toBe(page?.querySelector('h1')?.id);
   });
 });

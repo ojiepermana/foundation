@@ -1,6 +1,12 @@
-<LayoutWrapperDefault layout-type="empty" surface="flat" [data]="[]" [brand]="brand" [user]="user" skip-link-label="Ke konten utama">
-  <section class="foundation-intro" aria-labelledby="foundation-title">
-    <h1 id="foundation-title">Foundation</h1>
-    <p>Kerangka aplikasi siap dikembangkan.</p>
-  </section>
+<LayoutWrapperDefault
+  surface="flat"
+  [data]="navItems"
+  [brand]="brand"
+  [user]="user"
+  skip-link-label="Ke konten utama"
+  mobile-nav-label="Buka navigasi"
+  close-mobile-nav-label="Tutup navigasi"
+  [focus-on-navigation]="true"
+>
+  <router-outlet />
 </LayoutWrapperDefault>

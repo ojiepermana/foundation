@@ -8,7 +8,6 @@ for (const width of [1280, 375]) {
     await page.goto('/');
     await expect(page.getByRole('heading',{name:'Foundation',exact:true})).toBeVisible();
     await expect(page.getByRole('main')).toContainText('Kerangka aplikasi siap dikembangkan.');
-    await expect(page.getByRole('navigation')).toHaveCount(0);
     expect(apiCalls).toEqual([]);
     expect(errors).toEqual([]);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);

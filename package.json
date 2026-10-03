@@ -14,6 +14,7 @@
     "test:tooling:real": "bun tests/integration/tooling-real/doctor-smoke.ts",
     "test:infrastructure": "bun test ./tests/integration/infrastructure --reporter=junit --reporter-outfile=.local/feature-3/infrastructure.xml",
     "build:frontend": "cd apps/frontend && node ../../node_modules/@angular/cli/bin/ng.js build",
+    "check:frontend:bundle": "bun scripts/check-frontend-bundle.ts",
     "typecheck:backend": "tsc -p apps/backend/tsconfig.json",
     "build:backend": "bun build apps/backend/src/index.ts --target bun --packages external --outdir dist/backend",
     "dev:frontend": "bun scripts/frontend-command.ts serve",
@@ -26,7 +27,7 @@
     "test:frontend": "cd apps/frontend && node ../../node_modules/@angular/cli/bin/ng.js test --watch=false",
     "test:integration": "bun test ./tests/integration/backend ./tests/integration/contract --reporter=junit --reporter-outfile=.local/feature-4/server.xml",
     "test:e2e": "playwright test",
-    "test:ci": "bun run check:dependencies && bun run test:scenarios && bun run api:check && bun run build:frontend && bun run typecheck:backend && bun run build:backend && bun run test:frontend && bun run test:integration && bun run test:tooling && bun run test:e2e",
+    "test:ci": "bun run check:dependencies && bun run test:scenarios && bun run api:check && bun run build:frontend && bun run check:frontend:bundle && bun run typecheck:backend && bun run build:backend && bun run test:frontend && bun run test:integration && bun run test:tooling && bun run test:e2e",
     "check:dependencies": "bun scripts/check-dependencies.ts",
     "test:scenarios": "bun scripts/validate-scenarios.ts"
   },

@@ -1,9 +1,8 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
-import { provideApiConfiguration } from '@sdk';
+import { provideMaterialSymbols } from '@ojiepermana/angular/component/icon';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideBrowserGlobalErrorListeners(), provideRouter(routes), provideHttpClient(), provideApiConfiguration('')],
+  providers: [provideBrowserGlobalErrorListeners(), provideRouter(routes), provideMaterialSymbols()],
 };
