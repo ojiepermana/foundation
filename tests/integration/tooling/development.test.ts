@@ -1,12 +1,12 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { runDoctor } from "../../../scripts/doctor";
 import { services, supervise } from "../../../scripts/serve";
 import { insideRoot, loadConfig, selectWorkers, type DevelopmentConfig } from "../../../scripts/lib/development";
 import { clearPorts, listeners } from "../../../scripts/lib/ports";
-import { captureProcess } from "../../../scripts/lib/process-identity";
+import { captureProcess, signalVerifiedGroup } from "../../../scripts/lib/process-identity";
 import { Invocation } from "../../../scripts/lib/invocation";
 import { waitForReadiness } from "../../../scripts/lib/readiness";
 
@@ -61,6 +61,22 @@ async function fixtureListener(ignoreTerm = false, body = "fixture", contentType
   return { port, child };
 }
 
+async function fixturePathListener(path: string): Promise<{ port: number; child: ReturnType<typeof Bun.spawn> }> {
+  const child = Bun.spawn([process.execPath, "-e", `
+    const server = Bun.serve({ hostname: "127.0.0.1", port: 0,
+      fetch: (request) => new URL(request.url).pathname === ${JSON.stringify(path)}
+        ? new Response("ready") : new Response("not found", { status: 404 }) });
+    console.log(server.port);
+  `], { stdout: "pipe", stderr: "ignore", detached: true });
+  fixtureProcesses.push(child);
+  const reader = (child.stdout as ReadableStream<Uint8Array>).getReader();
+  const first = await reader.read();
+  reader.releaseLock();
+  const port = Number(new TextDecoder().decode(first.value).trim());
+  if (!port) throw new Error("Fixture listener tidak siap.");
+  return { port, child };
+}
+
 test("TOOL-001 doctor reports missing prerequisites without stopping a listener or leaking credentials", async () => {
   const root = await temporaryRoot();
   const listener = await fixtureListener();
@@ -96,6 +112,69 @@ test("TOOL-002 cleanup refuses an unrecorded listener", async () => {
   const target = await fixtureListener();
   await expect(clearPorts([target.port], [])).rejects.toThrow("bukan proses Foundation lama");
   expect((await listeners(target.port)).some((item) => item.pid === target.child.pid)).toBe(true);
+});
+
+test("TOOL-002 cleanup rejects a reused PID identity without signaling it", async () => {
+  const target = await fixtureListener();
+  const captured = await captureProcess(target.child.pid);
+  const stale = { ...captured, started: `${captured.started} changed` };
+  await expect(clearPorts([target.port], [stale], () => {})).rejects.toThrow("bukan proses Foundation lama");
+  expect(await fetch(`http://127.0.0.1:${target.port}`).then((response) => response.text())).toBe("fixture");
+});
+
+test("TOOL-002 cleanup rechecks port ownership immediately before SIGTERM", async () => {
+  const target = await fixtureListener();
+  const foreign = await fixtureListener();
+  const [foreignOwner] = await listeners(foreign.port);
+  if (!foreignOwner) throw new Error("Listener fixture asing tidak ditemukan.");
+  const group = await captureProcess(target.child.pid);
+  let ownerChanged = false;
+  let signals = 0;
+  const readListeners = async (port: number) => {
+    if (port !== target.port || !ownerChanged) return listeners(port);
+    return [foreignOwner];
+  };
+  const signal = async (identity: typeof group, requested: NodeJS.Signals,
+    verifyTarget?: () => Promise<boolean>) => {
+    ownerChanged = true;
+    signals++;
+    return signalVerifiedGroup(identity, requested, verifyTarget);
+  };
+
+  await expect(clearPorts([target.port], [group], () => {}, 0, {
+    listeners: readListeners,
+    signal,
+  })).rejects.toThrow("listener port berubah sebelum SIGTERM");
+  expect(signals).toBe(1);
+  expect(await fetch(`http://127.0.0.1:${target.port}`).then((response) => response.text())).toBe("fixture");
+});
+
+test("TOOL-002 cleanup rechecks port ownership immediately before SIGKILL", async () => {
+  const target = await fixtureListener(true);
+  const foreign = await fixtureListener();
+  const [foreignOwner] = await listeners(foreign.port);
+  if (!foreignOwner) throw new Error("Listener fixture asing tidak ditemukan.");
+  const group = await captureProcess(target.child.pid);
+  let ownerChanged = false;
+  const sent: NodeJS.Signals[] = [];
+  const readListeners = async (port: number) => {
+    if (port !== target.port || !ownerChanged) return listeners(port);
+    return [foreignOwner];
+  };
+  const signal = async (identity: typeof group, requested: NodeJS.Signals,
+    verifyTarget?: () => Promise<boolean>) => {
+    if (requested === "SIGKILL") ownerChanged = true;
+    const result = await signalVerifiedGroup(identity, requested, verifyTarget);
+    if (result) sent.push(requested);
+    return result;
+  };
+
+  await expect(clearPorts([target.port], [group], () => {}, 0, {
+    listeners: readListeners,
+    signal,
+  })).rejects.toThrow("listener port berubah sebelum SIGKILL");
+  expect(sent).toEqual(["SIGTERM"]);
+  expect(await fetch(`http://127.0.0.1:${target.port}`).then((response) => response.text())).toBe("fixture");
 });
 
 test("TOOL-003 worker selection is explicit, deduplicated, and rejects unknown workers", () => {
@@ -160,6 +239,15 @@ test("TOOL-003 worker HTTP readiness path is required and local", async () => {
   expect((await loadConfig(root)).workers.notification.readinessPath).toBe("/ready");
 });
 
+test("TOOL-003 selected HTTP worker must answer on its configured readiness path", async () => {
+  const worker = await fixturePathListener("/ready");
+  const group = await captureProcess(worker.child.pid);
+  const target = { name: "worker:notification", port: worker.port, path: "/ready", kind: "worker" as const };
+  await waitForReadiness([target], [group], new AbortController().signal, 2000);
+  await expect(waitForReadiness([{ ...target, path: "/wrong" }], [group],
+    new AbortController().signal, 350)).rejects.toThrow("batas waktu");
+});
+
 test("TOOL-004 service failure stops the other service and its stubborn descendant", async () => {
   const root = await temporaryRoot();
   const identityFile = resolve(root, "listener.json");
@@ -221,6 +309,34 @@ test("TOOL-004 termination stops the supervised listener", async () => {
   expect(await listeners(port)).toEqual([]);
 }, 8000);
 
+test("TOOL-004 Ctrl+C stops the supervised listener", async () => {
+  const root = await temporaryRoot();
+  const identityFile = resolve(root, "service.json");
+  const service = `
+    const server = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("ok") });
+    await Bun.write(${JSON.stringify(identityFile)}, JSON.stringify({ port: server.port, pid: process.pid }));
+  `;
+  const servePath = resolve(import.meta.dir, "../../../scripts/serve.ts");
+  const runner = Bun.spawn([process.execPath, "-e", `
+    const { supervise } = await import(${JSON.stringify(servePath)});
+    process.exitCode = await supervise([{ name: "fixture", command: [process.execPath, "-e", ${JSON.stringify(service)}], cwd: ${JSON.stringify(root)}, env: {} }]);
+  `], { stdout: "ignore", stderr: "ignore" });
+  fixtureProcesses.push(runner);
+  const deadline = Date.now() + 3000;
+  while (!(await Bun.file(identityFile).exists())) {
+    if (Date.now() >= deadline) throw new Error("Fixture supervisor tidak siap.");
+    await Bun.sleep(20);
+  }
+  const identity = await Bun.file(identityFile).json();
+  const port = Number(identity.port);
+  const pid = Number(identity.pid);
+  if (!Number.isInteger(port) || !Number.isInteger(pid)) throw new Error("Identitas fixture tidak lengkap.");
+  descendantPids.push(pid);
+  runner.kill("SIGINT");
+  expect(await runner.exited).toBe(130);
+  expect(await listeners(port)).toEqual([]);
+}, 8000);
+
 test("TOOL-005 a second invocation cannot take the active lock", async () => {
   const root = await temporaryRoot();
   const first = await Invocation.acquire(root);
@@ -228,6 +344,30 @@ test("TOOL-005 a second invocation cannot take the active lock", async () => {
   finally { await first.release(); }
   const next = await Invocation.acquire(root);
   await next.release();
+});
+
+test("TOOL-005 an incomplete invocation lock fails safely within five seconds", async () => {
+  const root = await temporaryRoot();
+  await mkdir(resolve(root, ".local/serve.lock"), { recursive: true });
+  const started = performance.now();
+  await expect(Invocation.acquire(root)).rejects.toThrow("Catatan serve belum lengkap");
+  expect(performance.now() - started).toBeGreaterThanOrEqual(4900);
+  expect(performance.now() - started).toBeLessThan(6500);
+}, 7000);
+
+test("TOOL-005 recovery rejects groups whose recorded checkout differs", async () => {
+  const root = await temporaryRoot();
+  const checkout = await realpath(root);
+  const target = await fixtureListener();
+  const group = await captureProcess(target.child.pid);
+  const supervisor = await captureProcess(process.pid);
+  await mkdir(resolve(root, ".local/serve.lock"), { recursive: true });
+  await writeFile(resolve(root, ".local/serve.lock/owner.json"), JSON.stringify({
+    token: "stale", checkout, uid: process.getuid?.() ?? -1,
+    supervisor: { ...supervisor, started: `${supervisor.started} stale` }, groups: [group],
+  }), { mode: 0o600 });
+  await expect(Invocation.acquire(root)).rejects.toThrow("Grup invocation lama bukan milik checkout ini");
+  expect(await fetch(`http://127.0.0.1:${target.port}`).then((response) => response.text())).toBe("fixture");
 });
 
 test("TOOL-005 one recovery can take a stale invocation lock", async () => {
@@ -329,6 +469,37 @@ test("TOOL-006 readiness timeout stops the supervised process", async () => {
   `] }], { ready: [{ name: "wrong-backend", port, path: "/api/status", kind: "backend" }], timeoutMs: 350 });
   expect(result).toBe(1);
   expect(await listeners(port)).toEqual([]);
+});
+
+test("TOOL-006 readiness retries after an empty port snapshot before the owned listener appears", async () => {
+  const target = await fixtureListener(false, "ready");
+  const observed: string[] = [];
+  await waitForReadiness([{ name: "worker:fixture", port: target.port, path: "/", kind: "worker" }], [],
+    new AbortController().signal, 3000, {
+      inspectOwner: async () => {
+        const state = observed.length === 0 ? "absent" : "owned";
+        observed.push(state);
+        return state;
+      },
+    });
+  expect(observed).toEqual(["absent", "owned", "owned", "owned"]);
+});
+
+test("TOOL-006 readiness rejects an HTTP response completed after the startup deadline", async () => {
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    async fetch() {
+      await Bun.sleep(300);
+      return Response.json({ status: "ok" });
+    },
+  });
+  try {
+    await expect(waitForReadiness([{ name: "backend:slow", port: server.port, path: "/", kind: "backend" }], [],
+      new AbortController().signal, 80, { inspectOwner: async () => "owned" })).rejects.toThrow("batas waktu");
+  } finally {
+    server.stop(true);
+  }
 });
 
 function projectRootForTest(): string {

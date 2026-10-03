@@ -1,6 +1,12 @@
 import { belongsToGroup, groupAlive, processIdentity, sameProcess, signalVerifiedGroup, type ProcessIdentity } from "./process-identity";
 
 export interface Listener { pid: number; uid: number; command: string }
+export type PortOwnerState = "absent" | "owned" | "foreign";
+
+export interface PortCleanupDependencies {
+  listeners?: typeof listeners;
+  signal?: typeof signalVerifiedGroup;
+}
 
 export async function listeners(port: number): Promise<Listener[]> {
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Port tidak valid.");
@@ -29,22 +35,32 @@ export async function listeners(port: number): Promise<Listener[]> {
 }
 
 export async function clearPorts(ports: number[], oldGroups: ProcessIdentity[],
-  log: (message: string) => void = console.log, graceMs = 3000): Promise<void> {
-  const initial = await occupied(ports);
+  log: (message: string) => void = console.log, graceMs = 3000,
+  dependencies: PortCleanupDependencies = {}): Promise<void> {
+  const readListeners = dependencies.listeners ?? listeners;
+  const signal = dependencies.signal ?? signalVerifiedGroup;
+  const verifyPortOwnership = async (): Promise<boolean> => {
+    const current = await occupied(ports, readListeners);
+    for (const item of current) if (!await ownedGroup(item, oldGroups)) return false;
+    return true;
+  };
+  const initial = await occupied(ports, readListeners);
   for (const item of initial) {
     const owned = await ownedGroup(item, oldGroups);
     if (!owned) throw new Error("Listener port bukan proses Foundation lama dari checkout ini.");
   }
   for (const group of oldGroups) {
     if (!sameProcess(await processIdentity(group.pid), group)) continue;
-    if (!await signalVerifiedGroup(group, "SIGTERM")) throw new Error("Identitas grup berubah sebelum SIGTERM.");
+    if (!await signal(group, "SIGTERM", verifyPortOwnership)) {
+      throw new Error("Identitas grup atau listener port berubah sebelum SIGTERM.");
+    }
     log(`Menghentikan grup Foundation lama ${group.pgid}.`);
   }
   const deadline = Date.now() + graceMs;
-  let remaining = await occupied(ports);
+  let remaining = await occupied(ports, readListeners);
   while ((remaining.length || await anyGroupAlive(oldGroups)) && Date.now() < deadline) {
     await Bun.sleep(100);
-    remaining = await occupied(ports);
+    remaining = await occupied(ports, readListeners);
   }
   const toKill = new Map<number, ProcessIdentity>();
   for (const item of remaining) {
@@ -56,11 +72,13 @@ export async function clearPorts(ports: number[], oldGroups: ProcessIdentity[],
     if (await groupAlive(group.pgid)) toKill.set(group.pgid, group);
   }
   for (const owned of toKill.values()) {
-    if (!await signalVerifiedGroup(owned, "SIGKILL")) throw new Error("Identitas grup berubah sebelum SIGKILL.");
+    if (!await signal(owned, "SIGKILL", verifyPortOwnership)) {
+      throw new Error("Identitas grup atau listener port berubah sebelum SIGKILL.");
+    }
     log(`Grup Foundation lama ${owned.pgid} belum berhenti; mengirim SIGKILL.`);
   }
   const finalDeadline = Date.now() + 1500;
-  while ((await occupied(ports)).length || await anyGroupAlive(oldGroups)) {
+  while ((await occupied(ports, readListeners)).length || await anyGroupAlive(oldGroups)) {
     if (Date.now() >= finalDeadline) throw new Error("Port project masih dipakai setelah cleanup.");
     await Bun.sleep(100);
   }
@@ -71,8 +89,8 @@ async function anyGroupAlive(groups: ProcessIdentity[]): Promise<boolean> {
   return false;
 }
 
-async function occupied(ports: number[]): Promise<Listener[]> {
-  const found = await Promise.all(ports.map(listeners));
+async function occupied(ports: number[], readListeners: typeof listeners = listeners): Promise<Listener[]> {
+  const found = await Promise.all(ports.map(readListeners));
   return [...new Map(found.flat().map((item) => [item.pid, item])).values()];
 }
 
@@ -83,11 +101,12 @@ async function ownedGroup(listener: Listener, groups: ProcessIdentity[]): Promis
   return null;
 }
 
-export async function verifyPortOwner(port: number, groups: ProcessIdentity[]): Promise<boolean> {
-  const found = await listeners(port);
-  if (found.length === 0) return false;
+export async function inspectPortOwner(port: number, groups: ProcessIdentity[],
+  readListeners: typeof listeners = listeners): Promise<PortOwnerState> {
+  const found = await readListeners(port);
+  if (found.length === 0) return "absent";
   for (const listener of found) {
-    if (!await ownedGroup(listener, groups)) return false;
+    if (!await ownedGroup(listener, groups)) return "foreign";
   }
-  return true;
+  return "owned";
 }

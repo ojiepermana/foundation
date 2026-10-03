@@ -7,6 +7,7 @@
     { "id": "TOOL-004", "criteria": ["AC-8"], "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-004", "script": "test:tooling" },
     { "id": "TOOL-005", "criteria": ["AC-6", "AC-7"], "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-005", "script": "test:tooling" },
     { "id": "TOOL-006", "criteria": ["AC-4", "AC-8"], "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-006", "script": "test:tooling" },
+    { "id": "TOOL-007", "criteria": ["AC-1", "AC-2", "AC-4"], "runner": "command", "file": "tests/integration/tooling-real/doctor-smoke.ts", "script": "test:tooling:real" },
     { "id": "TOOL-008", "criteria": ["AC-3", "AC-5"], "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-008", "script": "test:tooling" }
   ]
 }

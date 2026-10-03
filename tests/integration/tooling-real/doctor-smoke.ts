@@ -81,11 +81,15 @@ async function serveRealApplication() {
     ]);
     const backend = await fetch('http://127.0.0.1:8888/api/status');
     const frontend = await fetch('http://127.0.0.1:8889/');
+    const backendBody = await backend.json();
+    const frontendType = frontend.headers.get('content-type') ?? '';
+    const frontendBody = await frontend.text();
     assert.equal(backend.status, 200);
-    assert.deepEqual(await backend.json(), { status: 'ok' });
+    assert.deepEqual(backendBody, { status: 'ok' });
     assert.equal(frontend.status, 200);
-    assert.match(frontend.headers.get('content-type') ?? '', /text\/html/);
-    console.log('TOOL-007 partial: serve reported ready; backend and frontend HTTP passed');
+    assert.match(frontendType, /text\/html/);
+    assert.match(frontendBody, /<html(?:\s|>)/i);
+    console.log(`TOOL-007 partial: GET http://127.0.0.1:8888/api/status -> ${backend.status} ${JSON.stringify(backendBody)}; GET http://127.0.0.1:8889/ -> ${frontend.status} ${frontendType}; serve reported ready`);
   } catch (error) {
     throw new Error(`${(error as Error).message}; ${redacted(output).slice(-800)}`);
   } finally {
@@ -103,6 +107,7 @@ async function serveRealApplication() {
     await drains;
     assert.equal((await listeners(8888)).length, 0, 'Backend listener remains after shutdown');
     assert.equal((await listeners(8889)).length, 0, 'Frontend listener remains after shutdown');
+    console.log('TOOL-007 partial: SIGTERM shutdown removed listeners on ports 8888 and 8889');
   }
 }
 
@@ -159,13 +164,17 @@ try {
   await admin`UPDATE common.schema_migrations SET checksum = ${'a'.repeat(64)} WHERE name = '0001-common-metadata-comment.sql'`;
   assert((await databaseChecks(config)).some((check) => check.name.includes('Migration') && check.status === 'error'));
   await admin`UPDATE common.schema_migrations SET checksum = ${baseline.checksum} WHERE name = '0001-common-metadata-comment.sql'`;
+  const missingMigration = '9999-migration-file-missing.sql';
+  await admin`INSERT INTO common.schema_migrations (name, checksum) VALUES (${missingMigration}, ${'b'.repeat(64)})`;
+  assert((await databaseChecks(config)).some((check) => check.name.includes('Migration') && check.status === 'error'));
+  await admin`DELETE FROM common.schema_migrations WHERE name = ${missingMigration}`;
   const emptyRoot = resolve(directory, 'empty-repository');
   await mkdir(resolve(emptyRoot, 'database/migrations'), { recursive: true });
   assert((await databaseChecks(config, emptyRoot)).some((check) => check.name.includes('Migration') && check.status === 'error'));
   process.env.DATABASE_URL = adminUrl;
   assert((await databaseChecks(config)).some((check) => check.name.includes('Role database') && check.status === 'error'));
   process.env.DATABASE_URL = backendUrl;
-  console.log('TOOL-001: wrong target, metadata write, writer membership, checksum, empty migrations, and admin role rejected');
+  console.log('TOOL-001: wrong target, metadata write, writer membership, checksum, orphan metadata, empty migrations, and admin role rejected');
 
   await serveRealApplication();
   await admin.close();

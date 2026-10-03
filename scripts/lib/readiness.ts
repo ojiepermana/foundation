@@ -1,4 +1,4 @@
-import { listeners, verifyPortOwner } from "./ports";
+import { inspectPortOwner, type PortOwnerState } from "./ports";
 import type { ProcessIdentity } from "./process-identity";
 
 export interface ReadyTarget {
@@ -8,9 +8,17 @@ export interface ReadyTarget {
   kind: "frontend" | "backend" | "worker";
 }
 
-async function probe(target: ReadyTarget): Promise<boolean> {
+export interface ReadinessDependencies {
+  inspectOwner?: (port: number, groups: ProcessIdentity[]) => Promise<PortOwnerState>;
+}
+
+function assertBeforeDeadline(deadline: number): void {
+  if (performance.now() >= deadline) throw new Error("Layanan tidak siap dalam batas waktu.");
+}
+
+async function probe(target: ReadyTarget, timeoutMs: number): Promise<boolean> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 1500);
+  const timer = setTimeout(() => controller.abort(), Math.min(1500, timeoutMs));
   try {
     const response = await fetch(`http://127.0.0.1:${target.port}${target.path}`, {
       method: "GET", redirect: "manual", signal: controller.signal,
@@ -31,28 +39,36 @@ async function probe(target: ReadyTarget): Promise<boolean> {
 }
 
 export async function waitForReadiness(targets: ReadyTarget[], groups: ProcessIdentity[],
-  signal: AbortSignal, timeoutMs = 60000): Promise<void> {
+  signal: AbortSignal, timeoutMs = 60000, dependencies: ReadinessDependencies = {}): Promise<void> {
   const deadline = performance.now() + timeoutMs;
+  const inspectOwner = dependencies.inspectOwner ?? inspectPortOwner;
   const ready = new Set<string>();
   while (ready.size < targets.length) {
     if (signal.aborted) throw new Error("Startup dibatalkan.");
-    if (performance.now() >= deadline) throw new Error("Layanan tidak siap dalam batas waktu.");
+    assertBeforeDeadline(deadline);
     for (const target of targets) {
       if (ready.has(target.name)) continue;
-      const owned = await verifyPortOwner(target.port, groups);
-      if (!owned) {
-        const found = await listeners(target.port);
-        if (found.length) throw new Error(`Listener ${target.name} bukan milik invocation ini.`);
-        continue;
-      }
-      if (await probe(target)) {
-        if (!await verifyPortOwner(target.port, groups)) throw new Error(`Listener ${target.name} berubah saat readiness.`);
+      assertBeforeDeadline(deadline);
+      const owner = await inspectOwner(target.port, groups);
+      assertBeforeDeadline(deadline);
+      if (owner === "foreign") throw new Error(`Listener ${target.name} bukan milik invocation ini.`);
+      if (owner === "absent") continue;
+      const responded = await probe(target, deadline - performance.now());
+      assertBeforeDeadline(deadline);
+      if (responded) {
+        if (await inspectOwner(target.port, groups) !== "owned") throw new Error(`Listener ${target.name} berubah saat readiness.`);
+        assertBeforeDeadline(deadline);
         ready.add(target.name);
       }
     }
-    if (ready.size < targets.length) await Bun.sleep(200);
+    if (ready.size < targets.length) {
+      assertBeforeDeadline(deadline);
+      await Bun.sleep(Math.min(200, deadline - performance.now()));
+    }
   }
   for (const target of targets) {
-    if (!await verifyPortOwner(target.port, groups)) throw new Error(`Listener ${target.name} berubah sebelum siap.`);
+    assertBeforeDeadline(deadline);
+    if (await inspectOwner(target.port, groups) !== "owned") throw new Error(`Listener ${target.name} berubah sebelum siap.`);
+    assertBeforeDeadline(deadline);
   }
 }

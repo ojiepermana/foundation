@@ -51,8 +51,10 @@ export async function belongsToGroup(pid: number, leader: ProcessIdentity): Prom
   return sameProcess(currentLeader, leader) && listener !== null && listener.uid === leader.uid && listener.pgid === leader.pgid;
 }
 
-export async function signalVerifiedGroup(leader: ProcessIdentity, signal: NodeJS.Signals): Promise<boolean> {
+export async function signalVerifiedGroup(leader: ProcessIdentity, signal: NodeJS.Signals,
+  verifyTarget?: () => Promise<boolean>): Promise<boolean> {
   if (!sameProcess(await processIdentity(leader.pid), leader) || leader.pgid !== leader.pid) return false;
+  if (verifyTarget && !await verifyTarget()) return false;
   try { process.kill(-leader.pgid, signal); }
   catch (error) { if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error; }
   return true;
