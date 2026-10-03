@@ -31,7 +31,7 @@ Versi dependency, kebijakan akses endpoint diagnostik, target layar dan aksesibi
 | 6 | Migration dan seed terpisah | Fondasi | done |
 | 7 | Kerangka UI dan navigasi | Fondasi | done |
 | 8 | Ekspor dan pemeriksaan kontrak OpenAPI | Alur awal | done |
-| 9 | SDK yang sesuai kontrak backend | Alur awal | planned |
+| 9 | SDK yang sesuai kontrak backend | Alur awal | done |
 | 10 | Alur pemeriksaan kesiapan lintas aplikasi | Alur awal | planned |
 | 11 | Pengujian skenario dan gate CI | Pembuktian | planned |
 | 12 | Kapasitas dan pemulihan saat beban meningkat | Pembuktian | planned |
@@ -224,7 +224,7 @@ Spec: [0008](../specs/0008-ekspor-pemeriksaan-kontrak-openapi/index.md).
 
 Kode tersedia: `scripts/export-openapi.ts`, `scripts/validate-openapi.ts`, `scripts/lib/canonical-json.ts`, `tsconfig.contract.json`, `tests/fixtures/openapi/subset-full.json`, `tests/integration/contract/` (`openapi-contract.test.ts`, `workspace.ts`, `no-network-preload.ts`), dan registry `tests/scenarios/openapi-contract.json`. Checker menerapkan 16 rule menurut urutan tabel aturan beserta `REQUIRED_OPERATIONS`, `subset-full.json` dibaca `sdk:generate` dan lulus `tsc --strict`, batas checker dan *Bentuk route yang diekspor bersih* tertulis di `docs/rules/openapi-sdk.md`, dan rule ID terbukti sama dengan tabel spec. OPENAPI-001 sampai OPENAPI-007 lulus 404 test dengan 1.084 assertion. Gate akhir 2026-10-03: `bun run test:ci` exit 0 dengan 38 ID skenario, `api:check` identik pada dua run, 1 test frontend, 485 integration test dengan 1.256 assertion, 29 tooling test dengan 79 assertion, dan 4 E2E pass; `test:database:migration`, `test:database:real`, `test:tooling:real`, dan `test:infrastructure` juga lulus sebagai regresi. [Laporan bukti](../testing/0007-openapi-contract.md) memuat JUnit, checksum artefak, dan batas bukti. [Review awal](../reviews/2026-10-03-main-openapi-contract.md) mencatat tiga minor dan empat nit, dan daftar perbaikan berikutnya memuat satu major (ekspor yang gagal dapat mengganti `openapi.json` atau meninggalkan file sementara) serta dua belas minor; [review ulang](../reviews/2026-10-03-main-openapi-contract-followup.md) menyetujui perbaikannya dengan nits, sementara tiga minor baru dan enam nit tetap terbuka sebagai tindak lanjut. Perubahan tercatat pada [CHANGELOG](../../CHANGELOG.md). Status done berlaku untuk AC-1 sampai AC-8 spec 0008; drift SDK dan bukti SDK terhadap backend nyata mengikuti fitur 9, sedangkan alur browser mengikuti fitur 10.
 
-### 9. SDK yang sesuai kontrak backend · planned · perlu keputusan
+### 9. SDK yang sesuai kontrak backend · done
 
 Hubungkan hasil ekspor backend dengan adapter fitur Angular melalui SDK generated. Tetapkan satu pemilik artefak bersama ketika implementasi berjalan paralel.
 
@@ -232,7 +232,21 @@ Hubungkan hasil ekspor backend dengan adapter fitur Angular melalui SDK generate
 
 Data: tidak membutuhkan perubahan database. SDK tidak memuat secret dan tidak dipelihara manual.
 
-- [ ] Rinci sinkronisasi serta konsumsi SDK (spec): `/architect SDK yang sesuai kontrak backend`
+- [x] Rinci sinkronisasi serta konsumsi SDK (spec): `/architect SDK yang sesuai kontrak backend`
+
+Spec: [0009](../specs/0009-sdk-sesuai-kontrak-backend/index.md).
+
+- [x] Bangun: `/develop SDK yang sesuai kontrak backend`
+  - [x] Pasang konfigurasi SDK aplikasi, batas impor adapter pada checker bundle, dan harness backend nyata; buktikan request dan response SDK terhadap backend nyata (AC-2, AC-3, AC-4).
+  - [x] Ganti `api:check` dengan regenerasi terisolasi dua run, laporan per file, batas waktu, serta penghentian grup proses dan pembersihan (AC-4, AC-6, AC-7, AC-10).
+  - [x] Pin locale generator; buktikan reproduksi dari kosong, manifest, konflik file tanpa pemilik, build SDK, dan urutan locale di Linux (AC-1, AC-2, AC-5, AC-7).
+  - [x] Buktikan regenerasi tanpa cache dan isolasi secret, selaraskan aturan serta registry, lalu kumpulkan bukti gate (AC-1 sampai AC-10).
+- [x] Verifikasi: `/check verify SDK yang sesuai kontrak backend`
+- [x] Uji: `/test SDK yang sesuai kontrak backend`
+- [x] Review mandiri: `/check review SDK yang sesuai kontrak backend` ([review awal](../reviews/2026-10-03-main-sdk-contract.md) dan [review ulang Sonnet 5.5](../reviews/2026-10-03-main-sdk-contract-followup.md), Approve with nits; tidak ada blocker atau major pada kedua putaran; keempat temuan minor serta nit listener `abort` dan state `globalSetup` yang gagal diperbaiki pada 2026-10-04 dan terbukti pada review ulang, tersisa lima nit sebagai tindak lanjut)
+- [x] Dokumentasikan perubahan: `/document SDK yang sesuai kontrak backend`
+
+Kode tersedia: `apps/frontend/src/app/app.config.ts` (`provideHttpClient()` dan `provideApiConfiguration('')`), harness `apps/frontend/vitest-base.config.ts`, `apps/frontend/vitest-backend.setup.ts`, dan `apps/frontend/vitest-provided-context.d.ts`, test Vitest `apps/frontend/src/app/sdk-contract.integration.spec.ts`, checker `scripts/lib/frontend-bundle.ts` dan `scripts/check-frontend-bundle.ts` (tabel *Bentuk impor SDK*), `scripts/lib/process-group.ts`, `scripts/lib/api-artifacts.ts`, `scripts/lib/api-check.ts`, CLI `scripts/check-api.ts`, script `sdk:generate` dengan `LC_ALL=en_US.UTF-8` dan `api:check` dengan `--no-env-file`, test `tests/integration/contract/sdk.test.ts` dan `tests/integration/contract/frontend-bundle.test.ts`, serta registry `tests/scenarios/sdk-contract.json`. `api:check` meregenerasi dua kali di direktori sementara dan menyebut setiap file `added`, `changed`, atau `removed` tanpa mengubah checkout, SDK hasil generate terbukti terhadap backend nyata untuk `GET /api/status`, hasil generator byte identik di bawah locale `cs_CZ` dan `en_US` di macOS dan kontainer Linux aarch64, dan batas impor, kontrak adapter, serta harness tertulis di `docs/rules/openapi-sdk.md`. SDK-001 sampai SDK-010 lulus dengan 54 test dan 608 assertion di `sdk.test.ts`, 49 test SDK-003 di checker bundle, dan 6 test Vitest SDK-004. Gate akhir 2026-10-04: `bun run test:ci` exit 0 dalam 109 detik dengan 48 ID skenario, `api:check` identik pada dua run, initial bundle 675,94 kB (naik dari 654,09 kB; warning anggaran 500 kB tetap ada), 7 test frontend, 588 integration test dengan 2.071 assertion, 29 tooling test dengan 79 assertion, dan 4 E2E pass; `test:database:migration`, `test:database:real`, `test:tooling:real`, dan `test:infrastructure` juga lulus sebagai regresi. [Laporan bukti](../testing/0008-sdk-contract.md) memuat JUnit, checksum artefak, hasil kontainer Linux, kontrol mutasi, dan batas bukti. [Review awal](../reviews/2026-10-03-main-sdk-contract.md) mencatat empat minor dan enam nit tanpa blocker atau major; [review ulang](../reviews/2026-10-03-main-sdk-contract-followup.md) menyetujui perbaikannya dengan nits, sementara lima nit tetap terbuka sebagai tindak lanjut. Perubahan tercatat pada [CHANGELOG](../../CHANGELOG.md). Status done berlaku untuk AC-1 sampai AC-10 spec 0009; adapter fitur pertama dan alur browser melalui proxy mengikuti fitur 10, dan Linux x86_64 belum dijalankan secara lokal sehingga buktinya mengikuti `test:ci` di CI.
 
 ### 10. Alur pemeriksaan kesiapan lintas aplikasi · planned · perlu keputusan
 

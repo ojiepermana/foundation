@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="7" failures="0" errors="0" time="0.069710917">
+    <testsuite name="src/app/app.spec.ts" timestamp="2026-10-03T19:24:50.908Z" tests="1" failures="0" errors="0" skipped="0" time="0.029490583">
+        <testcase classname="src/app/app.spec.ts" name="APP-002 framework page &gt; renders the static home page through the root route" time="0.028775208">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/sdk-contract.integration.spec.ts" timestamp="2026-10-03T19:24:50.909Z" tests="6" failures="0" errors="0" skipped="0" time="0.040220334">
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 request shape with the application config &gt; uses the same origin root URL and sends one GET /api/status without credentials" time="0.01399275">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; returns the development status through DevelopmentService" time="0.012677417">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; returns the development status through FoundationApi.invoke$Response" time="0.003292458">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; returns only the DevelopmentStatus body through getDevelopmentStatus and FoundationApi.invoke" time="0.003250542">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; fails with HttpErrorResponse 404 and the backend error body for an unknown path" time="0.003137583">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; fails with HttpErrorResponse status 0 when nothing listens on the port" time="0.003039375">
+        </testcase>
+    </testsuite>
+</testsuites>
