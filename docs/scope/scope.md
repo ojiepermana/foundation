@@ -30,7 +30,7 @@ Versi dependency, kebijakan akses endpoint diagnostik, target layar dan aksesibi
 | 5 | Model data dan batas akses database | Fondasi | done |
 | 6 | Migration dan seed terpisah | Fondasi | done |
 | 7 | Kerangka UI dan navigasi | Fondasi | done |
-| 8 | Ekspor dan pemeriksaan kontrak OpenAPI | Alur awal | planned |
+| 8 | Ekspor dan pemeriksaan kontrak OpenAPI | Alur awal | done |
 | 9 | SDK yang sesuai kontrak backend | Alur awal | planned |
 | 10 | Alur pemeriksaan kesiapan lintas aplikasi | Alur awal | planned |
 | 11 | Pengujian skenario dan gate CI | Pembuktian | planned |
@@ -200,7 +200,7 @@ Kode: `apps/frontend/src/app/`, `scripts/lib/frontend-bundle.ts`, dan `tests/e2e
 
 Fitur 8 sampai 10 membentuk satu alur nyata untuk memeriksa kesiapan fondasi. Kontrak minimum disepakati sebelum bagian frontend dan backend yang bergantung padanya dikerjakan. Alur ini memakai metadata yang telah diperlukan, sehingga tidak menciptakan domain bisnis contoh. Fitur 2 dituntaskan terhadap alur tersebut.
 
-### 8. Ekspor dan pemeriksaan kontrak OpenAPI · planned · perlu keputusan
+### 8. Ekspor dan pemeriksaan kontrak OpenAPI · done
 
 Jadikan route serta schema backend sebagai sumber kontrak yang dapat diekspor tanpa menjalankan layanan eksternal.
 
@@ -208,7 +208,21 @@ Jadikan route serta schema backend sebagai sumber kontrak yang dapat diekspor ta
 
 Data: tidak membutuhkan perubahan database. Security kontrak mencerminkan akses route nyata, termasuk kebijakan diagnostik fitur 10.
 
-- [ ] Rinci kontrak dan checker (spec): `/architect ekspor dan pemeriksaan kontrak OpenAPI`
+- [x] Rinci kontrak dan checker (spec): `/architect ekspor dan pemeriksaan kontrak OpenAPI`
+
+Spec: [0008](../specs/0008-ekspor-pemeriksaan-kontrak-openapi/index.md).
+
+- [x] Bangun: `/develop ekspor dan pemeriksaan kontrak OpenAPI`
+  - [x] Bangun jalur tipis exporter, checker, CLI, dan `api:sync` dengan rule ID pertama, urutan key code unit, batas input, serta kegagalan aman tanpa listener atau database (AC-1, AC-2, AC-6).
+  - [x] Terapkan aturan dokumen, operasi, schema, komponen, reference, security, dan operasi wajib menurut urutan tabel; buktikan matriks penolakan, kasus kisi, dan batas kedalaman (AC-3, AC-4, AC-5).
+  - [x] Buktikan bentuk yang diterima dapat dibaca generator lewat `subset-full.json`, route 204, `sdk:generate`, dan `tsc --strict` (AC-7).
+  - [x] Tulis batas checker dan resep route pada aturan proyek, buktikan rule ID sama dengan spec, lengkapi registry, lalu kumpulkan bukti gate (AC-1 sampai AC-8).
+- [x] Verifikasi: `/check verify ekspor dan pemeriksaan kontrak OpenAPI`
+- [x] Uji: `/test ekspor dan pemeriksaan kontrak OpenAPI`
+- [x] Review mandiri: `/check review ekspor dan pemeriksaan kontrak OpenAPI` ([review awal](../reviews/2026-10-03-main-openapi-contract.md) dan [review ulang Sonnet 5.5](../reviews/2026-10-03-main-openapi-contract-followup.md), Approve with nits; temuan major sebelumnya selesai, tersisa tiga temuan minor baru dan enam nit)
+- [x] Dokumentasikan perubahan: `/document ekspor dan pemeriksaan kontrak OpenAPI`
+
+Kode tersedia: `scripts/export-openapi.ts`, `scripts/validate-openapi.ts`, `scripts/lib/canonical-json.ts`, `tsconfig.contract.json`, `tests/fixtures/openapi/subset-full.json`, `tests/integration/contract/` (`openapi-contract.test.ts`, `workspace.ts`, `no-network-preload.ts`), dan registry `tests/scenarios/openapi-contract.json`. Checker menerapkan 16 rule menurut urutan tabel aturan beserta `REQUIRED_OPERATIONS`, `subset-full.json` dibaca `sdk:generate` dan lulus `tsc --strict`, batas checker dan *Bentuk route yang diekspor bersih* tertulis di `docs/rules/openapi-sdk.md`, dan rule ID terbukti sama dengan tabel spec. OPENAPI-001 sampai OPENAPI-007 lulus 404 test dengan 1.084 assertion. Gate akhir 2026-10-03: `bun run test:ci` exit 0 dengan 38 ID skenario, `api:check` identik pada dua run, 1 test frontend, 485 integration test dengan 1.256 assertion, 29 tooling test dengan 79 assertion, dan 4 E2E pass; `test:database:migration`, `test:database:real`, `test:tooling:real`, dan `test:infrastructure` juga lulus sebagai regresi. [Laporan bukti](../testing/0007-openapi-contract.md) memuat JUnit, checksum artefak, dan batas bukti. [Review awal](../reviews/2026-10-03-main-openapi-contract.md) mencatat tiga minor dan empat nit, dan daftar perbaikan berikutnya memuat satu major (ekspor yang gagal dapat mengganti `openapi.json` atau meninggalkan file sementara) serta dua belas minor; [review ulang](../reviews/2026-10-03-main-openapi-contract-followup.md) menyetujui perbaikannya dengan nits, sementara tiga minor baru dan enam nit tetap terbuka sebagai tindak lanjut. Perubahan tercatat pada [CHANGELOG](../../CHANGELOG.md). Status done berlaku untuk AC-1 sampai AC-8 spec 0008; drift SDK dan bukti SDK terhadap backend nyata mengikuti fitur 9, sedangkan alur browser mengikuti fitur 10.
 
 ### 9. SDK yang sesuai kontrak backend · planned · perlu keputusan
 
