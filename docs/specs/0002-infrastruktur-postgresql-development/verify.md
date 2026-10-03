@@ -1,15 +1,17 @@
-# Verify: Infrastruktur PostgreSQL development · spec 0002 · updated 2026-10-01
+# Verify: Infrastruktur PostgreSQL development · spec 0002 · updated 2026-10-03
 _Langkah diturunkan dari acceptance criteria spec 0002 dan tabel Value sourcing. `/check verify` menjalankannya; `/test` mengunci langkah yang tahan lama._
 
 Semua perintah dijalankan dari root. Untuk langkah pada volume baru, pakai project uji `-p foundation-infra-test-<8 hex>` dengan env file sementara, lalu `down --volumes` untuk project itu saja. Jangan menghapus volume `foundation_pgsql_data` milik dev.
 
 ## Commands: build dan image
 
-- [x] `docker compose --env-file .env.infrastructure build --pull postgres` → exit 0; `docker image inspect foundation-postgres:18-dev` berlabel `org.opencontainers.image.base.name=oraclelinux:10-slim` dan `Config.User=postgres` → AC-1
+- [x] Bandingkan build dev terisolasi dengan `--pull` dan dengan `--pull --no-cache` → base image ID tetap `sha256:0660af1f...`; build biasa memakai cache pada langkah paket, build tanpa cache menjalankannya ulang, keduanya mencatat `postgresql18-server-18.6-4PGDG.rhel10.2.aarch64` → [bukti refresh](../../testing/evidence/0002/dev-refresh.json) → AC-2, AC-9 (2026-10-03)
 - [x] `docker run --rm --entrypoint rpm foundation-postgres:18-dev -q postgresql18-server` → versi 18 terbaru di `rhel-10.<minor>-<arch>` PGDG; `rpm -q postgresql18-contrib` → tidak terpasang; paket `postgresql18*` hanya `postgresql18`, `postgresql18-libs`, `postgresql18-server` → AC-1
 - [x] `docker image inspect` dan `docker history --no-trunc` untuk image dev dan pinned → tidak memuat `POSTGRES_PASSWORD` atau nilai password; `Config.Env` hanya `PATH`, `PGDATA`, `TZ` → AC-1
-- [x] `docker buildx build --platform linux/amd64` dengan build args dari `pins.json` → exit 0, log memuat `digests signatures OK`, key yang diimpor `08b40d20` → AC-1
-- [x] Ubah satu karakter konstanta fingerprint di salinan Dockerfile lalu build → gagal dengan `Fingerprint key PGDG ... tidak sama` → AC-1 (value sourcing: fingerprint konstanta)
+- [x] `docker buildx build --platform linux/amd64` dengan pin base dan paket → exit 0, `rpm -q` menunjukkan `18.6-4PGDG.rhel10.2`, proses UID 26, key cocok dengan fingerprint dan signature repo lolos sebelum instalasi → [bukti build arm64/amd64](../../testing/evidence/0002/reproducibility.json) → AC-1, AC-2 (2026-10-03; amd64 melalui emulasi)
+- [x] `bun test ./tests/integration/infrastructure/postgres.test.ts -t 'INFRA-002 key PGDG dan signature repo diverifikasi sebelum RPM diinstall'` → test mengunci urutan unduh key, listing GnuPG read-only, pencocokan fingerprint primary penuh, import ke RPM database sementara, pemeriksaan satu record key, import global, verifikasi wajib, pemeriksaan ID key penanda tangan, lalu instalasi → AC-1
+- [x] `bun test ./tests/integration/infrastructure/postgres.test.ts -t 'INFRA-002 key bundle dan signature unsigned, rusak, atau dari signer lain ditolak sebelum instalasi'` → helper yang sama dengan Dockerfile menolak bundle yang berisi key tambahan sebelum import global, RPM unsigned, signature valid dari key lain yang dipercaya RPM, dan fixture dengan payload yang diubah; paket, payload, dan penanda `%post` tidak terpasang atau berjalan → AC-1
+- [x] Ubah satu karakter konstanta fingerprint di salinan Dockerfile lalu build → gagal karena fingerprint public key tidak sama dengan konstanta → AC-1 (value sourcing: fingerprint konstanta)
 - [x] Build terkunci dua kali (salah satunya `--no-cache`) → label base sama dengan `pins.baseImage` dan `rpm -q postgresql18-server` sama dengan `pins.postgresPackageVersion` pada keduanya → AC-2
 - [x] Isi `postgresPackageVersion` dengan versi yang tidak ada di PGDG pada salinan `pins.json` → build terkunci gagal, bukan memasang versi lain → AC-2 (value sourcing: pin)
 - [x] `.local/feature-3/image.json` setelah `bun run test:infrastructure` → `baseIndexDigest`, `packageVersion`, `serverVersion`, `imageId`, `architecture`, `processUid` terisi dan sesuai pin → AC-2
@@ -52,14 +54,14 @@ Semua perintah dijalankan dari root. Untuk langkah pada volume baru, pakai proje
 
 ## Commands: suite terisolasi
 
-- [x] `bun run test:infrastructure` pada 2026-10-01 → 16 pass, 0 skip, 0 fail; JUnit `.local/feature-3/infrastructure.xml` → AC-8. Lima test yang ditambahkan setelah hasil 11 pass mencakup mode tanpa daemon, kebocoran password di log, zona waktu bernama, perubahan password di env, serta password pendek dan identifier tidak valid.
+- [x] `bun run test:infrastructure` pada 2026-10-03 → 18 pass, 0 skip, 0 fail, 168 assertions; JUnit `.local/feature-3/infrastructure.xml` → AC-8. Test mengunci urutan validasi fingerprint penuh, RPM database sementara, import global, dan signature sebelum pemasangan; menolak key bundle, RPM unsigned, signature rusak, dan signer tepercaya lain tanpa memasang payload atau menjalankan scriptlet; juga menjaga dokumentasi refresh tetap sinkron.
 - [x] Setelah suite: `docker ps -a`, `docker network ls`, `docker volume ls` tanpa `foundation-infra-test-*`; `CreatedAt` volume `foundation_pgsql_data` tidak berubah; tag `foundation-postgres:18-dev` tidak berubah → AC-8 (value sourcing: nama project dan tag image uji)
 - [x] Buat satu test gagal secara sengaja → cleanup tetap menghapus resource project uji → AC-8
 - [x] `DOCKER_HOST=unix:///nonexistent/docker.sock bun test ./tests/integration/infrastructure` pada 2026-10-01 → 4 pass, 12 skip dengan alasan `Docker daemon tidak dapat dihubungi`, 0 fail → AC-8
 
 ## UI / manual
 
-- [x] Baca `docs/rules/infrastructure.md`, `docs/rules/database.md`, dan `README.md` → menjelaskan image proyek, path `/var/lib/pgsql/18/data` dan volume `pgsql_data`, `docker compose build --pull postgres`, cara memperbarui `pins.json`, script `test:infrastructure`, serta tidak lagi menyebut image resmi `postgres:18` sebagai image yang dipakai → AC-9
+- [x] Baca `docs/rules/infrastructure.md`, `docs/rules/database.md`, dan `README.md` → menjelaskan image proyek, path `/var/lib/pgsql/18/data` dan volume `pgsql_data`, `docker compose --env-file .env.infrastructure build --pull --no-cache postgres`, cara memperbarui `pins.json`, script `test:infrastructure`, serta tidak lagi menyebut image resmi `postgres:18` sebagai image yang dipakai → AC-9
 
 ## Acceptance-criteria coverage
 

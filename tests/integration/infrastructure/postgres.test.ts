@@ -80,6 +80,15 @@ async function dockerCommand(args: string[], timeout?: number): Promise<Result> 
   return result;
 }
 
+async function runVerifierInContainer(script: string, timeout = 300000): Promise<Result> {
+  const verifier = resolve(root, "infrastructure/postgres/verify-pgdg-repo-rpm.sh");
+  return run([
+    "docker", "run", "--rm", "--user", "0",
+    "--mount", `type=bind,source=${verifier},target=/tmp/verify-pgdg-repo-rpm.sh,readonly`,
+    "--entrypoint", "/bin/bash", pins.baseImage, "-c", script,
+  ], { timeout });
+}
+
 async function detectDocker(): Promise<{ cli: boolean; daemon: boolean; wait: boolean; reason: string }> {
   if (!Bun.which("docker")) return { cli: false, daemon: false, wait: false, reason: "docker CLI tidak ditemukan" };
   if ((await run(["docker", "compose", "version"])).code !== 0) return { cli: false, daemon: false, wait: false, reason: "Docker Compose v2 tidak tersedia" };
@@ -245,6 +254,11 @@ test("INFRA-001 Compose root hanya berisi postgres dan secret admin tidak masuk 
   for (const name of await readdir(resolve(root, "scripts"), { recursive: true })) {
     if (name.endsWith(".ts")) expect(await Bun.file(resolve(root, "scripts", name)).text()).not.toMatch(/\bdocker\b/i);
   }
+
+  const updateCommand = "docker compose --env-file .env.infrastructure build --pull --no-cache postgres";
+  for (const path of ["README.md", "docs/rules/infrastructure.md", "docs/specs/0002-infrastruktur-postgresql-development/index.md", "docs/specs/0002-infrastruktur-postgresql-development/verify.md"]) {
+    expect(await Bun.file(resolve(root, path)).text()).toContain(updateCommand);
+  }
 });
 
 cliTest(label("INFRA-001 config --quiet menolak password kosong dan tidak mencetak secret", docker.cli), async () => {
@@ -272,6 +286,165 @@ test("INFRA-005 cleanup menolak nama project tanpa awalan uji", () => {
   }
   expect(() => assertTestProject(`${testPrefix}0a1b2c3d`)).not.toThrow();
 });
+
+test("INFRA-002 key PGDG dan signature repo diverifikasi sebelum RPM diinstall", async () => {
+  const dockerfile = await Bun.file(resolve(root, "infrastructure/postgres/Dockerfile")).text();
+  const verifier = await Bun.file(resolve(root, "infrastructure/postgres/verify-pgdg-repo-rpm.sh")).text();
+  const keyDownload = dockerfile.indexOf("/pub/repos/yum/keys/");
+  const helperCopy = dockerfile.indexOf("COPY --chmod=0755 verify-pgdg-repo-rpm.sh /tmp/verify-pgdg-repo-rpm.sh");
+  const gpgInstall = dockerfile.indexOf("microdnf -y --nodocs install gnupg2");
+  const gpgRemoval = dockerfile.indexOf('microdnf -y remove "${gpg_packages_added[@]}"');
+  const verifierCall = dockerfile.indexOf('/tmp/verify-pgdg-repo-rpm.sh "$keyfile" /tmp/pgdg-repo.rpm "$expected"');
+  const postgresInstall = dockerfile.indexOf('install "$package" tzdata');
+  const fingerprintListing = verifier.indexOf("--with-colons --import-options show-only --dry-run --import");
+  const fingerprintCheck = verifier.indexOf('[ "$primary_fingerprints" != "$expected" ]');
+  const isolatedImport = verifier.indexOf('rpmkeys --dbpath "$keydb" --import "$keyfile"');
+  const isolatedKeyCheck = verifier.indexOf('[ "$imported_key_ids" = "$expected_key_id" ]');
+  const keyImport = verifier.indexOf('rpmkeys --import "$keyfile"');
+  const signatureCheck = verifier.indexOf("rpmkeys --define '_pkgverify_level all' --checksig --verbose");
+  const trustedKeyCheck = verifier.indexOf('grep -Eiq "key ID $expected_key_id: OK"');
+  const install = verifier.indexOf("rpm --define '_pkgverify_level all' -i");
+
+  expect([keyDownload, helperCopy, gpgInstall, gpgRemoval, verifierCall, postgresInstall, fingerprintListing, fingerprintCheck, isolatedImport, isolatedKeyCheck, keyImport, signatureCheck, trustedKeyCheck, install].every((position) => position >= 0)).toBe(true);
+  expect(helperCopy).toBeLessThan(keyDownload);
+  expect(gpgInstall).toBeLessThan(keyDownload);
+  expect(helperCopy).toBeLessThan(verifierCall);
+  expect(gpgInstall).toBeLessThan(verifierCall);
+  expect(verifierCall).toBeLessThan(gpgRemoval);
+  expect(gpgRemoval).toBeLessThan(postgresInstall);
+  expect(fingerprintListing).toBeLessThan(fingerprintCheck);
+  expect(fingerprintCheck).toBeLessThan(isolatedImport);
+  expect(isolatedImport).toBeLessThan(isolatedKeyCheck);
+  expect(dockerfile).toContain("grep -Ev '^(gpg-pubkey|pgdg-redhat-repo)$'");
+  expect(verifier).not.toContain("sort -u");
+  expect(isolatedKeyCheck).toBeLessThan(keyImport);
+  expect(keyImport).toBeLessThan(signatureCheck);
+  expect(signatureCheck).toBeLessThan(trustedKeyCheck);
+  expect(trustedKeyCheck).toBeLessThan(install);
+  expect(signatureCheck).toBeLessThan(install);
+  expect(dockerfile).not.toContain("--nosignature");
+});
+
+daemonTest(label("INFRA-002 key bundle dan signature unsigned, rusak, atau dari signer lain ditolak sebelum instalasi", docker.daemon), async () => {
+  const script = `set -euo pipefail
+microdnf -y --nodocs install rpm-build rpm-sign gnupg2 >/dev/null
+arch="$(uname -m)"
+case "$arch" in
+  x86_64) key=PGDG-RPM-GPG-KEY-RHEL; expected=D4BF08AE67A0B4C7A1DBCCD240BCA2B408B40D20 ;;
+  aarch64) key=PGDG-RPM-GPG-KEY-AARCH64-RHEL; expected=B031F89FC983E98262906B6E177B343BB9738825 ;;
+  *) echo "arsitektur tidak didukung: $arch" >&2; exit 2 ;;
+esac
+curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/repo.rpm "https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-$arch/pgdg-redhat-repo-latest.noarch.rpm"
+cp /tmp/repo.rpm /tmp/signed-repo.rpm
+curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/key "https://download.postgresql.org/pub/repos/yum/keys/$key"
+rpmsign --delsign /tmp/repo.rpm
+default_check="$(rpmkeys --checksig /tmp/repo.rpm)"
+if [[ "$default_check" != *"digests OK"* || "$default_check" == *"signatures OK"* ]]; then
+  printf 'Unexpected default RPM verification output: %s\n' "$default_check" >&2
+  exit 12
+fi
+if /tmp/verify-pgdg-repo-rpm.sh /tmp/key /tmp/repo.rpm "$expected" >/tmp/unsigned.out 2>&1; then
+  echo "CANDIDATE_ACCEPTED_UNSIGNED_RPM" >&2
+  exit 3
+fi
+if rpm -q pgdg-redhat-repo; then
+  echo "UNSIGNED_PACKAGE_INSTALLED" >&2
+  exit 4
+fi
+echo "UNSIGNED_RPM_REJECTED"
+
+# Buat RPM dengan payload dan %post penanda, lalu tandatangani dengan key uji yang berbeda.
+mkdir -p /tmp/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS} /tmp/gnupg
+chmod 700 /tmp/gnupg
+cat >/tmp/rpmbuild/SPECS/fixture.spec <<'SPEC'
+Name: pgdg-verification-fixture
+Version: 1
+Release: 1
+Summary: Temporary signature verification fixture
+License: MIT
+BuildArch: noarch
+%description
+Temporary signature verification fixture.
+%install
+mkdir -p %{buildroot}/usr/share/pgdg-verification-fixture
+echo payload > %{buildroot}/usr/share/pgdg-verification-fixture/payload
+%post
+/bin/sh -c 'echo executed > /tmp/pgdg-verification-scriptlet'
+%files
+/usr/share/pgdg-verification-fixture/payload
+SPEC
+rpmbuild --define '_topdir /tmp/rpmbuild' -bb /tmp/rpmbuild/SPECS/fixture.spec >/dev/null 2>&1
+gpg --homedir /tmp/gnupg --batch --pinentry-mode loopback --passphrase '' --quick-generate-key 'Foundation Fixture Signer <fixture@example.invalid>' rsa2048 sign 0 >/dev/null 2>&1
+gpg --homedir /tmp/gnupg --batch --armor --export >/tmp/fixture-public.key
+other_key_id="$(gpg --homedir /tmp/gnupg --batch --with-colons --list-keys | awk -F: '$1 == "pub" { print substr($5, length($5) - 7); exit }' | tr A-F a-f)"
+fixture=/tmp/rpmbuild/RPMS/noarch/pgdg-verification-fixture-1-1.noarch.rpm
+rpmsign --addsign --define '_gpg_name Foundation Fixture Signer <fixture@example.invalid>' --define '_gpg_path /tmp/gnupg' --define '_gpgbin /usr/bin/gpg' --define '_gpg_digest_algo sha256' "$fixture" >/dev/null 2>&1
+
+# Key file dengan fingerprint PGDG yang benar tetap ditolak bila mengandung key kedua.
+cat /tmp/key /tmp/fixture-public.key >/tmp/key-bundle
+if /tmp/verify-pgdg-repo-rpm.sh /tmp/key-bundle /tmp/signed-repo.rpm "$expected" >/tmp/key-bundle.out 2>&1; then
+  echo "CANDIDATE_ACCEPTED_EXTRA_KEY_BUNDLE" >&2
+  exit 5
+fi
+grep -Fq "File key PGDG harus berisi tepat satu public key dengan fingerprint yang diharapkan." /tmp/key-bundle.out
+if rpmkeys --define '_pkgverify_level all' --checksig --verbose "$fixture" >/tmp/untrusted-check.out 2>&1; then
+  echo "BUNDLED_EXTRA_KEY_ENTERED_GLOBAL_TRUST_STORE" >&2
+  exit 6
+fi
+echo "KEY_BUNDLE_REJECTED_WITHOUT_TRUSTING_EXTRA_KEY"
+
+rpmkeys --import /tmp/fixture-public.key
+signed="$(rpmkeys --define '_pkgverify_level all' --checksig --verbose "$fixture")"
+[[ "$signed" == *"key ID $other_key_id: OK"* ]]
+if /tmp/verify-pgdg-repo-rpm.sh /tmp/key "$fixture" "$expected" >/tmp/other-signer.out 2>&1; then
+  echo "CANDIDATE_ACCEPTED_UNAUTHORIZED_SIGNER" >&2
+  exit 7
+fi
+if ! grep -Eiq "key ID $other_key_id: OK" /tmp/other-signer.out; then
+  cat /tmp/other-signer.out >&2
+  exit 11
+fi
+grep -Fq "Signature repo RPM bukan dari key PGDG yang diharapkan." /tmp/other-signer.out
+if rpm -q pgdg-verification-fixture; then
+  echo "OTHER_SIGNER_PACKAGE_INSTALLED" >&2
+  exit 8
+fi
+if test -e /usr/share/pgdg-verification-fixture/payload || test -e /tmp/pgdg-verification-scriptlet; then
+  echo "OTHER_SIGNER_PAYLOAD_OR_SCRIPTLET_EXECUTED" >&2
+  exit 9
+fi
+
+# Perubahan payload setelah signing merusak digest/signature dan harus berhenti sebelum instalasi.
+cp "$fixture" /tmp/corrupt.rpm
+size="$(stat -c '%s' /tmp/corrupt.rpm)"
+printf '\\000' | dd of=/tmp/corrupt.rpm bs=1 seek="$((size - 32))" count=1 conv=notrunc status=none
+if rpmkeys --define '_pkgverify_level all' --checksig --verbose /tmp/corrupt.rpm >/tmp/corrupt-check.out 2>&1; then
+  echo "DAMAGED_RPM_PASSED_STRICT_CHECKSIG" >&2
+  exit 10
+fi
+if /tmp/verify-pgdg-repo-rpm.sh /tmp/key /tmp/corrupt.rpm "$expected" >/tmp/corrupt.out 2>&1; then
+  echo "CANDIDATE_ACCEPTED_DAMAGED_SIGNATURE" >&2
+  exit 11
+fi
+if rpm -q pgdg-verification-fixture; then
+  echo "CORRUPT_PACKAGE_INSTALLED" >&2
+  exit 12
+fi
+if test -e /usr/share/pgdg-verification-fixture/payload || test -e /tmp/pgdg-verification-scriptlet; then
+  echo "CORRUPT_PAYLOAD_OR_SCRIPTLET_EXECUTED" >&2
+  exit 13
+fi
+echo "UNAUTHORIZED_SIGNER_REJECTED"
+echo "CORRUPT_RPM_REJECTED"
+echo "REJECTED_PACKAGE_PAYLOAD_AND_SCRIPTLET_ABSENT"`;
+  const result = await runVerifierInContainer(script);
+  if (result.code !== 0) throw new Error(mask(`Probe RPM negatif gagal (${result.code}):\n${result.stdout}\n${result.stderr}`));
+  expect(result.stdout).toContain("UNSIGNED_RPM_REJECTED");
+  expect(result.stdout).toContain("KEY_BUNDLE_REJECTED_WITHOUT_TRUSTING_EXTRA_KEY");
+  expect(result.stdout).toContain("UNAUTHORIZED_SIGNER_REJECTED");
+  expect(result.stdout).toContain("CORRUPT_RPM_REJECTED");
+  expect(result.stdout).toContain("REJECTED_PACKAGE_PAYLOAD_AND_SCRIPTLET_ABSENT");
+}, 300000);
 
 const nestedName = "INFRA-005 tanpa daemon skenario Docker dilaporkan dilewati dengan alasan, bukan lulus";
 test.skipIf(nested)(nested ? nestedName + nestedLabel : nestedName, async () => {

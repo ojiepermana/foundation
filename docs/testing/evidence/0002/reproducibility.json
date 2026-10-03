@@ -31,5 +31,96 @@
       "log": ".local/feature-3/build-arm64.log"
     }
   ],
-  "suiteBuild": "Build terkunci suite (foundation-postgres:18-pinned, arm64) tercatat di .local/feature-3/image.json dengan base dan versi paket yang sama."
+  "suiteBuild": "Build terkunci suite (foundation-postgres:18-pinned, arm64) tercatat di .local/feature-3/image.json dengan base dan versi paket yang sama.",
+  "recentValidation": {
+    "recordedAt": "2026-10-03T02:09:13.175Z",
+    "baseImage": "oraclelinux:10-slim@sha256:0660af1f1bb56559b299d99d3b71d0ff51f9d593cecbd3154a46914704ec34d6",
+    "note": "Dockerfile after signature-order fix. arm64 ran in bun run test:infrastructure; amd64 ran through Docker buildx emulation on the arm64 host. Neither amd64 record is native execution.",
+    "builds": [
+      {
+        "command": "bun run test:infrastructure; docker compose build from pins.json",
+        "image": "foundation-postgres:18-pinned",
+        "imageId": "sha256:10e9aff50a8dd9587a02b92139d3ef41d0aa52b232efecbec52ace5acb2626e7",
+        "architecture": "arm64",
+        "postgresPackage": "18.6-4PGDG.rhel10.2",
+        "processUid": 26,
+        "signature": "PGDG key fingerprint matched; repository RPM signature verified before installation"
+      },
+      {
+        "command": "docker buildx build --platform linux/amd64 --pull --progress=plain --load --build-arg BASE_IMAGE=oraclelinux:10-slim@sha256:0660af1f1bb56559b299d99d3b71d0ff51f9d593cecbd3154a46914704ec34d6 --build-arg POSTGRES_PACKAGE_VERSION=18.6-4PGDG.rhel10.2",
+        "image": "foundation-postgres:18-amd64-173f5a36",
+        "imageId": "sha256:1f040aa1dc9144e453171b698b5ce494706ce49602fd9414c7243a2170ae16f8",
+        "architecture": "amd64",
+        "postgresPackage": "18.6-4PGDG.rhel10.2",
+        "processUid": 26,
+        "signature": "PGDG key fingerprint matched; repository RPM signature verified before installation"
+      }
+    ]
+  },
+  "finalValidation": {
+    "recordedAt": "2026-10-03T03:18:16Z",
+    "note": "Final candidate checks every primary OpenPGP fingerprint against the pinned 40-hex value before RPM global import. GnuPG and newly installed dependencies are removed, while the PGDG repository RPM is retained.",
+    "suite": {
+      "command": "bun run test:infrastructure",
+      "result": "18 pass, 0 fail, 0 skipped, 168 assertions",
+      "junit": "infrastructure.xml",
+      "scenarios": "bun run test:scenarios passed, 27 unique IDs"
+    },
+    "signatureProbes": {
+      "unsigned": {
+        "package": "official pgdg-redhat-repo RPM with signature removed by rpmsign --delsign",
+        "defaultChecksig": "exit 0, digests OK and no signature OK",
+        "candidateVerifier": "nonzero before installation",
+        "installed": false
+      },
+      "bundledKey": {
+        "keyFile": "authentic PGDG armored key concatenated with a generated test public key",
+        "verification": "GnuPG show-only detects two primary certificates; the helper requires exactly one full primary fingerprint matching the pin, then the isolated RPM database checks one key record without deduplication",
+        "candidateVerifier": "nonzero before importing into global RPM database",
+        "additionalKeyTrusted": false,
+        "additionalSignerStrictChecksig": "nonzero until test explicitly imports the signer key"
+      },
+      "unauthorizedSigner": {
+        "package": "temporary noarch RPM with payload and %post marker",
+        "signer": "temporary generated test key explicitly imported into the RPM trust store",
+        "strictChecksig": "exit 0, alternate key ID reported OK",
+        "candidateVerifier": "nonzero at the expected PGDG key ID check",
+        "packageInstalled": false,
+        "payloadInstalled": false,
+        "scriptletExecuted": false
+      },
+      "corruptSignature": {
+        "mutation": "one payload byte changed after signing",
+        "strictChecksig": "nonzero",
+        "candidateVerifier": "nonzero before installation",
+        "packageInstalled": false,
+        "payloadInstalled": false,
+        "scriptletExecuted": false
+      },
+      "shortIdCollisionFixture": "No dedicated collision key fixture was generated; the acceptance gate compares each primary's full fingerprint and rejects every second primary certificate regardless of its short ID."
+    },
+    "builds": [
+      {
+        "image": "foundation-postgres:18-pinned",
+        "imageId": "sha256:9a2f3cc8d0e7ec77514625b8f9eb7d9d0b4b6ea00a3ce363da8ca965e7c69074",
+        "architecture": "arm64",
+        "package": "18.6-4PGDG.rhel10.2.aarch64",
+        "processUid": 26,
+        "temporaryGpgPackages": "gnupg2 and newly installed dependencies absent from final image",
+        "repositoryPackage": "pgdg-redhat-repo-42.0-69.rhel10PGDG retained",
+        "execution": "native on the arm64 host through bun run test:infrastructure"
+      },
+      {
+        "image": "foundation-postgres:18-amd64-final-20261003",
+        "imageId": "sha256:8c76c30a8eede2ab291f5db0079865e4b8013e052545b9ffece7bd590e7f9de0",
+        "architecture": "amd64",
+        "package": "18.6-4PGDG.rhel10.2.x86_64",
+        "processUid": 26,
+        "signingKeyId": "08b40d20",
+        "temporaryGpgPackages": "gnupg2 and newly installed dependencies absent from final image",
+        "repositoryPackage": "pgdg-redhat-repo-42.0-69.rhel10PGDG retained",
+        "execution": "Docker Buildx emulation on arm64 host; temporary tag removed after inspection"
+      }
+    ]
+  }
 }

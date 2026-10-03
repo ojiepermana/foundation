@@ -1,7 +1,7 @@
 {
   "source": "docs/specs/0002-infrastruktur-postgresql-development/index.md",
   "scenarios": [
-    { "id": "INFRA-001", "criteria": ["AC-4", "AC-6", "AC-7"], "checks": [
+    { "id": "INFRA-001", "criteria": ["AC-4", "AC-6", "AC-7", "AC-9"], "checks": [
       {"runner":"bun:test","file":"tests/integration/infrastructure/postgres.test.ts","testTag":"INFRA-001","script":"test:infrastructure"}
     ]},
     { "id": "INFRA-002", "criteria": ["AC-1", "AC-2"], "checks": [

@@ -25,7 +25,7 @@ Versi dependency, kebijakan akses endpoint diagnostik, target layar dan aksesibi
 | --- | --- | --- | --- |
 | 1 | Panduan dan aturan proyek | Konteks tersedia | existing |
 | 2 | Doctor dan serve pada aplikasi nyata | Fondasi | in-progress |
-| 3 | Infrastruktur PostgreSQL development | Fondasi | in-progress |
+| 3 | Infrastruktur PostgreSQL development | Fondasi | done |
 | 4 | Struktur aplikasi dan dependency yang kompatibel | Fondasi | done |
 | 5 | Model data dan batas akses database | Fondasi | done |
 | 6 | Migration dan seed terpisah | Fondasi | done |
@@ -76,7 +76,7 @@ Spec: [0003](../specs/0003-doctor-serve-aplikasi-nyata/index.md).
 
 Kode tersedia: `scripts/doctor.ts`, `scripts/serve.ts`, `scripts/lib/`, `config/development.json`, dan `tests/integration/tooling/development.test.ts`. Registry memuat TOOL-001 sampai TOOL-006 serta TOOL-008. Suite tooling lulus 20 test pada 2026-10-02. [Smoke test PostgreSQL dan aplikasi nyata](../testing/0005-doctor-serve-real-smoke.md) membuktikan doctor, preflight, HTTP, dan shutdown terhadap provisioning serta migration fitur 5 dan 6. TOOL-007 tetap parsial sampai alur browser fitur 10 tersedia.
 
-### 3. Infrastruktur PostgreSQL development · in-progress
+### 3. Infrastruktur PostgreSQL development · done
 
 Buktikan konfigurasi layanan pendukung yang sudah tersedia agar Anda dapat memakai database development secara konsisten.
 
@@ -95,10 +95,10 @@ Spec: [0002](../specs/0002-infrastruktur-postgresql-development/index.md).
   - [x] Periksa batas Compose dan secret, perbarui aturan serta README, lalu kumpulkan bukti (AC-4, AC-6, AC-7, AC-9).
 - [x] Verifikasi: `/check verify infrastruktur PostgreSQL development`
 - [x] Uji: `/test infrastruktur PostgreSQL development`
-- [ ] Review ulang: `/check review infrastruktur PostgreSQL development` (review awal meminta perubahan; perbaikannya sudah diuji)
+- [x] Review ulang: `/check review infrastruktur PostgreSQL development` ([review final](../reviews/2026-10-03-main-final4.md) approve with nits; dua temuan minor diperbaiki dan suite akhir lulus 18 test, 168 assertion)
 - [x] Dokumentasikan perubahan: `/document infrastruktur PostgreSQL development`
 
-Kode tersedia: `infrastructure/postgres/` (Dockerfile, entrypoint, `pins.json`), `docker-compose.yml`, `.env.infrastructure.example`, dan `tests/integration/infrastructure/` (registry `tests/scenarios/infrastructure.json`, script `test:infrastructure`). Suite INFRA-001 sampai INFRA-006 lulus 16/16 dengan Docker nyata pada 2026-10-01; [laporan bukti](../testing/0002-postgresql-development-infrastructure.md) dan salinan JUnit ada di repo. Review awal meminta perbaikan pada jumlah test yang dilaporkan dan bukti password lama; kedua perbaikan sudah diuji, tetapi hasil review ulang belum tersedia. Dokumentasi perubahan tercatat pada [CHANGELOG](../../CHANGELOG.md).
+Kode tersedia: `infrastructure/postgres/` (Dockerfile, helper verifikasi signature dan isi key, entrypoint, `pins.json`), `docker-compose.yml`, `.env.infrastructure.example`, dan `tests/integration/infrastructure/` (registry `tests/scenarios/infrastructure.json`, script `test:infrastructure`). Suite INFRA-001 sampai INFRA-006 lulus 18/18 dengan Docker nyata pada 2026-10-03, 168 assertion; [laporan bukti](../testing/0002-postgresql-development-infrastructure.md) dan JUnit bersih ada di repo. Probe membuktikan key bundle ditolak sebelum import global, signer tambahan tidak dipercaya, dan signature unsigned/rusak atau signer berbeda tidak memasang payload atau menjalankan scriptlet. Build arm64 dan Buildx amd64 terbaru memakai key PGDG yang diharapkan, sementara paket GnuPG sementara dan dependency-nya tidak tertinggal pada image. Review independen menyetujui dengan nits; kedua temuan minor sudah diperbaiki dan diverifikasi ulang.
 
 ### 4. Struktur aplikasi dan dependency yang kompatibel · done
 

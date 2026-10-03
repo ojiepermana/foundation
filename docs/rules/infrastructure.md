@@ -8,7 +8,7 @@ Cache, broker antrean, object storage, atau layanan pendukung lain dapat ditamba
 
 Server dibangun dari `infrastructure/postgres/Dockerfile` di atas `oraclelinux:10-slim` dengan paket `postgresql18-server` dari repository resmi PGDG. Image yang sama nanti menjadi dasar server database production, sehingga dev, CI, dan production memakai OS dan paket yang sama.
 
-- Repo PGDG dipilih per arsitektur (`x86_64` atau `aarch64`). Fingerprint key GPG PGDG dicocokkan dengan konstanta di Dockerfile; build gagal bila berbeda, lalu paket dipasang dengan `gpgcheck=1`.
+- Repo PGDG dipilih per arsitektur (`x86_64` atau `aarch64`). Dockerfile memasang GnuPG sementara untuk membaca semua sertifikat public key, mewajibkan tepat satu fingerprint primary 40 digit yang sama dengan konstanta, lalu membuang GnuPG dan seluruh dependency paket yang baru dipasang. Sebelum import ke RPM global, helper mengimpor key yang sama ke RPM database sementara dan memastikan tepat satu key ID yang sesuai terlihat tanpa deduplikasi. Key tambahan ditolak. Mode verifikasi RPM mewajibkan digest dan signature valid; ID key penanda tangan juga harus cocok sebelum RPM repo dipasang atau scriptlet dijalankan. Paket database dipasang dengan `gpgcheck=1`.
 - Hanya paket server beserta dependensinya yang terpasang, tanpa `postgresql18-contrib`. `tzdata` ikut dipasang karena server PGDG membaca zona waktu dari `/usr/share/zoneinfo` tetapi tidak mendeklarasikannya; tanpa itu timezone menjadi `UTC0` dan zona bernama ditolak.
 - Proses server berjalan sebagai user OS `postgres` (UID 26), bukan root. `STOPSIGNAL SIGINT` memicu fast shutdown sehingga `stop` dan `down` selesai dalam `stop_grace_period: 30s` tanpa recovery pada start berikutnya.
 - Log server ditulis ke stderr dan dibaca lewat `docker compose logs`. `logging_collector` dimatikan karena paket PGDG menyalakannya secara default.
@@ -66,9 +66,11 @@ Perintah tersebut mempertahankan named volume. Penghapusan volume merupakan rese
 Dev memakai build terbaru dalam major 18. Patch keamanan hanya masuk saat Anda rebuild, jadi perbarui image dev secara berkala:
 
 ```sh
-docker compose --env-file .env.infrastructure build --pull postgres
+docker compose --env-file .env.infrastructure build --pull --no-cache postgres
 docker compose --env-file .env.infrastructure up -d --wait postgres
 ```
+
+`--pull` mengambil base image terbaru, sedangkan `--no-cache` menjalankan ulang langkah pemasangan paket agar patch baru dari PGDG tidak tertutup cache build.
 
 Test dan CI selalu memakai `infrastructure/postgres/pins.json`, sehingga hasilnya dapat diulang. Dev tidak membutuhkan file itu.
 

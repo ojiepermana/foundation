@@ -13,6 +13,8 @@ LABEL org.opencontainers.image.title="foundation-postgres" \
 
 SHELL ["/bin/bash", "-Eeuo", "pipefail", "-c"]
 
+COPY --chmod=0755 verify-pgdg-repo-rpm.sh /tmp/verify-pgdg-repo-rpm.sh
+
 # Repo PGDG dipilih per arsitektur. Fingerprint key PGDG adalah konstanta; build gagal bila berbeda.
 RUN arch="$(uname -m)"; \
     case "$arch" in \
@@ -20,21 +22,17 @@ RUN arch="$(uname -m)"; \
       aarch64) key=PGDG-RPM-GPG-KEY-AARCH64-RHEL; expected=B031F89FC983E98262906B6E177B343BB9738825 ;; \
       *) echo "Arsitektur $arch tidak didukung." >&2; exit 1 ;; \
     esac; \
+    gpg_packages_before="$(rpm -qa --qf '%{NAME}\n' | grep -Ev '^(gpg-pubkey|pgdg-redhat-repo)$' | sort -u)"; \
+    microdnf -y --nodocs install gnupg2; \
+    keyfile="/tmp/$key"; \
+    curl -fsSL --proto '=https' --tlsv1.2 -o "$keyfile" \
+      "https://download.postgresql.org/pub/repos/yum/keys/$key"; \
     curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/pgdg-repo.rpm \
       "https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-$arch/pgdg-redhat-repo-latest.noarch.rpm"; \
-    rpm -i --nosignature /tmp/pgdg-repo.rpm; \
-    keyfile="/etc/pki/rpm-gpg/$key"; \
-    # Fingerprint V4 adalah SHA1 dari paket public key pertama (tag lama 0x99 dengan panjang 2 byte).
-    sed -e '1,/^$/d' -e '/^[=-]/,$d' "$keyfile" | base64 -d > /tmp/pgdg-key.bin; \
-    header="$(od -An -tx1 -N3 /tmp/pgdg-key.bin | tr -d ' \n')"; \
-    [[ "$header" == 99* ]] || { echo "Format key PGDG tidak dikenali." >&2; exit 1; }; \
-    actual="$(head -c "$(( 16#${header#99} + 3 ))" /tmp/pgdg-key.bin | sha1sum | cut -d' ' -f1 | tr a-f A-F)"; \
-    [ "$actual" = "$expected" ] || { echo "Fingerprint key PGDG $actual tidak sama dengan $expected." >&2; exit 1; }; \
-    known="$(rpmkeys --list | cut -d- -f1 | sort)"; \
-    rpmkeys --import "$keyfile"; \
-    added="$(comm -13 <(printf '%s\n' "$known") <(rpmkeys --list | cut -d- -f1 | sort))"; \
-    [ "$added" = "$(printf '%s' "${expected: -8}" | tr A-F a-f)" ] || { echo "Key PGDG yang diimpor tidak sesuai." >&2; exit 1; }; \
-    rpmkeys --checksig /tmp/pgdg-repo.rpm; \
+    /tmp/verify-pgdg-repo-rpm.sh "$keyfile" /tmp/pgdg-repo.rpm "$expected"; \
+    mapfile -t gpg_packages_added < <(comm -13 <(printf '%s\n' "$gpg_packages_before") <(rpm -qa --qf '%{NAME}\n' | grep -Ev '^(gpg-pubkey|pgdg-redhat-repo)$' | sort -u)); \
+    if ((${#gpg_packages_added[@]})); then microdnf -y remove "${gpg_packages_added[@]}"; fi; \
+    rm -f /tmp/verify-pgdg-repo-rpm.sh; \
     # microdnf tidak mengisi variabel rilis minor yang dipakai URL repo PGDG untuk EL 10.
     . /etc/os-release; \
     mkdir -p /etc/dnf/vars; \
@@ -51,7 +49,7 @@ RUN arch="$(uname -m)"; \
     fi; \
     if rpm -q postgresql18-contrib >/dev/null; then echo "postgresql18-contrib tidak boleh terpasang." >&2; exit 1; fi; \
     microdnf clean all; \
-    rm -rf /tmp/pgdg-repo.rpm /tmp/pgdg-key.bin /var/cache/dnf /var/log/dnf*; \
+    rm -rf /tmp/pgdg-repo.rpm "$keyfile" /var/cache/dnf /var/log/dnf*; \
     # Direktori data kosong dari paket dihapus agar volume baru selalu melewati inisialisasi staging.
     rmdir /var/lib/pgsql/18/data
 

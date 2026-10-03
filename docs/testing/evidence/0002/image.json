@@ -1,11 +1,11 @@
 {
-  "recordedAt": "2026-10-01T11:30:53.492Z",
+  "recordedAt": "2026-10-03T03:17:33.923Z",
   "pins": {
     "baseImage": "oraclelinux:10-slim@sha256:0660af1f1bb56559b299d99d3b71d0ff51f9d593cecbd3154a46914704ec34d6",
     "postgresPackageVersion": "18.6-4PGDG.rhel10.2"
   },
   "image": "foundation-postgres:18-pinned",
-  "imageId": "sha256:5af683991789140ccd1d982ac23a8674aa101839e0fb2d87ffe6340c34d75837",
+  "imageId": "sha256:9a2f3cc8d0e7ec77514625b8f9eb7d9d0b4b6ea00a3ce363da8ca965e7c69074",
   "architecture": "arm64",
   "os": "linux",
   "baseImage": "oraclelinux:10-slim@sha256:0660af1f1bb56559b299d99d3b71d0ff51f9d593cecbd3154a46914704ec34d6",
@@ -36,7 +36,7 @@
     "dbus-broker-36-5.el10_2.aarch64",
     "dbus-common-1.14.10-5.el10.noarch",
     "dnf-data-4.20.0-22.0.1.el10_2.noarch",
-    "expat-2.7.3-1.el10_2.3.aarch64",
+    "expat-2.7.3-1.el10_2.5.aarch64",
     "filesystem-3.18-17.el10.aarch64",
     "findutils-4.10.0-5.el10.aarch64",
     "gawk-5.3.0-6.el10.aarch64",

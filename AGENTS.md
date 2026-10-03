@@ -2,6 +2,10 @@
 
 Aturan project berlaku untuk agent utama dan setiap subagent yang bekerja di repository ini.
 
+## Build approach
+
+Tracer Bullet: membuktikan satu alur nyata lintas aplikasi terlebih dahulu, lalu memperluasnya. (sumber: `docs/scope/scope.md`)
+
 ## Sumber aturan
 
 - Baca [aturan infrastruktur pendukung](docs/rules/infrastructure.md) saat menyiapkan atau mengubah layanan pendukung. `docker-compose.yml` root hanya untuk infrastruktur di luar runtime aplikasi; frontend, backend, dan worker tetap dijalankan melalui `bun run serve`. Credential administrator Compose terpisah dari credential runtime.

@@ -10,7 +10,7 @@ cp .env.infrastructure.example .env.infrastructure
 docker compose --env-file .env.infrastructure up -d --wait postgres
 ```
 
-`docker-compose.yml` root hanya untuk infrastruktur pendukung, saat ini PostgreSQL 18 dari image buatan proyek di `infrastructure/postgres/` (Oracle Linux 10 slim dengan paket PGDG), bukan image resmi `postgres:18`. Build pertama membutuhkan internet. Data tersimpan pada volume `foundation_pgsql_data` di `/var/lib/pgsql` dan tetap ada setelah `down` tanpa `-v`. Perbarui patch dev secara berkala dengan `docker compose --env-file .env.infrastructure build --pull postgres`.
+`docker-compose.yml` root hanya untuk infrastruktur pendukung, saat ini PostgreSQL 18 dari image buatan proyek di `infrastructure/postgres/` (Oracle Linux 10 slim dengan paket PGDG), bukan image resmi `postgres:18`. Build pertama membutuhkan internet. Data tersimpan pada volume `foundation_pgsql_data` di `/var/lib/pgsql` dan tetap ada setelah `down` tanpa `-v`. Perbarui patch dev secara berkala dengan `docker compose --env-file .env.infrastructure build --pull --no-cache postgres` agar instalasi paket PGDG berjalan ulang.
 
 ```sh
 bun run test:infrastructure
