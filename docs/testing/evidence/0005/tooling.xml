@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="29" assertions="79" failures="0" skipped="0" time="19.836226">
+  <testsuite name="tests/integration/tooling/development.test.ts" file="tests/integration/tooling/development.test.ts" tests="29" assertions="79" failures="0" skipped="0" time="19.833209">
+    <testcase name="TOOL-001 doctor reports missing prerequisites without stopping a listener or leaking credentials" classname="" time="0.158931" file="tests/integration/tooling/development.test.ts" line="80" assertions="4" />
+    <testcase name="TOOL-002 cleanup only stops the configured fixture listener" classname="" time="0.558707" file="tests/integration/tooling/development.test.ts" line="94" assertions="3" />
+    <testcase name="TOOL-002 cleanup escalates when the fixture ignores SIGTERM" classname="" time="0.647888" file="tests/integration/tooling/development.test.ts" line="103" assertions="2" />
+    <testcase name="TOOL-002 cleanup refuses an unrecorded listener" classname="" time="0.106215" file="tests/integration/tooling/development.test.ts" line="111" assertions="2" />
+    <testcase name="TOOL-002 cleanup rejects a reused PID identity without signaling it" classname="" time="0.135463" file="tests/integration/tooling/development.test.ts" line="117" assertions="2" />
+    <testcase name="TOOL-002 cleanup rechecks port ownership immediately before SIGTERM" classname="" time="0.308463" file="tests/integration/tooling/development.test.ts" line="125" assertions="3" />
+    <testcase name="TOOL-002 cleanup rechecks port ownership immediately before SIGKILL" classname="" time="0.540422" file="tests/integration/tooling/development.test.ts" line="152" assertions="3" />
+    <testcase name="TOOL-003 worker selection is explicit, deduplicated, and rejects unknown workers" classname="" time="0.00016" file="tests/integration/tooling/development.test.ts" line="180" assertions="4" />
+    <testcase name="TOOL-003 service configuration isolates database credentials and uses the requested ports" classname="" time="0.000348" file="tests/integration/tooling/development.test.ts" line="189" assertions="16" />
+    <testcase name="TOOL-003 configuration rejects overlapping worker ports and paths outside the repository" classname="" time="0.001496" file="tests/integration/tooling/development.test.ts" line="219" assertions="2" />
+    <testcase name="TOOL-003 worker HTTP readiness path is required and local" classname="" time="0.001157" file="tests/integration/tooling/development.test.ts" line="228" assertions="3" />
+    <testcase name="TOOL-003 selected HTTP worker must answer on its configured readiness path" classname="" time="0.715691" file="tests/integration/tooling/development.test.ts" line="242" assertions="1" />
+    <testcase name="TOOL-004 service failure stops the other service and its stubborn descendant" classname="" time="1.745598" file="tests/integration/tooling/development.test.ts" line="251" assertions="2" />
+    <testcase name="TOOL-004 termination stops the supervised listener" classname="" time="1.655532" file="tests/integration/tooling/development.test.ts" line="284" assertions="2" />
+    <testcase name="TOOL-004 Ctrl+C stops the supervised listener" classname="" time="1.654173" file="tests/integration/tooling/development.test.ts" line="312" assertions="2" />
+    <testcase name="TOOL-005 a second invocation cannot take the active lock" classname="" time="0.117207" file="tests/integration/tooling/development.test.ts" line="340" assertions="1" />
+    <testcase name="TOOL-005 an incomplete invocation lock fails safely within five seconds" classname="" time="5.007215" file="tests/integration/tooling/development.test.ts" line="349" assertions="3" />
+    <testcase name="TOOL-005 recovery rejects groups whose recorded checkout differs" classname="" time="0.187132" file="tests/integration/tooling/development.test.ts" line="358" assertions="2" />
+    <testcase name="TOOL-005 one recovery can take a stale invocation lock" classname="" time="0.139544" file="tests/integration/tooling/development.test.ts" line="373" assertions="4" />
+    <testcase name="TOOL-005 concurrent invocations allow one owner" classname="" time="0.664497" file="tests/integration/tooling/development.test.ts" line="392" assertions="3" />
+    <testcase name="TOOL-005 stale invocation can clear its recorded listener" classname="" time="0.668854" file="tests/integration/tooling/development.test.ts" line="417" assertions="4" />
+    <testcase name="TOOL-002 cleanup stops a recorded worker group without an HTTP port" classname="" time="0.331403" file="tests/integration/tooling/development.test.ts" line="451" assertions="1" />
+    <testcase name="TOOL-006 readiness timeout stops the supervised process" classname="" time="2.096179" file="tests/integration/tooling/development.test.ts" line="462" assertions="2" />
+    <testcase name="TOOL-006 readiness retries after an empty port snapshot before the owned listener appears" classname="" time="0.214752" file="tests/integration/tooling/development.test.ts" line="474" assertions="1" />
+    <testcase name="TOOL-006 readiness rejects an HTTP response completed after the startup deadline" classname="" time="0.083408" file="tests/integration/tooling/development.test.ts" line="488" assertions="1" />
+    <testcase name="TOOL-006 readiness accepts owned HTTP responses and rejects a foreign port" classname="" time="1.039852" file="tests/integration/tooling/development.test.ts" line="509" assertions="1" />
+    <testcase name="TOOL-006 readiness times out on the wrong HTTP body" classname="" time="0.444504" file="tests/integration/tooling/development.test.ts" line="522" assertions="1" />
+    <testcase name="TOOL-006 readiness rejects a non HTML frontend body" classname="" time="0.443637" file="tests/integration/tooling/development.test.ts" line="530" assertions="1" />
+    <testcase name="TOOL-008 production mode and invalid database target fail before cleanup" classname="" time="0.155091" file="tests/integration/tooling/development.test.ts" line="538" assertions="3" />
+  </testsuite>
+</testsuites>

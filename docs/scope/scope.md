@@ -65,16 +65,18 @@ Data: membaca metadata `common`; tidak menambah entitas bisnis. Akses tulis meta
 Spec: [0003](../specs/0003-doctor-serve-aplikasi-nyata/index.md).
 
 - [ ] Bangun: `/develop doctor dan serve pada aplikasi nyata`
-  - [ ] Selaraskan doctor dengan database, role runtime, dan migration nyata dari fitur 5 dan 6; buktikan preflight serta respons HTTP awal (AC-1 sampai AC-4).
+  - [x] Selaraskan doctor dengan database, role runtime, dan migration nyata dari fitur 5 dan 6; buktikan preflight serta respons HTTP awal (AC-1 sampai AC-4).
   - [x] Lindungi invocation dan cleanup berdasarkan identitas proses, grup, serta checkout; buktikan pergantian listener dan race (AC-3, AC-6, AC-7).
   - [x] Lengkapi readiness 60 detik, worker terpilih, dan shutdown seluruh grup proses (AC-4, AC-5, AC-8).
   - [ ] Selaraskan aturan dan registry, lalu kumpulkan bukti fixture serta aplikasi nyata melalui alur fitur 10 (AC-1 sampai AC-9).
+    - [x] Selaraskan aturan dan registry; buktikan fixture, PostgreSQL 18.6, HTTP nyata, shutdown, dan gate CI untuk AC-1 sampai AC-8 serta bagian CLI/HTTP TOOL-007.
+    - [ ] Jalankan alur browser melalui SDK, proxy, backend, dan database setelah permukaan Feature 10 tersedia (AC-9).
 - [ ] Verifikasi: `/check verify doctor dan serve pada aplikasi nyata`
 - [ ] Uji: `/test doctor dan serve pada aplikasi nyata`
 - [ ] Review mandiri: `/check review doctor dan serve pada aplikasi nyata`
 - [ ] Dokumentasikan perubahan: `/document doctor dan serve pada aplikasi nyata`
 
-Kode tersedia: `scripts/doctor.ts`, `scripts/serve.ts`, `scripts/lib/`, `config/development.json`, dan `tests/integration/tooling/development.test.ts`. Registry memuat TOOL-001 sampai TOOL-006 serta TOOL-008. Suite tooling lulus 20 test pada 2026-10-02. [Smoke test PostgreSQL dan aplikasi nyata](../testing/0005-doctor-serve-real-smoke.md) membuktikan doctor, preflight, HTTP, dan shutdown terhadap provisioning serta migration fitur 5 dan 6. TOOL-007 tetap parsial sampai alur browser fitur 10 tersedia.
+Kode tersedia: `scripts/doctor.ts`, `scripts/serve.ts`, `scripts/lib/`, `config/development.json`, dan `tests/integration/tooling/development.test.ts`. Registry mencakup TOOL-001 sampai TOOL-008; TOOL-007 saat ini memetakan bukti parsial AC-1, AC-2, dan AC-4. Suite tooling lulus 29 test dengan 79 assertion, 0 gagal, dan 0 dilewati. `test:ci` lulus dengan 31 ID skenario, 81 integration test/172 assertion, 29 tooling test/79 assertion, 4 Playwright E2E, dan 1 frontend test. [Smoke test PostgreSQL dan aplikasi nyata](../testing/0005-doctor-serve-real-smoke.md) mencatat 11 run nyata berturut-turut setelah perbaikan race kepemilikan port dan smoke terbaru setelah batas waktu readiness diperketat; kegagalan awal tetap tercatat. TOOL-007 tetap parsial sampai alur browser fitur 10 tersedia.
 
 ### 3. Infrastruktur PostgreSQL development · done
 
