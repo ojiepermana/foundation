@@ -179,7 +179,9 @@ async function detectDocker(): Promise<{ cli: boolean; daemon: boolean; wait: bo
   if (!Bun.which("docker")) return { cli: false, daemon: false, wait: false, reason: "docker CLI tidak ditemukan" };
   if ((await run(["docker", "compose", "version"])).code !== 0) return { cli: false, daemon: false, wait: false, reason: "Docker Compose v2 tidak tersedia" };
   const wait = (await run(["docker", "compose", "up", "--help"])).stdout.includes("--wait");
-  if ((await run(["docker", "info", "--format", "{{.ServerVersion}}"], { timeout: 20000 })).code !== 0) {
+  // Docker CLI 28 exits 0 with an empty version when the daemon cannot be reached; only a server version proves it.
+  const info = await run(["docker", "info", "--format", "{{.ServerVersion}}"], { timeout: 20000 });
+  if (info.code !== 0 || info.stdout.trim() === "") {
     return { cli: true, daemon: false, wait, reason: "Docker daemon tidak dapat dihubungi" };
   }
   return { cli: true, daemon: true, wait, reason: "" };
@@ -538,24 +540,41 @@ echo "REJECTED_PACKAGE_PAYLOAD_AND_SCRIPTLET_ABSENT"`;
 
 const nestedName = "INFRA-005 tanpa daemon skenario Docker dilaporkan dilewati dengan alasan, bukan lulus";
 test.skipIf(nested)(nested ? nestedName + nestedLabel : nestedName, async () => {
-  const report = resolve(workspace, "tanpa-daemon.xml");
-  const env = cleanEnvironment();
-  delete env.DOCKER_CONTEXT;
-  Object.assign(env, { DOCKER_HOST: "unix:///nonexistent/docker.sock", FOUNDATION_INFRA_NESTED: "1" });
-  const result = await run([process.execPath, "test", import.meta.path, "--reporter=junit", `--reporter-outfile=${report}`], { env, timeout: 120000 });
-  expect(result.code).toBe(0);
-
-  const cases = [...(await Bun.file(report).text()).matchAll(/<testcase name="([^"]*)"[^>]*?(\/)?>(\s*<(skipped|failure|error)\b)?/g)]
-    .map(([, name, selfClosing, , state]) => ({ name, state: selfClosing ? "pass" : state ?? "pass" }))
-    .filter((testCase) => !testCase.name.endsWith(nestedLabel));
+  // The second run puts a docker in front of the real CLI that answers `info` like Docker CLI 28 without a daemon:
+  // exit 0 and an empty version. Docker CLI 29 exits 1 there, so without it a Mac never sees that case.
+  const realDocker = Bun.which("docker");
+  const variants: (string | undefined)[] = [undefined];
+  if (realDocker) {
+    const shim = resolve(workspace, "docker-cli-28");
+    await mkdir(shim);
+    await writeFile(resolve(shim, "docker"), `#!/bin/sh
+if [ "$1" = info ]; then echo; echo 'Cannot connect to the Docker daemon' >&2; exit 0; fi
+exec '${realDocker.replaceAll("'", "'\\''")}' "$@"
+`, { mode: 0o755 });
+    variants.push(shim);
+  }
   const source = await Bun.file(import.meta.path).text();
   const requiresDocker = (source.match(/^daemonTest\(/gm)?.length ?? 0) + (docker.cli ? 0 : source.match(/^cliTest\(/gm)?.length ?? 0);
   const reason = docker.cli ? "Docker daemon tidak dapat dihubungi" : docker.reason;
-  expect(cases.filter((testCase) => testCase.state === "failure" || testCase.state === "error")).toEqual([]);
-  expect(cases.filter((testCase) => testCase.state === "skipped").length).toBe(requiresDocker);
-  for (const testCase of cases) expect(testCase.name.endsWith(`(dilewati: ${reason})`)).toBe(testCase.state === "skipped");
-  expect(cases.some((testCase) => testCase.state === "pass")).toBe(true);
-}, 120000);
+  for (const [index, shim] of variants.entries()) {
+    const report = resolve(workspace, `tanpa-daemon-${index}.xml`);
+    const env = cleanEnvironment();
+    delete env.DOCKER_CONTEXT;
+    Object.assign(env, { DOCKER_HOST: "unix:///nonexistent/docker.sock", FOUNDATION_INFRA_NESTED: "1" });
+    if (shim) env.PATH = `${shim}:${env.PATH ?? ""}`;
+    const result = await run([process.execPath, "test", import.meta.path, "--reporter=junit", `--reporter-outfile=${report}`], { env, timeout: 120000 });
+    // On failure the nested output is the only clue in a CI log, so its last part goes with the assertion.
+    expect(result.code, `run bersarang ${index}:\n${mask(`${result.stdout}\n${result.stderr}`).slice(-4000)}`).toBe(0);
+
+    const cases = [...(await Bun.file(report).text()).matchAll(/<testcase name="([^"]*)"[^>]*?(\/)?>(\s*<(skipped|failure|error)\b)?/g)]
+      .map(([, name, selfClosing, , state]) => ({ name, state: selfClosing ? "pass" : state ?? "pass" }))
+      .filter((testCase) => !testCase.name.endsWith(nestedLabel));
+    expect(cases.filter((testCase) => testCase.state === "failure" || testCase.state === "error")).toEqual([]);
+    expect(cases.filter((testCase) => testCase.state === "skipped").length).toBe(requiresDocker);
+    for (const testCase of cases) expect(testCase.name.endsWith(`(dilewati: ${reason})`)).toBe(testCase.state === "skipped");
+    expect(cases.some((testCase) => testCase.state === "pass")).toBe(true);
+  }
+}, 240000);
 
 daemonTest(label("INFRA-002 build terkunci dari pins.json tanpa secret pada metadata image", docker.daemon), async () => {
   expect(docker.wait).toBe(true);

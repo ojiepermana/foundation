@@ -58,6 +58,7 @@ Semua perintah dijalankan dari root. Untuk langkah pada volume baru, pakai proje
 - [x] Setelah suite: `docker ps -a`, `docker network ls`, `docker volume ls` tanpa `foundation-infra-test-*`; `CreatedAt` volume `foundation_pgsql_data` tidak berubah; tag `foundation-postgres:18-dev` tidak berubah → AC-8 (value sourcing: nama project dan tag image uji)
 - [x] Buat satu test gagal secara sengaja → cleanup tetap menghapus resource project uji → AC-8
 - [x] `DOCKER_HOST=unix:///nonexistent/docker.sock bun test ./tests/integration/infrastructure` pada 2026-10-01 → 4 pass, 12 skip dengan alasan `Docker daemon tidak dapat dihubungi`, 0 fail → AC-8
+- [x] Tindak lanjut 2026-10-04: run GitHub Actions 37205620340 (job `real`, Docker CLI 28.0.4) gagal pada INFRA-005 tanpa daemon. Penyebabnya, `docker info --format {{.ServerVersion}}` pada Docker CLI 28 keluar 0 dengan versi kosong saat daemon tidak terjangkau, sehingga run bersarang menganggap daemon ada dan `beforeAll` gagal. Docker CLI 29 di Mac keluar 1, jadi kasus ini tidak terlihat secara lokal. Deteksi daemon kini mewajibkan exit 0 dan versi server yang tidak kosong. INFRA-005 menjalankan run bersarang kedua dengan `docker` pengganti yang menjawab `info` seperti Docker CLI 28, sehingga kasus ini tetap teruji di Docker CLI 29. Reproduksi di container Linux amd64 dengan Bun 1.4.2, Docker CLI 28.0.4, dan Compose 2.38.2: gagal sebelum perbaikan, lulus sesudahnya → AC-8
 
 ## UI / manual
 
