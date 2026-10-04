@@ -4,5 +4,14 @@
     "types": ["bun"], "strict": true, "noEmit": true, "skipLibCheck": true,
     "allowImportingTsExtensions": true
   },
-  "files": ["tests/integration/tooling/development.test.ts", "tests/integration/tooling-real/doctor-smoke.ts"]
+  "files": [
+    "tests/integration/tooling/development.test.ts", "tests/integration/tooling-real/doctor-smoke.ts",
+    "scripts/gate.ts", "scripts/gate-report.ts", "scripts/validate-scenarios.ts", "scripts/check-test-discovery.ts",
+    "scripts/check-workflow.ts", "tests/integration/gate/discovery.test.ts", "tests/integration/gate/registry.test.ts",
+    "tests/integration/gate/workflow.test.ts", "tests/integration/gate/signal-cleanup.test.ts", "tests/orchestration/signal-cleanup.ts",
+    "scripts/lib/security-policy.ts", "tests/orchestration/security-scan.ts", "tests/integration/gate/security-policy.test.ts",
+    "tests/integration/gate/tier.test.ts", "tests/integration/gate/report.test.ts",
+    "tests/integration/infrastructure/postgres.test.ts", "tests/integration/database/provision.test.ts",
+    "tests/integration/database/migration.test.ts"
+  ]
 }

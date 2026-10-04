@@ -71,3 +71,16 @@ Frontend Angular 22.2.0 dan backend Elysia 1.4.30 sudah tersedia. Route `/api/st
 Untuk pembuktian kerangka tanpa database sesuai spec 0001, jalankan `bun run dev:backend` dan `bun run dev:frontend` pada dua terminal. Perintah ini memakai port development yang sama. Workflow aplikasi lengkap berjalan melalui `doctor` dan `serve` setelah PostgreSQL, role, schema, serta metadata migration tersedia. Worker bisnis menunggu scope terkait.
 
 `api:check` meregenerasi artefak dua kali dan gagal jika isi atau daftar file berubah. Build frontend mengompilasi SDK di luar `src/`. Laporan fitur mencatat bukti dan batasnya.
+
+## Gate CI (spec 0010)
+
+Workflow `.github/workflows/application.yml` menjalankan empat job pada setiap push dan pull request. Setiap job memanggil script root yang sama dengan yang dapat Anda jalankan lokal:
+
+```sh
+bun run test:ci           # tier cepat, tanpa Docker
+bun run test:ci:real      # tier nyata: Docker, PostgreSQL 18, dan Chromium
+bun run test:ci:security  # tier keamanan: gitleaks, bun audit, dan actionlint yang dipin; butuh Docker dan registry npm
+bun run test:report       # laporan gate dari ketiga bundle bukti
+```
+
+Setiap tier menulis bundle bukti beserta manifest di `.local/feature-11/evidence/<tier>/`. `test:report` menulis `.local/feature-11/report.json` dan `.local/feature-11/report.md` dalam bahasa Indonesia, lalu keluar 0 hanya bila gate `passed`: seluruh skenario lulus, ketiga tier lulus, discovery sesuai, ketiga pemindai lulus, dan ketiga tier terikat pada commit serta pohon sumber yang sama. Run lokal pada working tree yang belum masuk commit dapat lulus gate tetapi bukan kandidat release. Aturan lengkapnya ada di [aturan testing](docs/rules/testing.md) dan [aturan keamanan](docs/rules/security.md).

@@ -4,6 +4,7 @@
     {
       "id": "UI-001",
       "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-6"],
+      "critical": true,
       "checks": [
         {
           "runner": "playwright",

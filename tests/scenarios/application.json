@@ -7,7 +7,7 @@
       {"runner":"command","file":"package.json","script":"typecheck:backend"},
       {"runner":"command","file":"package.json","script":"build:backend"}
     ]},
-    { "id": "APP-002", "criteria": ["AC-2", "AC-4"], "checks": [
+    { "id": "APP-002", "criteria": ["AC-2", "AC-4"], "critical": true, "checks": [
       {"runner":"vitest","file":"apps/frontend/src/app/app.spec.ts","testTag":"APP-002","script":"test:frontend"},
       {"runner":"bun:test","file":"tests/integration/backend/application.test.ts","testTag":"APP-002","script":"test:integration"},
       {"runner":"playwright","file":"tests/e2e/application/framework.e2e.spec.ts","testTag":"APP-002","script":"test:e2e"}

@@ -19,6 +19,7 @@ import {
   type ArtifactDiff,
 } from '../../../scripts/lib/api-artifacts.ts';
 import { canonicalJson } from '../../../scripts/lib/canonical-json.ts';
+import { TIERS } from '../../../scripts/lib/gate.ts';
 import { runProcessGroup } from '../../../scripts/lib/process-group.ts';
 import { checkoutSnapshot, copyFrontendApplication, root, run, runBun, workspace } from './workspace.ts';
 
@@ -1502,7 +1503,9 @@ test('SDK-008 api:check runs every stage twice and passes after a backend change
 type WorkflowStep = { run?: string; if?: unknown };
 type Workflow = { on: Record<string, Record<string, unknown> | null>; jobs: Record<string, { if?: unknown; steps: WorkflowStep[] }> };
 
-test('SDK-008 CI runs on every push and pull_request without path filters, and test:ci runs api:check before the SDK consumers', async () => {
+// Amended by spec 0010 (AC-3): `test:ci` runs the fast tier of `scripts/gate.ts`, so the stage order is read from the
+// exported tier table, and only the `report` job may carry a job level `if`, with the value `${{ !cancelled() }}`.
+test('SDK-008 CI runs on every push and pull_request without path filters, and the fast tier runs api:check before the SDK consumers', async () => {
   const workflow = Bun.YAML.parse(await Bun.file(join(root, '.github/workflows/application.yml')).text()) as Workflow;
   for (const event of ['push', 'pull_request']) {
     expect(Object.hasOwn(workflow.on, event), event).toBe(true);
@@ -1511,15 +1514,23 @@ test('SDK-008 CI runs on every push and pull_request without path filters, and t
       expect(Object.hasOwn(filters, filter), `${event} ${filter}`).toBe(false);
     }
   }
-  const jobs = Object.values(workflow.jobs);
-  for (const job of jobs) expect(Object.hasOwn(job, 'if')).toBe(false);
-  const ciSteps = jobs.flatMap((job) => job.steps).filter((step) => step.run === 'bun run test:ci');
+  for (const [name, job] of Object.entries(workflow.jobs)) {
+    if (!Object.hasOwn(job, 'if')) continue;
+    expect(name).toBe('report');
+    expect(job.if).toBe('${{ !cancelled() }}');
+  }
+  const ciSteps = Object.values(workflow.jobs)
+    .flatMap((job) => job.steps)
+    .filter((step) => step.run === 'bun run test:ci');
   expect(ciSteps).toHaveLength(1);
   expect(Object.hasOwn(ciSteps[0]!, 'if')).toBe(false);
 
   const { scripts } = await Bun.file(join(root, 'package.json')).json();
-  const stages: string[] = scripts['test:ci'].split(' && ');
-  const position = (script: string) => stages.indexOf(`bun run ${script}`);
+  expect(scripts['test:ci']).toBe('bun --no-env-file scripts/gate.ts fast');
+  const fast = TIERS.fast;
+  expect(fast?.script).toBe('test:ci');
+  const stages = fast?.steps.map((step) => step.script) ?? [];
+  const position = (script: string) => stages.indexOf(script);
   expect(position('api:check')).toBeGreaterThanOrEqual(0);
   for (const consumer of ['build:frontend', 'test:frontend', 'test:integration', 'test:e2e']) {
     expect(position(consumer), consumer).toBeGreaterThan(position('api:check'));

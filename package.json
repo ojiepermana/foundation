@@ -31,9 +31,16 @@
     "test:frontend": "cd apps/frontend && node ../../node_modules/@angular/cli/bin/ng.js test --watch=false",
     "test:integration": "bun test ./tests/integration/backend ./tests/integration/contract --reporter=junit --reporter-outfile=.local/feature-4/server.xml",
     "test:e2e": "playwright test",
-    "test:ci": "bun run check:dependencies && bun run test:scenarios && bun run api:check && bun run build:frontend && bun run check:frontend:bundle && bun run typecheck:backend && bun run typecheck:contract && bun run typecheck:e2e && bun run typecheck:tooling && bun run build:backend && bun run test:frontend && bun run test:integration && bun run test:tooling && bun run test:e2e",
+    "test:ci": "bun --no-env-file scripts/gate.ts fast",
+    "test:ci:real": "bun --no-env-file scripts/gate.ts real",
+    "test:ci:security": "bun --no-env-file scripts/gate.ts security",
+    "test:report": "bun --no-env-file scripts/gate-report.ts",
     "check:dependencies": "bun scripts/check-dependencies.ts",
-    "test:scenarios": "bun scripts/validate-scenarios.ts"
+    "test:scenarios": "bun --no-env-file scripts/validate-scenarios.ts",
+    "check:test-discovery": "bun --no-env-file scripts/check-test-discovery.ts",
+    "check:workflow": "bun --no-env-file scripts/check-workflow.ts",
+    "check:security": "bun --no-env-file tests/orchestration/security-scan.ts",
+    "test:gate": "mkdir -p .local/feature-11 && bun --no-env-file test ./tests/integration/gate --reporter=junit --reporter-outfile=.local/feature-11/gate.xml"
   },
   "dependencies": {
     "@angular/common": "22.2.0",

@@ -18,7 +18,7 @@
       { "runner": "vitest", "file": "apps/frontend/src/app/features/readiness/readiness-page.spec.ts", "testTag": "READY-005", "script": "test:frontend" },
       { "runner": "bun:test", "file": "tests/integration/contract/readiness-contract.test.ts", "testTag": "READY-005", "script": "test:integration" }
     ] },
-    { "id": "READY-006", "criteria": ["AC-3", "AC-7", "AC-8"], "checks": [
+    { "id": "READY-006", "criteria": ["AC-3", "AC-7", "AC-8"], "critical": true, "checks": [
       { "runner": "playwright", "file": "tests/e2e/readiness/readiness.e2e.spec.ts", "testTag": "READY-006", "script": "test:e2e" }
     ] },
     { "id": "READY-007", "criteria": ["AC-9"], "checks": [
@@ -28,7 +28,7 @@
     { "id": "READY-008", "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-10"], "checks": [
       { "runner": "bun:test", "file": "tests/integration/database/readiness.test.ts", "testTag": "READY-008", "script": "test:database:real" }
     ] },
-    { "id": "READY-009", "criteria": ["AC-2", "AC-7", "AC-8", "AC-10"], "checks": [
+    { "id": "READY-009", "criteria": ["AC-2", "AC-7", "AC-8", "AC-10"], "critical": true, "checks": [
       { "runner": "playwright", "file": "tests/e2e/readiness/readiness.real.e2e.spec.ts", "testTag": "READY-009", "script": "test:readiness:real" }
     ] },
     { "id": "READY-010", "criteria": ["AC-10"], "checks": [

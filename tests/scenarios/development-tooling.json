@@ -9,7 +9,9 @@
       { "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-002", "script": "test:tooling" },
       { "runner": "command", "file": "tests/integration/tooling-real/doctor-smoke.ts", "testTag": "TOOL-002", "script": "test:tooling:real" }
     ] },
-    { "id": "TOOL-003", "criteria": ["AC-5"], "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-003", "script": "test:tooling" },
+    { "id": "TOOL-003", "criteria": ["AC-5"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-003", "script": "test:tooling" }
+    ] },
     { "id": "TOOL-004", "criteria": ["AC-8"], "checks": [
       { "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-004", "script": "test:tooling" },
       { "runner": "command", "file": "tests/integration/tooling-real/doctor-smoke.ts", "testTag": "TOOL-004", "script": "test:tooling:real" }
@@ -18,11 +20,15 @@
       { "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-005", "script": "test:tooling" },
       { "runner": "command", "file": "tests/integration/tooling-real/doctor-smoke.ts", "testTag": "TOOL-005", "script": "test:tooling:real" }
     ] },
-    { "id": "TOOL-006", "criteria": ["AC-4", "AC-8"], "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-006", "script": "test:tooling" },
+    { "id": "TOOL-006", "criteria": ["AC-4", "AC-8"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-006", "script": "test:tooling" }
+    ] },
     { "id": "TOOL-007", "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-9"], "checks": [
       { "runner": "command", "file": "tests/integration/tooling-real/doctor-smoke.ts", "script": "test:tooling:real" },
       { "runner": "playwright", "file": "tests/e2e/readiness/readiness.real.e2e.spec.ts", "testTag": "READY-009", "script": "test:tooling:real" }
     ] },
-    { "id": "TOOL-008", "criteria": ["AC-3", "AC-5"], "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-008", "script": "test:tooling" }
+    { "id": "TOOL-008", "criteria": ["AC-3", "AC-5"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "TOOL-008", "script": "test:tooling" }
+    ] }
   ]
 }

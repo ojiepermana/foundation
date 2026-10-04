@@ -1,22 +1,15 @@
-import { readdir } from 'node:fs/promises';
-const manifest = await Bun.file('package.json').json();
-const ids = new Set<string>();
-for (const name of await readdir('tests/scenarios')) {
-  if (!name.endsWith('.json')) continue;
-  const registry = await Bun.file(`tests/scenarios/${name}`).json();
-  const source = await Bun.file(registry.source).text();
-  for (const scenario of registry.scenarios) {
-    if (!/^[A-Z]+-\d{3}$/.test(scenario.id) || ids.has(scenario.id)) throw new Error('Invalid or duplicate scenario ID');
-    ids.add(scenario.id);
-    for (const criterion of scenario.criteria ?? []) if (!source.includes(criterion)) throw new Error(`Missing criterion for ${scenario.id}`);
-    const checks = scenario.checks ?? [scenario];
-    if (checks.length === 0) throw new Error(`Missing checks for ${scenario.id}`);
-    for (const check of checks) {
-      const content = await Bun.file(check.file).text();
-      if (!manifest.scripts[check.script]) throw new Error(`Missing script for ${scenario.id}`);
-      if (check.runner !== 'command' && (!check.testTag || !content.includes(check.testTag))) throw new Error(`Missing test tag for ${scenario.id}`);
-      if (!['command', 'bun:test', 'vitest', 'playwright'].includes(check.runner)) throw new Error('Unknown scenario runner');
-    }
+import { resolve } from 'node:path';
+import { runScenarioValidation } from './lib/scenario-registry.ts';
+
+// `bun run test:scenarios` (spec 0010, AC-2): `bun --no-env-file scripts/validate-scenarios.ts` validates every
+// `tests/scenarios/*.json` before the suites run and prints every violation at once, one per line, with the registry
+// path and the scenario ID. Registries never hold results; status comes only from runner evidence in the gate report.
+
+if (import.meta.main) {
+  try {
+    process.exitCode = await runScenarioValidation(resolve(import.meta.dir, '..'));
+  } catch {
+    process.stderr.write('Registry skenario tidak dapat divalidasi\n');
+    process.exitCode = 1;
   }
 }
-console.log(`Scenario references passed (${ids.size} unique IDs). Execution results remain runner evidence.`);

@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Checksum SHA 256 dan fingerprint key PGP pada bukti test yang di-commit"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''^docs/testing/evidence/[0-9]{4}/[^/]+\.json$''']
+regexTarget = "secret"
+regexes = ['''^(?:[0-9a-f]{64}|[0-9A-F]{40})$''']

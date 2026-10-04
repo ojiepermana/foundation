@@ -38,13 +38,21 @@ foundation/
 │   ├── integration/
 │   │   ├── backend/
 │   │   ├── worker/
-│   │   └── database/
+│   │   ├── database/
+│   │   └── gate/
 │   ├── e2e/
 │   │   ├── fixtures.ts
 │   │   └── <fitur>/
 │   │       └── <alur>.e2e.spec.ts
 │   ├── orchestration/
-│   │   └── <suite>-real.ts
+│   │   ├── <suite>-real.ts
+│   │   ├── security-scan.ts
+│   │   └── signal-cleanup.ts
+│   ├── security/
+│   │   ├── scanners.json
+│   │   ├── gitleaks.toml
+│   │   ├── actionlint.yaml
+│   │   └── exceptions.json
 │   └── performance/
 │       ├── journeys/
 │       ├── profiles/
@@ -65,9 +73,13 @@ Unit test berada dekat kode yang diuji. Integration komponen Angular juga berada
 
 Setiap runner mempunyai cakupan file eksplisit. Jangan menjalankan `bun test` tanpa filter dari root sehingga file Angular dan Playwright ikut ditemukan. Konfigurasi Playwright hanya menemukan suite E2E; konfigurasi Angular hanya menemukan suite frontend.
 
+Setiap file yang namanya cocok pola discovery `^.+[._](test|spec)\.(js|jsx|ts|tsx|mjs|cjs|mts|cts)$` dimiliki tepat satu runner menurut tabel pemilik di `scripts/lib/test-inventory.ts` (spec 0010 AC-1). `bun run check:test-discovery` gagal dengan path file yang tidak dimiliki runner mana pun, dimiliki dua runner, atau berbeda dari daftar `playwright test --list` dan `ng test --list-tests`; sesudah run, laporan gate juga membandingkan file pada JUnit setiap script dengan file miliknya. Lokasi test baru, misalnya test unit backend `apps/backend/src/features/<fitur>/<service>.test.ts`, membutuhkan satu baris pemilik di `scripts/lib/test-inventory.ts` dan langkah tier untuk script pemiliknya pada commit yang sama. Fixture yang namanya cocok pola discovery dibuat saat runtime di folder `mkdtemp`, tidak di-commit.
+
 `tests/fixtures/` berisi data atau factory yang tidak bergantung pada runner. Setup khusus Bun, Angular, Playwright, atau k6 tetap berada di area masing-masing.
 
 Orkestrasi test yang memanggil Docker, misalnya untuk menyalakan, menghentikan, atau menghapus PostgreSQL terisolasi, berada di `tests/`, tidak pernah di `scripts/`. Folder `scripts/` hanya berisi tooling development, build, dan pemeriksaan repository, dan INFRA-001 spec 0002 gagal bila ada file `.ts` di bawahnya yang memuat kata `docker`. Orkestrasi Bun yang dijalankan root script, seperti `test:database:real` dan `test:readiness:real`, berada di `tests/orchestration/` bersama modul penjaga container `readiness-container.ts`; smoke `test:tooling:real` berada di `tests/integration/tooling-real/`. Orkestrasi di `tests/` boleh mengimpor modul `scripts/lib/` yang tidak memanggil Docker, seperti `process-group.ts` dan `ports.ts`. File di `tests/orchestration/` tidak memakai akhiran `.test.ts` atau `.e2e.spec.ts`, sehingga tidak ditemukan `bun test` maupun Playwright.
+
+Setiap file `bun:test` nyata yang membuat container atau project Compose wajib mendaftarkan resource itu pada `tests/orchestration/signal-cleanup.ts` sebelum resource dibuat, satu callback per project, container, folder sementara, atau proses backend, lalu melepasnya sesudah jalur normal (`afterAll`, `finally`, atau penghapusan project) menghapusnya. `bun test` tidak menjalankan `afterAll` maupun `finally` saat menerima SIGINT, SIGTERM, atau SIGHUP; modul itu menjalankan callback secara sinkron dalam urutan terbalik, dua putaran, lalu keluar 130, 143, atau 129. Callback hanya menghapus nama yang dibuat proses itu sendiri, tidak pernah lewat pencarian pola nama atau label, sehingga run lain yang berjalan bersamaan tidak tersentuh. GATE-009 memeriksa bahwa setiap file test di `tests/integration/infrastructure/` dan `tests/integration/database/` yang memanggil Docker mengimpor modul ini, membaca source nya bahwa setiap `docker run` atau perintah Compose yang membuat resource didahului pendaftaran di fungsi yang sama dan setiap pelepasan didahului penghapusan jalur normal, lalu menjalankan suite itu sendiri dengan executable `docker` palsu dan SIGTERM untuk membuktikan argumen penghapusan yang dijalankan callback nya; suite nyata baru di folder lain memperluas pemeriksaan itu pada commit yang sama.
 
 ## Pemetaan skenario
 
@@ -82,6 +94,8 @@ Untuk setiap skenario, tentukan prasyarat, data awal, tindakan, hasil yang dihar
 Pilih jenis test yang mampu membuktikan skenario; tidak semua skenario harus dijalankan oleh semua runner. Cakup alur utama, kegagalan penting, otorisasi, concurrency, retry, dan perubahan data yang relevan dengan fitur.
 
 Validasi registry dalam CI: ID unik, rujukan specs dan test valid, serta seluruh skenario wajib mempunyai implementasi test. Rujukan file saja belum membuktikan bahwa test tersebut dijalankan atau mempunyai assertion yang sesuai.
+
+`bun run test:scenarios` menerapkan schema tetap registry (spec 0010 AC-2) dan melaporkan seluruh pelanggaran sekaligus dengan path registry dan ID. Setiap skenario memakai bentuk `checks` yang tidak kosong; setiap check mempunyai `runner` (`bun:test`, `vitest`, `playwright`, atau `command`), `script` yang menjadi langkah satu tier gate, `file` reguler di dalam repository, dan `testTag` untuk runner selain `command`. Tag wajib muncul sebagai literal string di file test dan sebagai awalan judul lengkap test diikuti spasi; tag yang hanya ada di komentar tidak dihitung. Skenario `critical` mempunyai minimal satu check Playwright dan dilaporkan pada bagian alur kritis.
 
 Laporan menghubungkan hasil runner dengan ID skenario dan membedakan:
 
@@ -163,14 +177,31 @@ Nama script root yang digunakan saat suite diimplementasikan:
 | `test:integration` | Integration server dan database melalui Bun. |
 | `test:e2e` | E2E melalui Playwright. |
 | `test:e2e:ui` | Playwright dalam mode UI untuk debugging. |
-| `test:readiness:real` | Alur browser nyata kesiapan (READY-009) melalui Playwright terhadap PostgreSQL 18 terisolasi di Docker serta backend dan frontend yang dijalankan orkestrasi Bun `tests/orchestration/readiness-real.ts`, beserta pemindaian credential pada output dan artefak; berjalan di luar `test:ci` sampai jalur CI dengan Docker tersedia. |
-| `test:tooling:real` | Smoke doctor dan serve (TOOL-001 dan TOOL-007) pada PostgreSQL 18 terisolasi di Docker yang mengikuti penjaga READY-009: doctor dengan role backend minimum, `serve` untuk frontend dan backend nyata, alur browser READY-009 dengan `playwright.real.config.ts` terhadap `serve`, shutdown, kegagalan preflight, serta pemindaian credential pada output dan artefak di `.local/feature-2/`; berjalan di luar `test:ci` sampai jalur CI dengan Docker tersedia. |
+| `test:infrastructure` | Suite infrastruktur PostgreSQL 18 (INFRA-001 sampai INFRA-006); langkah pertama tier nyata `test:ci:real`. |
+| `test:database:real` | Integration database pada PostgreSQL 18 terisolasi lewat orkestrasi `tests/orchestration/database-real.ts`; langkah tier nyata. |
+| `test:database:migration` | Pengujian migration dari `tests/integration/database/migration.test.ts`; langkah tier nyata. |
+| `test:readiness:real` | Alur browser nyata kesiapan (READY-009) melalui Playwright terhadap PostgreSQL 18 terisolasi di Docker serta backend dan frontend yang dijalankan orkestrasi Bun `tests/orchestration/readiness-real.ts`, beserta pemindaian credential pada output dan artefak; langkah tier nyata `test:ci:real`. |
+| `test:tooling:real` | Smoke doctor dan serve (TOOL-001 dan TOOL-007) pada PostgreSQL 18 terisolasi di Docker yang mengikuti penjaga READY-009: doctor dengan role backend minimum, `serve` untuk frontend dan backend nyata, alur browser READY-009 dengan `playwright.real.config.ts` terhadap `serve`, shutdown, kegagalan preflight, serta pemindaian credential pada output dan artefak di `.local/feature-2/`; langkah tier nyata `test:ci:real`. |
+| `test:scenarios` | Validasi registry `tests/scenarios/*.json` dengan schema tetap spec 0010. |
+| `check:test-discovery` | Inventaris file test terhadap tabel pemilik `scripts/lib/test-inventory.ts` serta daftar `playwright test --list` dan `ng test --list-tests`. |
+| `check:workflow` | Daftar izin struktur `.github/workflows/application.yml`. |
+| `test:gate` | Suite gate `tests/integration/gate/` (GATE-001 sampai GATE-009) dengan fixture yang dibuat saat runtime. |
+| `check:security` | Tiga pemindai yang dipin (gitleaks, `bun audit`, actionlint) dengan konfigurasi tetap di `tests/security/`; menulis `.local/feature-11/security.json`. |
 | `test:performance:smoke` | Smoke k6. |
 | `test:performance:load` | Load k6. |
 | `test:performance:stress` | Stress k6. |
 | `test:performance:spike` | Spike k6. |
 | `test:performance:soak` | Soak k6. |
-| `test:ci` | Orchestration pemeriksaan yang diwajibkan pipeline. |
+| `test:ci` | Tier cepat gate CI tanpa Docker: `bun --no-env-file scripts/gate.ts fast`. |
+| `test:ci:real` | Tier nyata gate CI dengan Docker, PostgreSQL 18, dan Chromium: `bun --no-env-file scripts/gate.ts real`. |
+| `test:ci:security` | Tier keamanan gate CI: `bun --no-env-file scripts/gate.ts security`, yang menjalankan `check:security`. |
+| `test:report` | Laporan gate dari ketiga bundle bukti: `.local/feature-11/report.json` dan `.local/feature-11/report.md`. |
+
+Gate CI (spec 0010) terdiri dari tiga tier yang dijalankan `scripts/gate.ts` dan satu laporan. Tabel tier di `scripts/lib/gate.ts` menetapkan langkah, batas waktu, masa tenggang, dan bukti setiap langkah. Workflow `.github/workflows/application.yml` menjalankan setiap push dan pull request dengan empat job: `application` (`bun run test:ci`), `real` (`bun run test:ci:real`), `security` (`bun run test:ci:security`), dan `report` (`bun run test:report`) yang berjalan setelah ketiga job itu, juga ketika salah satunya gagal. Seluruh suite berjalan pada setiap push tanpa seleksi berdasarkan perubahan. Setiap langkah CI adalah script root yang sama dengan yang dapat Anda jalankan lokal; tier nyata membutuhkan Docker, dan tier keamanan membutuhkan Docker serta akses ke registry npm.
+
+Runner tier menjalankan langkah berurutan sebagai `bun --no-env-file run <script>` dengan environment daftar izin, menghapus bukti lama sebelum langkah, berhenti pada langkah pertama yang tidak lulus, lalu menulis bundle `.local/feature-11/evidence/<tier>/` berisi salinan bukti pada path repository aslinya dan `manifest.json` (commit, status bersih, SHA 256 pohon sumber, identitas run CI, versi runtime, checksum input dan output, serta SHA 256 setiap file bukti). Langkah yang memuat testcase dilewati dicatat `skipped` dan membuat tier gagal; Docker yang tidak tersedia tidak pernah membuat tier nyata lulus. File bukti teks dan setiap file folder screenshot yang memuat nilai variable environment sensitif milik proses gate, apa adanya, di-escape XML atau JSON, atau dalam percent encoding, menggagalkan langkah dan tidak disalin. SIGINT, SIGTERM, atau SIGHUP (terminal yang tertutup) menghentikan grup proses langkah, manifest tetap ditulis, dan runner keluar 130, 143, atau 129. Setelah langkah tier cepat atau nyata dihentikan, PID yang masih mendengarkan port 8888 atau 8889 dicatat di `leftoverPorts`.
+
+`test:report` menghitung ulang status setiap check dari manifest dan JUnit di bundle, membedakan `passed`, `failed`, `skipped`, `not_run`, dan `missing_test`, mengikat ketiga tier pada commit, pohon sumber, dan run serta attempt CI yang sama, membuktikan discovery dari JUnit, merangkum `security.json`, mencatat identitas PostgreSQL tier nyata, dan menandai kandidat release. Gate `passed` hanya bila seluruh skenario lulus, ketiga tier lulus, discovery sesuai, ketiga pemindai lulus, dan pengikatan sah; `test:report` keluar 0 hanya untuk gate `passed`. Run lokal pada working tree yang belum masuk commit dapat lulus gate tetapi bukan kandidat release. Di GitHub hanya *Re-run all jobs* yang menghasilkan gate sah. Laporan release di `docs/testing/releases/` tetap ditulis manual dengan menyalin `report.md` run kandidat.
 
 Setiap pekerjaan menjalankan pemeriksaan yang relevan dengan dampaknya. CI perubahan kode menjalankan build atau pemeriksaan tipe yang diperlukan, validasi registry, test area yang berubah, regression terkait, serta E2E alur kritis yang terdampak. Jalankan smoke k6 bila perubahan menyentuh perilaku atau performance yang diukur.
 
