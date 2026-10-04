@@ -33,7 +33,7 @@ Versi dependency, kebijakan akses endpoint diagnostik, target layar dan aksesibi
 | 8 | Ekspor dan pemeriksaan kontrak OpenAPI | Alur awal | done |
 | 9 | SDK yang sesuai kontrak backend | Alur awal | done |
 | 10 | Alur pemeriksaan kesiapan lintas aplikasi | Alur awal | done |
-| 11 | Pengujian skenario dan gate CI | Pembuktian | planned |
+| 11 | Pengujian skenario dan gate CI | Pembuktian | done |
 | 12 | Kapasitas dan pemulihan saat beban meningkat | Pembuktian | planned |
 | 13 | Build container dan deployment terpisah | Operasi | planned |
 | 14 | Backup dan pemulihan data | Operasi | planned |
@@ -275,7 +275,7 @@ Kode tersedia: `apps/backend/src/features/development/` (`readiness.queries.ts`,
 
 ## Pembuktian
 
-### 11. Pengujian skenario dan gate CI · planned · perlu keputusan
+### 11. Pengujian skenario dan gate CI · done
 
 Hubungkan kriteria fitur dengan test serta bukti kandidat yang benar. Suite relevan ditambahkan bersama implementasi fitur sejak awal; fitur ini menyatukan discovery, registry, dan gate otomatis.
 
@@ -283,7 +283,22 @@ Hubungkan kriteria fitur dengan test serta bukti kandidat yang benar. Suite rele
 
 Data: database test terisolasi dengan schema dan role mengikuti fitur yang diuji. Credential production tidak dipakai. Specs menetapkan ID skenario; TOOL-001 sampai TOOL-004 yang sudah ada dipertahankan.
 
-- [ ] Rinci registry dan gate CI (spec): `/architect pengujian skenario dan gate CI`
+- [x] Rinci registry dan gate CI (spec): `/architect pengujian skenario dan gate CI`
+
+Spec: [0010](../specs/0010-pengujian-skenario-gate-ci/index.md).
+
+- [x] Bangun: `/develop pengujian skenario dan gate CI`
+  - [x] Bangun benang tipis runner tier, manifest, dan laporan awal untuk tier cepat dengan environment daftar izin, job `application` dan `report`, serta test SDK-008 yang membaca tabel tier (AC-3, AC-4, AC-6).
+  - [x] Perketat registry dan buktikan discovery setiap runner serta daftar izin workflow lewat GATE-001 sampai GATE-003 (AC-1, AC-2, AC-3).
+  - [x] Jalankan tier nyata dengan Docker, PostgreSQL 18, dan Chromium, perlakukan skip sebagai kegagalan, daftarkan resource uji setiap suite `bun:test` nyata pada modul pembersihan sinyal (GATE-009), dan buktikan penghentian tanpa proses, port, container, network, atau volume tersisa (AC-4, AC-6, AC-8).
+  - [x] Tambahkan tier keamanan dengan gitleaks, `bun audit`, dan actionlint yang dipin, konfigurasi tetap, isolasi container, kebijakan pengecualian, dan pin `postcss` 8.5.28 (AC-5, AC-8).
+  - [x] Lengkapi pengikatan kandidat dan attempt, laporan berbahasa Indonesia, alur kritis, dokumentasi, serta bukti lokal keempat perintah gate (AC-6 sampai AC-9).
+- [x] Verifikasi: `/check verify pengujian skenario dan gate CI`
+- [x] Uji: `/test pengujian skenario dan gate CI`
+- [x] Review mandiri: `/check review pengujian skenario dan gate CI` ([review awal](../reviews/2026-10-04-main-scenario-ci-gate.md) dan [review ulang Sonnet 5.5](../reviews/2026-10-04-main-scenario-ci-gate-followup.md), Approve with nits; tidak ada blocker atau major pada kedua putaran, keempat perintah gate dan probe sinyal pada Docker sungguhan lulus pada pohon sumber akhir; kelima temuan minor review awal dan enam belas butir laporan perbaikan (dua belas diperbaiki, termasuk celah `.gitattributes` pada gitleaks, dan empat ditolak dengan alasan yang terbukti) selesai pada 2026-10-04, tersisa satu temuan minor baru (pemeriksaan sumber GATE-009 belum mencakup proses backend, folder `mkdtemp`, dan syarat pelepasan) dan delapan nit sebagai tindak lanjut)
+- [x] Dokumentasikan perubahan: `/document pengujian skenario dan gate CI`
+
+Kode tersedia: runner tier `scripts/gate.ts` dengan `scripts/lib/gate.ts` (tabel tier, environment langkah, kode alasan, manifest), laporan `scripts/gate-report.ts` dengan `scripts/lib/gate-report.ts` dan `scripts/lib/registry-reader.ts`, pembaca JUnit `scripts/lib/junit.ts`, tabel pemilik runner `scripts/lib/test-inventory.ts`, registry `scripts/lib/scenario-registry.ts` dan `scripts/validate-scenarios.ts`, `scripts/check-test-discovery.ts`, `scripts/check-workflow.ts`, kebijakan pemindai `scripts/lib/security-policy.ts`, orkestrasi `tests/orchestration/security-scan.ts` dan `tests/orchestration/signal-cleanup.ts`, pin dan konfigurasi `tests/security/`, suite `tests/integration/gate/` (`bun run test:gate`), registry `tests/scenarios/ci-gate.json`, script `test:ci`, `test:ci:real`, `test:ci:security`, `test:report`, `check:test-discovery`, `check:workflow`, dan `check:security`, serta workflow `.github/workflows/application.yml` dengan job `application`, `real`, `security`, dan `report`. GATE-001 sampai GATE-009 lulus: 15 test GATE-001, 8 GATE-002, 81 GATE-003, 26 GATE-004, 17 GATE-005, 14 GATE-006, 21 GATE-007, 2 GATE-008, dan 10 GATE-009, seluruhnya 194 test dengan 1.306 assertion, ditambah check `command` `check:test-discovery`, `test:scenarios`, `check:workflow`, `check:security`, dan `test:ci:real`. Gate akhir 2026-10-04 pada pohon sumber `8380f7c5…` di atas `7f7d7c4`: `bun run test:ci` exit 0 dalam 176 detik, 17 dari 17 langkah, dengan 67 ID skenario dan 99 check, 29 file test pada discovery, empat job pada `check:workflow`, `api:check` identik pada dua run, initial bundle 684,40 kB (warning anggaran 500 kB tetap ada), 79 test frontend, 630 integration test dengan 2.748 assertion, 54 tooling test, 194 test gate, dan 12 E2E pass; `bun run test:ci:real` exit 0 dalam 140 detik, 5 dari 5 langkah tanpa testcase dilewati (`test:infrastructure` 18 test, `test:database:real` 29 test dengan 1.413 assertion, `test:database:migration` 5, `test:tooling:real`, dan `test:readiness:real`, dengan pemindaian credential tanpa temuan) pada PostgreSQL 18.6 terisolasi; `bun run test:ci:security` exit 0 dalam 9 detik dengan gitleaks `v8.30.1` atas 37 commit, `bun audit` atas 487 paket, dan actionlint `1.7.12` tanpa temuan; dan `bun run test:report` exit 0 dengan gate `passed`, pengikatan sah, 67 skenario `passed`, keempat alur kritis (APP-002, UI-001, READY-006, READY-009) lulus, discovery dan ketiga pemindai lulus, serta kandidat release `bukan` (`not_clean` dan `not_ci`) karena working tree belum masuk commit. Ke 44 file bukti cocok dengan SHA 256 di manifest, dan tidak ada container, network, volume, folder sementara, port, atau proses yang tersisa. Langkah verifikasi ada di [verify.md](../specs/0010-pengujian-skenario-gate-ci/verify.md); seluruh langkah lokal dicentang, dan lima langkah yang bergantung pada run GitHub Actions masih terbuka. [Laporan bukti](../testing/0010-scenario-ci-gate.md) memuat JUnit, manifest ketiga tier, `security.json`, `report.json`, dan `report.md` gerbang akhir, checksum artefak, profil k6 `not_applicable`, dan batas bukti. [Review awal](../reviews/2026-10-04-main-scenario-ci-gate.md) dan [review ulang](../reviews/2026-10-04-main-scenario-ci-gate-followup.md) menyetujui dengan nits tanpa blocker atau major; satu minor (pemeriksaan sumber GATE-009 belum mencakup proses backend, folder `mkdtemp`, dan syarat pelepasan) dan delapan nit tetap terbuka sebagai tindak lanjut, kecuali nit laporan bukti yang diselesaikan laporan ini. Perubahan tercatat pada [CHANGELOG](../../CHANGELOG.md). Status done berlaku untuk AC-1 sampai AC-9 spec 0010 dengan bukti lokal dari macOS arm64; run GitHub Actions commit fitur ini (keempat job, artifact, ringkasan job, dan Linux amd64) diperiksa tahap pipeline berikutnya sesudah push dan dicatat sebagai bukti terpisah menurut AC-9, gitleaks atas commit sementara dari working tree akhir lulus tanpa temuan sedangkan commit fitur sendiri baru dipindai job `security` sesudah push, dan k6 masuk gate pada fitur 12.
 
 ### 12. Kapasitas dan pemulihan saat beban meningkat · planned · perlu keputusan
 

@@ -1,0 +1,11 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="1.615749">
+<testsuite name="readiness/readiness.real.e2e.spec.ts" timestamp="2026-10-04T13:13:35.289Z" tests="1" failures="0" skipped="0" time="1.256" errors="0">
+<testcase name="READY-009 real database: available with the exact count at 1280×812 and 375×812, recheck, a stopped database without the old count, and recovery after docker start without a restart" classname="readiness/readiness.real.e2e.spec.ts" time="1.256">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

@@ -1,0 +1,94 @@
+<testsuites id="" name="" tests="12" failures="0" skipped="0" errors="0" time="10.285904">
+<testsuite name="application/framework.e2e.spec.ts" timestamp="2026-10-04T13:10:54.662Z" tests="2" failures="0" skipped="0" time="2.472" errors="0">
+<testcase name="APP-002 framework loads at 1280px without server calls and proxy reaches real backend" classname="application/framework.e2e.spec.ts" time="2.065">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/application-framework.e2e--68980--proxy-reaches-real-backend-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="APP-002 framework loads at 375px without server calls and proxy reaches real backend" classname="application/framework.e2e.spec.ts" time="0.407">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/application-framework.e2e--97374--proxy-reaches-real-backend-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="readiness/readiness-production.e2e.spec.ts" timestamp="2026-10-04T13:10:54.662Z" tests="2" failures="0" skipped="0" time="2.966" errors="0">
+<testcase name="READY-007 production build at 1280×812: the navigation holds only Beranda, /kesiapan ends at /, and no request path contains /api/" classname="readiness/readiness-production.e2e.spec.ts" time="1.454">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/readiness-readiness-produc-90406--request-path-contains-api--chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="READY-007 production build at 375×812: the navigation drawer holds only Beranda, /kesiapan ends at /, and no request path contains /api/" classname="readiness/readiness-production.e2e.spec.ts" time="1.512">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/readiness-readiness-produc-6ac38--request-path-contains-api--chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="readiness/readiness.e2e.spec.ts" timestamp="2026-10-04T13:10:54.662Z" tests="6" failures="0" skipped="0" time="7.584" errors="0">
+<testcase name="READY-006 desktop 1280×812: Kesiapan from the navigation, 503 through the proxy, layout, and keyboard" classname="readiness/readiness.e2e.spec.ts" time="2.246">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/readiness-readiness.e2e-RE-f479d-e-proxy-layout-and-keyboard-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="READY-006 mobile 375×812: Kesiapan through the navigation drawer, 503 through the proxy, layout, and keyboard" classname="readiness/readiness.e2e.spec.ts" time="2.018">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/readiness-readiness.e2e-RE-98a91-e-proxy-layout-and-keyboard-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="READY-006 opening /kesiapan directly at 1280×812: one check through the proxy, and Beranda never carries aria-current" classname="readiness/readiness.e2e.spec.ts" time="0.68">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/readiness-readiness.e2e-RE-96f39--never-carries-aria-current-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="READY-006 opening /kesiapan directly at 375×812: one check through the proxy, and Beranda never carries aria-current" classname="readiness/readiness.e2e.spec.ts" time="0.943">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/readiness-readiness.e2e-RE-63c8e--never-carries-aria-current-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="READY-006 opening / directly at 1280×812: no other item is current, and Beranda lacks aria-current (known library defect)" classname="readiness/readiness.e2e.spec.ts" time="0.741">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/readiness-readiness.e2e-RE-982da-rrent-known-library-defect--chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="READY-006 opening / directly at 375×812: no other item is current, and Beranda lacks aria-current (known library defect)" classname="readiness/readiness.e2e.spec.ts" time="0.956">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/readiness-readiness.e2e-RE-5ea1b-rrent-known-library-defect--chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="ui-shell/foundation-shell.e2e.spec.ts" timestamp="2026-10-04T13:10:54.662Z" tests="2" failures="0" skipped="0" time="4.073" errors="0">
+<testcase name="UI-001 shell navigation, focus, and responsive layout work at target sizes" classname="ui-shell/foundation-shell.e2e.spec.ts" time="3.414">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/ui-shell-foundation-shell.-2fd3d-layout-work-at-target-sizes-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="UI-002 the static root page does not call the backend API" classname="ui-shell/foundation-shell.e2e.spec.ts" time="0.659">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../../test-results/ui-shell-foundation-shell.-a4de2-es-not-call-the-backend-API-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

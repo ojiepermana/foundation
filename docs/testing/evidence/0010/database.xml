@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="29" assertions="1413" failures="0" skipped="0" time="40.002164">
+  <testsuite name="tests/integration/database/migration.test.ts" file="tests/integration/database/migration.test.ts" tests="5" assertions="59" failures="0" skipped="0" time="16.821155">
+    <testcase name="MIG-001 baseline applies once, records bytes, and doctor accepts it" classname="" time="2.450236" file="tests/integration/database/migration.test.ts" line="131" assertions="12" />
+    <testcase name="MIG-002 rejects changed, missing, malformed, and linked SQL files before mutation" classname="" time="2.024959" file="tests/integration/database/migration.test.ts" line="153" assertions="13" />
+    <testcase name="MIG-003 rolls back a pending batch and rejects transaction controls" classname="" time="2.003151" file="tests/integration/database/migration.test.ts" line="200" assertions="13" />
+    <testcase name="MIG-004 serializes runners, restores role, times out on lock, and rejects wrong identity" classname="" time="8.298301" file="tests/integration/database/migration.test.ts" line="226" assertions="12" />
+    <testcase name="MIG-005 requires current migrations, repeats an idempotent seed, and rolls back a batch" classname="" time="2.036271" file="tests/integration/database/migration.test.ts" line="257" assertions="9" />
+  </testsuite>
+  <testsuite name="tests/integration/database/readiness.test.ts" file="tests/integration/database/readiness.test.ts" tests="12" assertions="1280" failures="0" skipped="0" time="13.94384">
+    <testcase name="READY-008 a provisioned database without migrations answers 200 with 0 applied migrations" classname="" time="0.024705" file="tests/integration/database/readiness.test.ts" line="336" assertions="8" />
+    <testcase name="READY-008 after migrate.ts the count equals the number of database/migrations/*.sql files" classname="" time="0.062139" file="tests/integration/database/readiness.test.ts" line="340" assertions="18" />
+    <testcase name="READY-008 a 400 for ?x=1 on an idle backend does not make the next valid request 429" classname="" time="0.003439" file="tests/integration/database/readiness.test.ts" line="351" assertions="11" />
+    <testcase name="READY-008 countAppliedMigrations keeps the statement limit inside its transaction, so the pool session default stays as it was" classname="" time="0.008137" file="tests/integration/database/readiness.test.ts" line="356" assertions="4" />
+    <testcase name="READY-008 under an ACCESS EXCLUSIVE lock, 50 concurrent requests give one 503 under 5,000 ms and 49 busy answers" classname="" time="2.034544" file="tests/integration/database/readiness.test.ts" line="375" assertions="176" />
+    <testcase name="READY-008 a real 57014 error that arrives after a short deadline gives one unavailable, stays busy until it arrives, and stays silent" classname="" time="2.16389" file="tests/integration/database/readiness.test.ts" line="425" assertions="16" />
+    <testcase name="READY-008 a revoked SELECT gives 503 and GRANT restores 200" classname="" time="0.030943" file="tests/integration/database/readiness.test.ts" line="491" assertions="16" />
+    <testcase name="READY-008 a paused container gives 503 at the 5,000 ms deadline, 429 until the late query ends, and 200 within 15 s after unpause" classname="" time="5.177464" file="tests/integration/database/readiness.test.ts" line="507" assertions="29" />
+    <testcase name="READY-008 a stopped container gives 503 while /api/status stays 200, and after docker start a request succeeds within 30 s" classname="" time="0.352311" file="tests/integration/database/readiness.test.ts" line="527" assertions="18" />
+    <testcase name="READY-008 SIGTERM while a check waits on a paused database stops a backend within 3 s with exit code 0, Backend stopped, and empty stderr" classname="" time="1.787867" file="tests/integration/database/readiness.test.ts" line="543" assertions="16" />
+    <testcase name="READY-008 the route only reads: the migration history stays the same, and the backend role holds no write privilege on it" classname="" time="0.013879" file="tests/integration/database/readiness.test.ts" line="598" assertions="28" />
+    <testcase name="READY-008 responses and backend output carry no credential or database detail, and stderr stays empty" classname="" time="0.003575" file="tests/integration/database/readiness.test.ts" line="616" assertions="940" />
+  </testsuite>
+  <testsuite name="tests/integration/database/provision.test.ts" file="tests/integration/database/provision.test.ts" tests="12" assertions="74" failures="0" skipped="0" time="9.234114">
+    <testcase name="DATA-001 rejects absent flag without mutation, provisions roles, and repeats without passwords" classname="" time="0.193016" file="tests/integration/database/provision.test.ts" line="103" assertions="21" />
+    <testcase name="DATA-003 backend is denied mutations, temporary tables, owner role, and unqualified metadata" classname="" time="0.020889" file="tests/integration/database/provision.test.ts" line="128" assertions="11" />
+    <testcase name="DATA-002 wrong target and structural drift fail without exposing credentials" classname="" time="0.051268" file="tests/integration/database/provision.test.ts" line="160" assertions="5" />
+    <testcase name="DATA-002 checksum constraint drift fails even when the expected pattern remains in the definition" classname="" time="0.06724" file="tests/integration/database/provision.test.ts" line="177" assertions="6" />
+    <testcase name="DATA-002 role drift fails and known PUBLIC grant is repaired" classname="" time="0.073325" file="tests/integration/database/provision.test.ts" line="200" assertions="5" />
+    <testcase name="DATA-002 default ACL and grant option drift fail without changing privileges" classname="" time="0.078929" file="tests/integration/database/provision.test.ts" line="220" assertions="4" />
+    <testcase name="DATA-002 unexpected owner membership is rejected" classname="" time="0.033412" file="tests/integration/database/provision.test.ts" line="239" assertions="2" />
+    <testcase name="DATA-004 concurrent provisioning serializes and leaves one valid state" classname="" time="0.071614" file="tests/integration/database/provision.test.ts" line="254" assertions="3" />
+    <testcase name="DATA-004 lock timeout leaves existing state intact" classname="" time="6.521158" file="tests/integration/database/provision.test.ts" line="263" assertions="4" />
+    <testcase name="DATA-005 pool validates URL, reuses a connection, and closes" classname="" time="0.013323" file="tests/integration/database/provision.test.ts" line="284" assertions="4" />
+    <testcase name="DATA-005 backend keeps base route alive with a lazy pool and stops on SIGTERM" classname="" time="0.12599" file="tests/integration/database/provision.test.ts" line="297" assertions="5" />
+    <testcase name="DATA-005 backend serves the base route without a database URL and stops on SIGINT" classname="" time="0.074195" file="tests/integration/database/provision.test.ts" line="325" assertions="4" />
+  </testsuite>
+</testsuites>

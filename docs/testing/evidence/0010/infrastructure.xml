@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="18" assertions="184" failures="0" skipped="0" time="51.019928">
+  <testsuite name="tests/integration/infrastructure/postgres.test.ts" file="tests/integration/infrastructure/postgres.test.ts" tests="18" assertions="184" failures="0" skipped="0" time="51.017554">
+    <testcase name="INFRA-001 Compose root hanya berisi postgres dan secret admin tidak masuk Git atau Bun" classname="" time="0.077005" file="tests/integration/infrastructure/postgres.test.ts" line="309" assertions="52" />
+    <testcase name="INFRA-001 config --quiet menolak password kosong dan tidak mencetak secret" classname="" time="0.112109" file="tests/integration/infrastructure/postgres.test.ts" line="354" assertions="5" />
+    <testcase name="INFRA-005 cleanup menolak nama project tanpa awalan uji" classname="" time="0.000152" file="tests/integration/infrastructure/postgres.test.ts" line="373" assertions="6" />
+    <testcase name="INFRA-002 key PGDG dan signature repo diverifikasi sebelum RPM diinstall" classname="" time="0.000294" file="tests/integration/infrastructure/postgres.test.ts" line="380" assertions="18" />
+    <testcase name="INFRA-002 key bundle dan signature unsigned, rusak, atau dari signer lain ditolak sebelum instalasi" classname="" time="6.688906" file="tests/integration/infrastructure/postgres.test.ts" line="418" assertions="5" />
+    <testcase name="INFRA-005 tanpa daemon skenario Docker dilaporkan dilewati dengan alasan, bukan lulus" classname="" time="0.392142" file="tests/integration/infrastructure/postgres.test.ts" line="540" assertions="21" />
+    <testcase name="INFRA-002 build terkunci dari pins.json tanpa secret pada metadata image" classname="" time="4.177788" file="tests/integration/infrastructure/postgres.test.ts" line="560" assertions="10" />
+    <testcase name="INFRA-003 up --wait sampai healthy dan admin terhubung lewat scram dengan konfigurasi cluster sesuai" classname="" time="6.157588" file="tests/integration/infrastructure/postgres.test.ts" line="587" assertions="12" />
+    <testcase name="INFRA-003 password admin tidak muncul di log inisialisasi dan file password sementara sudah dihapus" classname="" time="0.150937" file="tests/integration/infrastructure/postgres.test.ts" line="623" assertions="3" />
+    <testcase name="INFRA-003 zona waktu bernama seperti Asia/Jakarta diterima karena tzdata terpasang" classname="" time="0.005157" file="tests/integration/infrastructure/postgres.test.ts" line="632" assertions="1" />
+    <testcase name="INFRA-003 doctor menolak DATABASE_URL superuser tanpa mencetak password" classname="" time="0.342489" file="tests/integration/infrastructure/postgres.test.ts" line="640" assertions="3" />
+    <testcase name="INFRA-002 identitas image tercatat dan proses server bukan root" classname="" time="0.462218" file="tests/integration/infrastructure/postgres.test.ts" line="660" assertions="7" />
+    <testcase name="INFRA-004 data bertahan setelah down tanpa -v dan shutdown tertib tanpa recovery" classname="" time="12.261976" file="tests/integration/infrastructure/postgres.test.ts" line="679" assertions="11" />
+    <testcase name="INFRA-006 cluster yang ada tidak diinisialisasi ulang saat password di env berubah" classname="" time="6.044605" file="tests/integration/infrastructure/postgres.test.ts" line="698" assertions="4" />
+    <testcase name="INFRA-006 volume baru menolak password pendek dan identifier tidak valid tanpa membuat cluster" classname="" time="2.09329" file="tests/integration/infrastructure/postgres.test.ts" line="718" assertions="13" />
+    <testcase name="INFRA-006 staging sisa inisialisasi terputus diganti cluster sehat" classname="" time="6.594568" file="tests/integration/infrastructure/postgres.test.ts" line="740" assertions="3" />
+    <testcase name="INFRA-006 PGDATA tanpa PG_VERSION menghentikan container tanpa mengubah isinya" classname="" time="2.067057" file="tests/integration/infrastructure/postgres.test.ts" line="755" assertions="5" />
+    <testcase name="INFRA-005 suite hanya menghapus resource project uji dan project foundation tidak berubah" classname="" time="0.750945" file="tests/integration/infrastructure/postgres.test.ts" line="771" assertions="5" />
+  </testsuite>
+</testsuites>

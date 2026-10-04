@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "tier": "security",
+  "candidate": {
+    "commit": "7f7d7c499ac6b8ce1c717b0e77c667adf08873ba",
+    "clean": false,
+    "sourceTree": "8380f7c5cdf48877b66b15bec32668fb3e553d1f4080b61fdc23c09be0e496af",
+    "sourceTreeAfter": "8380f7c5cdf48877b66b15bec32668fb3e553d1f4080b61fdc23c09be0e496af",
+    "ci": null
+  },
+  "environment": {
+    "os": "darwin",
+    "arch": "arm64",
+    "bun": "1.4.2",
+    "node": "24.21.0"
+  },
+  "inputs": {
+    "package.json": "ed2191944ee9e978161a60ff65d9560aaea931ae42c67dba331e1455c4a04bd1",
+    "bun.lock": "e74e16b34cde3c1a76d17328f5da63da16614409318218231e320d0a2e1fcc3f",
+    "openapi.json": "e583aa33ea689908d8188f5b1338a441475c9a434e97589e0b47366da95f0c00",
+    "infrastructure/postgres/pins.json": "63fe647f7df56c5e94a0e5cb6483d845eeea548dcfdbe991c50e95c234f438c4",
+    "tests/security/scanners.json": "311f56a9f4cfc6e801069ac407fec4c37b55c2988f5ed7dc92248c17db243581",
+    "tests/security/exceptions.json": "0c1de1a21eb6b25b59576015d5fa5c9fbb2fd081a192ac0c221c37f5e562271f",
+    "tests/security/gitleaks.toml": "b2218eefd2c12a1a2f23d36735ac4aaae6965d917965a8ed5881d0a4e8669376",
+    "tests/security/actionlint.yaml": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".github/workflows/application.yml": "edda79e565b79b9a5d204e9aaf57df86d3eae11adb723f0bb31796e3eb0fe164",
+    "apps/frontend/sdk/": "b7fde5e16f8c7b653b6b76cdb9d6e508017b02b44e237839bfdab38615b0a96e",
+    "tests/scenarios/": "a3546e775232a4cf91f9f3077a6417d95edefa9944928121ed3335d37242f0d3"
+  },
+  "outputs": {
+    "apps/frontend/dist/frontend/": "747ea3fc972f80b102cefab6fd0184c279add2edd2764e4c5f8b301c395b0683",
+    "dist/backend/index.js": "7f0d92c719ae41ec6ba4b8f928626d84ed65731384c022fba224cfbdf1b7ec40"
+  },
+  "steps": [
+    {
+      "script": "check:security",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 9257,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-11/security.json",
+          "kind": "scanner",
+          "required": true,
+          "present": true,
+          "sha256": "40b8bc7db34452181949e236f707a93794dffb7abc15ab440688331502753ab6"
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "startedAt": "2026-10-04T13:13:46.234Z",
+  "finishedAt": "2026-10-04T13:13:55.599Z"
+}

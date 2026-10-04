@@ -1,0 +1,251 @@
+{
+  "schema": 1,
+  "tier": "real",
+  "candidate": {
+    "commit": "7f7d7c499ac6b8ce1c717b0e77c667adf08873ba",
+    "clean": false,
+    "sourceTree": "8380f7c5cdf48877b66b15bec32668fb3e553d1f4080b61fdc23c09be0e496af",
+    "sourceTreeAfter": "8380f7c5cdf48877b66b15bec32668fb3e553d1f4080b61fdc23c09be0e496af",
+    "ci": null
+  },
+  "environment": {
+    "os": "darwin",
+    "arch": "arm64",
+    "bun": "1.4.2",
+    "node": "24.21.0"
+  },
+  "inputs": {
+    "package.json": "ed2191944ee9e978161a60ff65d9560aaea931ae42c67dba331e1455c4a04bd1",
+    "bun.lock": "e74e16b34cde3c1a76d17328f5da63da16614409318218231e320d0a2e1fcc3f",
+    "openapi.json": "e583aa33ea689908d8188f5b1338a441475c9a434e97589e0b47366da95f0c00",
+    "infrastructure/postgres/pins.json": "63fe647f7df56c5e94a0e5cb6483d845eeea548dcfdbe991c50e95c234f438c4",
+    "tests/security/scanners.json": "311f56a9f4cfc6e801069ac407fec4c37b55c2988f5ed7dc92248c17db243581",
+    "tests/security/exceptions.json": "0c1de1a21eb6b25b59576015d5fa5c9fbb2fd081a192ac0c221c37f5e562271f",
+    "tests/security/gitleaks.toml": "b2218eefd2c12a1a2f23d36735ac4aaae6965d917965a8ed5881d0a4e8669376",
+    "tests/security/actionlint.yaml": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".github/workflows/application.yml": "edda79e565b79b9a5d204e9aaf57df86d3eae11adb723f0bb31796e3eb0fe164",
+    "apps/frontend/sdk/": "b7fde5e16f8c7b653b6b76cdb9d6e508017b02b44e237839bfdab38615b0a96e",
+    "tests/scenarios/": "a3546e775232a4cf91f9f3077a6417d95edefa9944928121ed3335d37242f0d3"
+  },
+  "outputs": {
+    "apps/frontend/dist/frontend/": "747ea3fc972f80b102cefab6fd0184c279add2edd2764e4c5f8b301c395b0683",
+    "dist/backend/index.js": "7f0d92c719ae41ec6ba4b8f928626d84ed65731384c022fba224cfbdf1b7ec40"
+  },
+  "steps": [
+    {
+      "script": "test:infrastructure",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 51057,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-3/infrastructure.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "32c6344d70a5bbd25b7e8cc705b4a778ef8edd4359d389e74aa7057a3d6abe43",
+          "runner": "bun:test",
+          "tests": 18,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-3/image.json",
+          "kind": "image",
+          "required": true,
+          "present": true,
+          "sha256": "582cf7b68a3bbe499f0b9b6414d4fc912f50e6c774468c9b3c3d7423c8b38d08"
+        }
+      ]
+    },
+    {
+      "script": "test:database:real",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 41717,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-5/database.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "0a8c0408c6fbb29a09910987c5efdc5da51a2bb17b1025a81bd9c20a0a4b103b",
+          "runner": "bun:test",
+          "tests": 29,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-5/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "81fe78f07668fc266a6d488f909784d64684231171e508058dcb61c819c397df"
+        }
+      ]
+    },
+    {
+      "script": "test:database:migration",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 16797,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-6/migration.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "eee6ff12807e693515ad0dd53836933f9c61438e7a7ebc86dd8dbbffa18bb1e1",
+          "runner": "bun:test",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:tooling:real",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 24036,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-2/playwright-real.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "f026a9b09950c74ad091c4d2039d6c3a1f8af83aab06b727de2279d82c55507e",
+          "runner": "playwright",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-2/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "8c2904d3b1873f0bdf22347d08d3231434d087461b40c1f72ceb58fe00f957df"
+        },
+        {
+          "path": ".local/feature-2/test-results/",
+          "kind": "screenshots",
+          "required": false,
+          "present": true,
+          "files": [
+            {
+              "path": ".local/feature-2/test-results/.last-run.json",
+              "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-desktop.png",
+              "sha256": "3748ec58a5470eb2f632d71c7dcb692768744e2c848f80d1857b98bb8c3efc89"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-mobile.png",
+              "sha256": "ed93a6905e3780d3ffa0844138dd24ee531947600a8d3e18d549c1b1e3a6ebdc"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-recovered.png",
+              "sha256": "74c5005baf7fedb40f7cab5d9c1fb8d2995874460fbf3e55b420af776f663380"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-unavailable-stopped.png",
+              "sha256": "3f71ea65d72207951fb4385fc29eddf2a039cc63a4e0b02d5c9e9da0dcc2b039"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/test-finished-1.png",
+              "sha256": "74c5005baf7fedb40f7cab5d9c1fb8d2995874460fbf3e55b420af776f663380"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "script": "test:readiness:real",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 5741,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-10/playwright-real.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "cdcdeca6abd4981dcd3a5396678d44dbeb49e7bf02f930ca2326ea622d2bb86a",
+          "runner": "playwright",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-10/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "50ff8c787cda6b81c73e3ddc4d92dfdba43fb88f92ce13d24c2fe23dfa3c13b9"
+        },
+        {
+          "path": ".local/feature-10/test-results/",
+          "kind": "screenshots",
+          "required": false,
+          "present": true,
+          "files": [
+            {
+              "path": ".local/feature-10/test-results/.last-run.json",
+              "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-desktop.png",
+              "sha256": "68f685dab242fb14477eaf77ac5f8854cfb55b3453d43d3abacff7eec527666a"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-mobile.png",
+              "sha256": "958b9021df5b79d0c82a279ddbd0fc2c2209ad264a7d6f87efbc3657d4a248fb"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-recovered.png",
+              "sha256": "dd3103197cc8add223f627d9b13d71cacb7aeff91223406b42967b802a592124"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-unavailable-stopped.png",
+              "sha256": "778eac806a40ecff6e2e647e0c2b8c003cf335cf01ce2b95961d5d20d4984cc3"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/test-finished-1.png",
+              "sha256": "dd3103197cc8add223f627d9b13d71cacb7aeff91223406b42967b802a592124"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "startedAt": "2026-10-04T13:11:18.029Z",
+  "finishedAt": "2026-10-04T13:13:37.473Z"
+}

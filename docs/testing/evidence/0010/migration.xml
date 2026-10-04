@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="5" assertions="59" failures="0" skipped="0" time="16.756489">
+  <testsuite name="tests/integration/database/migration.test.ts" file="tests/integration/database/migration.test.ts" tests="5" assertions="59" failures="0" skipped="0" time="16.754051">
+    <testcase name="MIG-001 baseline applies once, records bytes, and doctor accepts it" classname="" time="2.326801" file="tests/integration/database/migration.test.ts" line="131" assertions="12" />
+    <testcase name="MIG-002 rejects changed, missing, malformed, and linked SQL files before mutation" classname="" time="2.015186" file="tests/integration/database/migration.test.ts" line="153" assertions="13" />
+    <testcase name="MIG-003 rolls back a pending batch and rejects transaction controls" classname="" time="2.012814" file="tests/integration/database/migration.test.ts" line="200" assertions="13" />
+    <testcase name="MIG-004 serializes runners, restores role, times out on lock, and rejects wrong identity" classname="" time="8.32295" file="tests/integration/database/migration.test.ts" line="226" assertions="12" />
+    <testcase name="MIG-005 requires current migrations, repeats an idempotent seed, and rolls back a batch" classname="" time="2.068305" file="tests/integration/database/migration.test.ts" line="257" assertions="9" />
+  </testsuite>
+</testsuites>

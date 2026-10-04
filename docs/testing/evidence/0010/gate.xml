@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="194" assertions="1306" failures="0" skipped="0" time="43.103286">
+  <testsuite name="tests/integration/gate/tier.test.ts" file="tests/integration/gate/tier.test.ts" tests="28" assertions="267" failures="0" skipped="0" time="19.434754">
+    <testcase name="GATE-004 the runner stops at the first step that does not pass and records the rest not_run" classname="" time="0.122499" file="tests/integration/gate/tier.test.ts" line="94" assertions="6" />
+    <testcase name="GATE-004 stale JUnit is removed before the step, so a step that writes none fails with evidence_missing" classname="" time="0.08275" file="tests/integration/gate/tier.test.ts" line="109" assertions="6" />
+    <testcase name="GATE-004 the SHA 256 of every evidence file and folder file is recorded and the bundle copy is byte for byte" classname="" time="0.099368" file="tests/integration/gate/tier.test.ts" line="123" assertions="7" />
+    <testcase name="GATE-004 a JUnit that is broken, outside the reader, or above the size limit fails as evidence_invalid, and a failure as junit_failures" classname="" time="0.720737" file="tests/integration/gate/tier.test.ts" line="153" assertions="23" />
+    <testcase name="GATE-004 image.json and artifact-scan.json must be JSON objects, and a scan with findings fails the step" classname="" time="0.618949" file="tests/integration/gate/tier.test.ts" line="179" assertions="14" />
+    <testcase name="GATE-004 JUnit with a CDATA that holds &lt;/testsuite&gt; and &lt;testcase, a testsuites root, and numeric references has no fake testcase" classname="" time="0.087913" file="tests/integration/gate/tier.test.ts" line="203" assertions="3" />
+    <testcase name="GATE-004 a skipped testcase marks the step skipped, stops the tier, and fails it" classname="" time="0.089419" file="tests/integration/gate/tier.test.ts" line="221" assertions="6" />
+    <testcase name="GATE-004 on timeout the group gets the tier grace, so a step that needs more than 5 seconds to clean up finishes before SIGKILL" classname="" time="7.800042" file="tests/integration/gate/tier.test.ts" line="233" assertions="5" />
+    <testcase name="GATE-004 SIGTERM to the gate stops the step group, writes the manifest, exits 143, and leaves no process" classname="" time="0.313642" file="tests/integration/gate/tier.test.ts" line="246" assertions="8" />
+    <testcase name="GATE-004 SIGINT to the gate stops the step group, writes the manifest, exits 130, and leaves no process" classname="" time="0.314167" file="tests/integration/gate/tier.test.ts" line="246" assertions="8" />
+    <testcase name="GATE-004 SIGHUP to the gate stops the step group, writes the manifest, exits 129, and leaves no process" classname="" time="0.312929" file="tests/integration/gate/tier.test.ts" line="246" assertions="8" />
+    <testcase name="GATE-004 steps get only the allow listed environment, never DATABASE_URL, other variables, or .env, and the manifest holds no value" classname="" time="0.08322" file="tests/integration/gate/tier.test.ts" line="284" assertions="15" />
+    <testcase name="GATE-004 a JUnit that holds a sensitive value of the gate process fails as sensitive_value, names the variable only, and is not copied" classname="" time="0.089056" file="tests/integration/gate/tier.test.ts" line="306" assertions="7" />
+    <testcase name="GATE-008 the real tier runs the five real suites in order with their evidence, limit, and grace" classname="" time="0.000081" file="tests/integration/gate/tier.test.ts" line="321" assertions="4" />
+    <testcase name="GATE-008 the real tier fails, never passes, when its suites skip testcases because the container engine is missing" classname="" time="0.091405" file="tests/integration/gate/tier.test.ts" line="335" assertions="10" />
+    <testcase name="GATE-004 the fast and security tiers hold the steps, evidence, limit, and grace of Tabel tier and Bukti per langkah" classname="" time="0.000191" file="tests/integration/gate/tier.test.ts" line="372" assertions="21" />
+    <testcase name="GATE-004 scripts/gate.ts without a tier, with an unknown tier, or with an extra argument prints the usage, exits 1, and writes no bundle" classname="" time="0.072592" file="tests/integration/gate/tier.test.ts" line="414" assertions="13" />
+    <testcase name="GATE-004 evidence is copied even when the step fails, and an optional folder that is absent adds no reason" classname="" time="0.092721" file="tests/integration/gate/tier.test.ts" line="437" assertions="6" />
+    <testcase name="GATE-004 a screenshots path that is a file is evidence_invalid, and a text file inside the folder with a sensitive value stays out" classname="" time="0.175265" file="tests/integration/gate/tier.test.ts" line="451" assertions="8" />
+    <testcase name="GATE-004 the old bundle and a stale temporary bundle of the tier are removed before it runs, and other tiers stay" classname="" time="0.082305" file="tests/integration/gate/tier.test.ts" line="476" assertions="5" />
+    <testcase name="GATE-004 the step environment is the allow list only, and sensitive values are sensitive names of at least 8 characters" classname="" time="0.000157" file="tests/integration/gate/tier.test.ts" line="495" assertions="13" />
+    <testcase name="GATE-004 runProcessGroup waits graceMs after SIGTERM before SIGKILL, and 5000 ms when the option is absent" classname="" time="6.58967" file="tests/integration/gate/tier.test.ts" line="520" assertions="7" />
+    <testcase name="GATE-004 the JUnit reader builds the full title per runner and counts by element, never by summary attributes" classname="" time="0.000718" file="tests/integration/gate/tier.test.ts" line="561" assertions="5" />
+    <testcase name="GATE-004 the JUnit reader accepts a BOM, a testsuite root, comments, instructions, quoted &gt;, single quotes, and references" classname="" time="0.000165" file="tests/integration/gate/tier.test.ts" line="582" assertions="4" />
+    <testcase name="GATE-004 the JUnit reader rejects anything outside Pembaca JUnit with JUnitError, never a passing result" classname="" time="0.005688" file="tests/integration/gate/tier.test.ts" line="602" assertions="30" />
+    <testcase name="GATE-004 after a stopped step the gate records the PIDs still listening on the tier ports, and nothing for a step that ended itself" classname="" time="1.316334" file="tests/integration/gate/tier.test.ts" line="645" assertions="8" />
+    <testcase name="GATE-004 a sensitive value is found as is, escaped for XML or JSON, and percent encoded" classname="" time="0.175723" file="tests/integration/gate/tier.test.ts" line="673" assertions="13" />
+    <testcase name="GATE-004 every file of a screenshots folder is checked for sensitive values, not only .xml and .json" classname="" time="0.088989" file="tests/integration/gate/tier.test.ts" line="696" assertions="4" />
+  </testsuite>
+  <testsuite name="tests/integration/gate/discovery.test.ts" file="tests/integration/gate/discovery.test.ts" tests="15" assertions="127" failures="0" skipped="0" time="0.702017">
+    <testcase name="GATE-001 the discovery pattern is the union of the Bun, Vitest, and Playwright defaults" classname="" time="0.000078" file="tests/integration/gate/discovery.test.ts" line="66" assertions="15" />
+    <testcase name="GATE-001 the inventory rejects unowned test files and ignores non test names and skipped folders" classname="" time="0.012173" file="tests/integration/gate/discovery.test.ts" line="75" assertions="7" />
+    <testcase name="GATE-001 a file owned by two runners is rejected" classname="" time="0.001408" file="tests/integration/gate/discovery.test.ts" line="90" assertions="2" />
+    <testcase name="GATE-001 the Angular list is read from the lines after its header, relative to the frontend workspace" classname="" time="0.000156" file="tests/integration/gate/discovery.test.ts" line="107" assertions="3" />
+    <testcase name="GATE-001 the Playwright list gives files relative to the repository and full titles joined with ›" classname="" time="0.000255" file="tests/integration/gate/discovery.test.ts" line="125" assertions="5" />
+    <testcase name="GATE-001 a runner list is compared with the owned set in both directions" classname="" time="0.000045" file="tests/integration/gate/discovery.test.ts" line="152" assertions="2" />
+    <testcase name="GATE-001 a JUnit file that holds a foreign file or lacks an owned file is rejected" classname="" time="0.000176" file="tests/integration/gate/discovery.test.ts" line="161" assertions="4" />
+    <testcase name="GATE-001 check:test-discovery passes when every list matches its owners and counts files per runner" classname="" time="0.152525" file="tests/integration/gate/discovery.test.ts" line="234" assertions="3" />
+    <testcase name="GATE-001 check:test-discovery fails with the path of every unowned file, list difference, and missing tagged title" classname="" time="0.150688" file="tests/integration/gate/discovery.test.ts" line="246" assertions="3" />
+    <testcase name="GATE-001 check:test-discovery fails with list_failed when a runner list exits non zero or lacks its format" classname="" time="0.146364" file="tests/integration/gate/discovery.test.ts" line="272" assertions="2" />
+    <testcase name="GATE-001 the list commands receive only the step environment, not a sentinel outside the allow list" classname="" time="0.149897" file="tests/integration/gate/discovery.test.ts" line="288" assertions="2" />
+    <testcase name="GATE-001 the repository inventory has no unowned file, and every owner script exists and is a tier step" classname="" time="0.004487" file="tests/integration/gate/discovery.test.ts" line="303" assertions="51" />
+    <testcase name="GATE-001 the owner table is Tabel pemilik runner, and every owner JUnit is the evidence its tier step declares" classname="" time="0.000357" file="tests/integration/gate/discovery.test.ts" line="322" assertions="20" />
+    <testcase name="GATE-001 a JUnit path is the file attribute for bun:test and the suite name plus a prefix for Vitest and Playwright" classname="" time="0.000086" file="tests/integration/gate/discovery.test.ts" line="355" assertions="6" />
+    <testcase name="GATE-001 the inventory never enters a symlinked folder and lists a symlink named like a test file as a file" classname="" time="0.001943" file="tests/integration/gate/discovery.test.ts" line="369" assertions="2" />
+  </testsuite>
+  <testsuite name="tests/integration/gate/security-policy.test.ts" file="tests/integration/gate/security-policy.test.ts" tests="21" assertions="219" failures="0" skipped="0" time="7.343614">
+    <testcase name="GATE-007 a gitleaks finding fails unless its fingerprint has an exception, and an unused exception is reported" classname="" time="0.000245" file="tests/integration/gate/security-policy.test.ts" line="82" assertions="8" />
+    <testcase name="GATE-007 bun audit: high fails, moderate and low are reported, and an unknown severity fails" classname="" time="0.00026" file="tests/integration/gate/security-policy.test.ts" line="104" assertions="10" />
+    <testcase name="GATE-007 a dependency exception applies up to and including expires, then fails; longer than 90 days is refused" classname="" time="0.00014" file="tests/integration/gate/security-policy.test.ts" line="131" assertions="13" />
+    <testcase name="GATE-007 exit code and JSON are mapped as in Pemanggilan pemindai; any other combination is not_run" classname="" time="0.000289" file="tests/integration/gate/security-policy.test.ts" line="163" assertions="24" />
+    <testcase name="GATE-007 a shallow checkout makes gitleaks not_run, and a Bun other than engines.bun blocks bun audit" classname="" time="0.000041" file="tests/integration/gate/security-policy.test.ts" line="203" assertions="6" />
+    <testcase name="GATE-007 .gitleaks.toml, .gitleaksignore, and .github/actionlint.y*ml in the checkout fail their scanner" classname="" time="0.001666" file="tests/integration/gate/security-policy.test.ts" line="212" assertions="4" />
+    <testcase name="GATE-007 a pin without a digest, with another image, or outside the locked shape is refused" classname="" time="0.000225" file="tests/integration/gate/security-policy.test.ts" line="226" assertions="12" />
+    <testcase name="GATE-007 exceptions.json outside the locked shape is rejected as a whole, with paths and indexes only" classname="" time="0.000209" file="tests/integration/gate/security-policy.test.ts" line="247" assertions="3" />
+    <testcase name="GATE-007 tests/security holds the locked gitleaks.toml, an empty actionlint.yaml, valid pins, and empty exceptions" classname="" time="0.000294" file="tests/integration/gate/security-policy.test.ts" line="268" assertions="5" />
+    <testcase name="GATE-007 the container arguments are the fixed list of Pemanggilan pemindai, with UID 65534 for a root host" classname="" time="0.000157" file="tests/integration/gate/security-policy.test.ts" line="291" assertions="6" />
+    <testcase name="GATE-007 a committed .gitattributes with -diff does not hide a file from the history that gitleaks reads" classname="" time="0.074334" file="tests/integration/gate/security-policy.test.ts" line="320" assertions="6" />
+    <testcase name="GATE-007 security.json holds only the named fields, without a secret value, Match, author name, or email" classname="" time="0.000323" file="tests/integration/gate/security-policy.test.ts" line="351" assertions="24" />
+    <testcase name="GATE-007 SIGTERM to check:security stops the scanner, runs docker rm -f on the same name, writes security.json, and exits 143" classname="" time="0.910672" file="tests/integration/gate/security-policy.test.ts" line="500" assertions="16" />
+    <testcase name="GATE-007 SIGINT to check:security stops the scanner, runs docker rm -f on the same name, writes security.json, and exits 130" classname="" time="0.381377" file="tests/integration/gate/security-policy.test.ts" line="500" assertions="16" />
+    <testcase name="GATE-007 SIGHUP to check:security stops the scanner, runs docker rm -f on the same name, writes security.json, and exits 129" classname="" time="0.379981" file="tests/integration/gate/security-policy.test.ts" line="500" assertions="16" />
+    <testcase name="GATE-007 check:security fails a shallow checkout, another Bun, and an actionlint config in the checkout, and removes its container" classname="" time="0.42251" file="tests/integration/gate/security-policy.test.ts" line="566" assertions="12" />
+    <testcase name="GATE-007 scanner output past the in-memory limit stops the group, keeps no more than the limit, and is marked outputExceeded" classname="" time="0.038282" file="tests/integration/gate/security-policy.test.ts" line="608" assertions="6" />
+    <testcase name="GATE-007 bun audit runs with PATH and HOME only, and a rejected exceptions.json fails the scan although every scanner passed" classname="" time="0.723153" file="tests/integration/gate/security-policy.test.ts" line="659" assertions="7" />
+    <testcase name="GATE-007 a scanner container that docker rm -f cannot remove fails the scan and is named on stderr without Docker output" classname="" time="0.566666" file="tests/integration/gate/security-policy.test.ts" line="674" assertions="11" />
+    <testcase name="GATE-007 a failed pull, a scanner past its time limit, and output past the memory limit make the scanner not_run" classname="" time="3.838997" file="tests/integration/gate/security-policy.test.ts" line="691" assertions="11" />
+    <testcase name="GATE-007 security.json fails when anything outside the three scanners failed, even with three passed scanners" classname="" time="0.000153" file="tests/integration/gate/security-policy.test.ts" line="716" assertions="3" />
+  </testsuite>
+  <testsuite name="tests/integration/gate/registry.test.ts" file="tests/integration/gate/registry.test.ts" tests="8" assertions="110" failures="0" skipped="0" time="0.105254">
+    <testcase name="GATE-002 tags count only as string literals, template heads, or templates read by the TypeScript parser" classname="" time="0.004377" file="tests/integration/gate/registry.test.ts" line="108" assertions="5" />
+    <testcase name="GATE-002 criteria are list items that start with **AC-n**:, never a substring" classname="" time="0.000066" file="tests/integration/gate/registry.test.ts" line="118" assertions="2" />
+    <testcase name="GATE-002 a valid fixture passes, including a command check with a registered tag and a tier root script" classname="" time="0.006772" file="tests/integration/gate/registry.test.ts" line="126" assertions="3" />
+    <testcase name="GATE-002 every violation is reported in one run with the registry path and ID, without file content" classname="" time="0.007511" file="tests/integration/gate/registry.test.ts" line="134" assertions="8" />
+    <testcase name="GATE-002 a registry that is not JSON or not an object is reported, and the other registries are still validated" classname="" time="0.00595" file="tests/integration/gate/registry.test.ts" line="211" assertions="2" />
+    <testcase name="GATE-002 the repository registries pass, keep every existing ID, and flag the four critical flows" classname="" time="0.076922" file="tests/integration/gate/registry.test.ts" line="235" assertions="68" />
+    <testcase name="GATE-002 a check path is canonical and relative, a file is regular, and no segment on the way may be a symlink" classname="" time="0.002138" file="tests/integration/gate/registry.test.ts" line="260" assertions="21" />
+    <testcase name="GATE-002 a criterion is defined only by a dash or numbered list item that starts with **AC-n**:" classname="" time="0.000039" file="tests/integration/gate/registry.test.ts" line="278" assertions="1" />
+  </testsuite>
+  <testsuite name="tests/integration/gate/signal-cleanup.test.ts" file="tests/integration/gate/signal-cleanup.test.ts" tests="10" assertions="132" failures="0" skipped="0" time="4.883318">
+    <testcase name="GATE-009 SIGTERM to bun test removes every registered resource in reverse order, in two passes, and exits 143" classname="" time="1.388417" file="tests/integration/gate/signal-cleanup.test.ts" line="203" assertions="13" />
+    <testcase name="GATE-009 SIGINT to bun test runs the same cleanup and exits 130" classname="" time="1.151411" file="tests/integration/gate/signal-cleanup.test.ts" line="210" assertions="13" />
+    <testcase name="GATE-009 SIGHUP to bun test, as from a terminal that closed, runs the same cleanup and exits 129" classname="" time="0.148584" file="tests/integration/gate/signal-cleanup.test.ts" line="217" assertions="13" />
+    <testcase name="GATE-009 a name Docker fails to remove and a callback that throws give one stderr line with names only" classname="" time="1.157176" file="tests/integration/gate/signal-cleanup.test.ts" line="224" assertions="15" />
+    <testcase name="GATE-009 signalCallTimeout gives the call limit, cut by what is left of 60000 ms, and 0 once nothing is left" classname="" time="0.000105" file="tests/integration/gate/signal-cleanup.test.ts" line="234" assertions="10" />
+    <testcase name="GATE-009 every real bun:test file that runs Docker imports the signal cleanup module" classname="" time="0.007198" file="tests/integration/gate/signal-cleanup.test.ts" line="260" assertions="5" />
+    <testcase name="GATE-009 test:database:real gives its bun test group 75000 ms after SIGTERM and keeps the default for the build" classname="" time="0.002864" file="tests/integration/gate/signal-cleanup.test.ts" line="308" assertions="4" />
+    <testcase name="GATE-009 SIGTERM to the infrastructure suite runs compose down for its project on both passes, checks the project labels, then removes its folder" classname="" time="0.547752" file="tests/integration/gate/signal-cleanup.test.ts" line="401" assertions="9" />
+    <testcase name="GATE-009 SIGTERM to the provision, migration, and readiness suites removes the container they started on both passes, then its folder" classname="" time="0.463858" file="tests/integration/gate/signal-cleanup.test.ts" line="414" assertions="24" />
+    <testcase name="GATE-009 every real suite registers its cleanup before each Docker resource it creates and releases it only after the normal removal" classname="" time="0.013205" file="tests/integration/gate/signal-cleanup.test.ts" line="496" assertions="26" />
+  </testsuite>
+  <testsuite name="tests/integration/gate/workflow.test.ts" file="tests/integration/gate/workflow.test.ts" tests="81" assertions="148" failures="0" skipped="0" time="0.019522">
+    <testcase name="GATE-003 the complete four job workflow of the Workflow row passes, also as YAML with comments" classname="" time="0.001085" file="tests/integration/gate/workflow.test.ts" line="99" assertions="2" />
+    <testcase name="GATE-003 rejects run sembarang" classname="" time="0.000209" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects komentar di dalam run" classname="" time="0.000162" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects script yang tidak ada" classname="" time="0.000234" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects action dengan tag" classname="" time="0.000154" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects action di luar daftar" classname="" time="0.000151" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects input with tidak dikenal" classname="" time="0.000163" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects rujukan secrets." classname="" time="0.000149" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects pull_request_target" classname="" time="0.000147" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects filter trigger" classname="" time="0.000145" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects permission write" classname="" time="0.00013" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects permission tambahan" classname="" time="0.000126" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects kunci workflow env" classname="" time="0.000154" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects container" classname="" time="0.000156" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects services" classname="" time="0.000145" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects env tingkat job" classname="" time="0.000133" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects env tingkat langkah" classname="" time="0.000121" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects permissions tingkat job" classname="" time="0.000121" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects continue-on-error tingkat job" classname="" time="0.000126" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects strategy" classname="" time="0.000122" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects runs-on lain" classname="" time="0.000108" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects timeout lain" classname="" time="0.000118" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects if tingkat job di luar report" classname="" time="0.000126" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects if report lain" classname="" time="0.000108" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects if pada langkah run" classname="" time="0.00012" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects if unggah lain" classname="" time="0.000119" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects unggah tanpa if" classname="" time="0.000107" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects versi Bun berbeda" classname="" time="0.000126" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects versi Node berbeda" classname="" time="0.000109" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects checkout tanpa persist-credentials: false" classname="" time="0.00012" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects job tanpa checkout" classname="" time="0.000102" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects security tanpa fetch-depth: 0" classname="" time="0.000106" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects fetch-depth di job lain" classname="" time="0.000112" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects unggahan tanpa overwrite: true" classname="" time="0.000116" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects overwrite false" classname="" time="0.000113" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects retensi lain" classname="" time="0.000114" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects tanpa include-hidden-files" classname="" time="0.000112" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects if-no-files-found lain" classname="" time="0.000105" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects script tier ganda" classname="" time="0.000111" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects script tier hilang" classname="" time="0.000108" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects script tier di job lain" classname="" time="0.000106" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects report tanpa needs" classname="" time="0.000103" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects needs tidak lengkap" classname="" time="0.000108" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects needs di job lain" classname="" time="0.000113" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects path unggah salah" classname="" time="0.000101" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects laporan tanpa report.md" classname="" time="0.000108" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects artifact lain" classname="" time="0.000107" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects path unduh salah" classname="" time="0.000104" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects unduh tanpa continue-on-error" classname="" time="0.000104" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects continue-on-error pada langkah lain" classname="" time="0.000113" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects unduhan hilang" classname="" time="0.000103" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects unduhan di job lain" classname="" time="0.000125" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects job hilang" classname="" time="0.000091" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects job tambahan" classname="" time="0.000112" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 rejects langkah dengan uses dan run" classname="" time="0.000111" file="tests/integration/gate/workflow.test.ts" line="171" assertions="1" />
+    <testcase name="GATE-003 YAML that cannot be parsed or is not a mapping is rejected" classname="" time="0.000237" file="tests/integration/gate/workflow.test.ts" line="177" assertions="2" />
+    <testcase name="GATE-003 the workflow in the repository passes with all four jobs of the Workflow row" classname="" time="0.00067" file="tests/integration/gate/workflow.test.ts" line="182" assertions="8" />
+    <testcase name="GATE-003 the documents name the tiers, scripts, evidence, scanners, and report, drop the old phrases, and keep the INFRA-001 command" classname="" time="0.000719" file="tests/integration/gate/workflow.test.ts" line="220" assertions="27" />
+    <testcase name="GATE-003 the jobs without bun install run scripts that import only node: modules and relative files" classname="" time="0.004014" file="tests/integration/gate/workflow.test.ts" line="249" assertions="6" />
+    <testcase name="GATE-003 rejects defaults tingkat job" classname="" time="0.000195" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects name tingkat job" classname="" time="0.000111" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects concurrency workflow" classname="" time="0.000109" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects defaults workflow" classname="" time="0.000113" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects trigger workflow_dispatch" classname="" time="0.000107" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects trigger schedule" classname="" time="0.000109" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects trigger pull_request hilang" classname="" time="0.000102" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects filter pull_request" classname="" time="0.000102" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects working-directory langkah" classname="" time="0.000113" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects shell langkah" classname="" time="0.000105" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects timeout-minutes langkah" classname="" time="0.000098" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects cache setup-node" classname="" time="0.000107" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects bun-version-file setup-bun" classname="" time="0.000109" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects unduh dari run lain" classname="" time="0.000136" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects unduh dengan pola" classname="" time="0.000116" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects input unggah tambahan" classname="" time="0.000116" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects secrets. di komentar" classname="" time="0.000099" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects run dengan uses action lokal" classname="" time="0.000108" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects action docker" classname="" time="0.000104" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects bun run dengan argumen tambahan" classname="" time="0.000103" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 rejects dua perintah dalam satu run" classname="" time="0.000104" file="tests/integration/gate/workflow.test.ts" line="287" assertions="1" />
+    <testcase name="GATE-003 the root scripts run the commands of Interface surface without .env, and every tier step is a root script" classname="" time="0.000214" file="tests/integration/gate/workflow.test.ts" line="299" assertions="28" />
+  </testsuite>
+  <testsuite name="tests/integration/gate/report.test.ts" file="tests/integration/gate/report.test.ts" tests="31" assertions="303" failures="0" skipped="0" time="10.612221">
+    <testcase name="GATE-005 a complete fixture run passes every check, discovery, and the scanners, and test:report exits 0" classname="" time="0.128701" file="tests/integration/gate/report.test.ts" line="368" assertions="13" />
+    <testcase name="GATE-005 failed, skipped with the runner reason, and missing_test come only from matching testcases" classname="" time="0.122615" file="tests/integration/gate/report.test.ts" line="398" assertions="4" />
+    <testcase name="GATE-005 one file with two tags gives each check its own status, and a tag on the outermost describe matches" classname="" time="0.123292" file="tests/integration/gate/report.test.ts" line="430" assertions="4" />
+    <testcase name="GATE-005 not_run carries its reason: previous_step for a step that did not run, tier_not_run without a manifest" classname="" time="0.117696" file="tests/integration/gate/report.test.ts" line="450" assertions="5" />
+    <testcase name="GATE-005 a scenario takes its worst check in the order failed, missing_test, not_run, skipped, passed" classname="" time="0.129306" file="tests/integration/gate/report.test.ts" line="467" assertions="7" />
+    <testcase name="GATE-005 a check that names the root script of a tier takes the tier status" classname="" time="0.252362" file="tests/integration/gate/report.test.ts" line="494" assertions="3" />
+    <testcase name="GATE-005 the critical flow section lists every critical scenario with its status" classname="" time="0.12431" file="tests/integration/gate/report.test.ts" line="508" assertions="2" />
+    <testcase name="GATE-005 the gate is passed, failed, or incomplete, and test:report exits 0 only for passed" classname="" time="0.735258" file="tests/integration/gate/report.test.ts" line="516" assertions="18" />
+    <testcase name="GATE-005 discovery from JUnit fails the gate for a foreign file or an owned file missing from the JUnit of its script" classname="" time="0.242277" file="tests/integration/gate/report.test.ts" line="536" assertions="4" />
+    <testcase name="GATE-005 report.md holds the release template columns, and a runner title with | and a newline stays one table row" classname="" time="0.123621" file="tests/integration/gate/report.test.ts" line="557" assertions="29" />
+    <testcase name="GATE-006 binding rejects each problem with its own code" classname="" time="0.734388" file="tests/integration/gate/report.test.ts" line="585" assertions="18" />
+    <testcase name="GATE-006 binding rejects another CI run, another attempt between tiers or with the report job, and mixed CI and local manifests" classname="" time="0.991061" file="tests/integration/gate/report.test.ts" line="613" assertions="16" />
+    <testcase name="GATE-006 a tracked file deleted from the working tree is counted with the deleted marker, and node null does not touch the binding" classname="" time="0.195779" file="tests/integration/gate/report.test.ts" line="634" assertions="5" />
+    <testcase name="GATE-006 the release candidate lists every unmet condition as { code, tier } in the order of the Kandidat release row" classname="" time="1.106261" file="tests/integration/gate/report.test.ts" line="652" assertions="27" />
+    <testcase name="GATE-006 the exit code follows the gate only, and report.md writes the release candidate line" classname="" time="0.244657" file="tests/integration/gate/report.test.ts" line="683" assertions="5" />
+    <testcase name="GATE-006 test:report appends report.md to GITHUB_STEP_SUMMARY when that variable exists" classname="" time="0.120588" file="tests/integration/gate/report.test.ts" line="699" assertions="2" />
+    <testcase name="GATE-006 postgres holds the eight identity fields of a bound image.json, and null when it is missing, changed, or incomplete" classname="" time="0.498583" file="tests/integration/gate/report.test.ts" line="710" assertions="11" />
+    <testcase name="GATE-005 runner text loses its control characters and is cut to 200 characters, and escapeCell keeps a cell on one line" classname="" time="0.000267" file="tests/integration/gate/report.test.ts" line="746" assertions="7" />
+    <testcase name="GATE-005 a skip reason from the runner reaches the report without control characters and cut to 200 characters" classname="" time="0.12607" file="tests/integration/gate/report.test.ts" line="759" assertions="1" />
+    <testcase name="GATE-005 the report gives each scenario the worst status of its checks" classname="" time="0.122866" file="tests/integration/gate/report.test.ts" line="767" assertions="2" />
+    <testcase name="GATE-005 a failed step without a check, the discovery step, and an unusable or incomplete security.json decide the gate" classname="" time="0.859695" file="tests/integration/gate/report.test.ts" line="801" assertions="24" />
+    <testcase name="GATE-005 scripts/gate-report.ts exits 1 for an incomplete gate and when the registries cannot be read, with one short line" classname="" time="0.083855" file="tests/integration/gate/report.test.ts" line="829" assertions="8" />
+    <testcase name="GATE-006 a tier manifest records the commit, a clean tree, the source tree, the CI identity, the platform, and the checksums" classname="" time="0.181354" file="tests/integration/gate/report.test.ts" line="911" assertions="19" />
+    <testcase name="GATE-006 a step that changes a tracked file makes the tier unclean and changes sourceTreeAfter; without git there is no candidate" classname="" time="0.220812" file="tests/integration/gate/report.test.ts" line="948" assertions="9" />
+    <testcase name="GATE-006 the node version is null when the gate process has no node on its PATH" classname="" time="0.161504" file="tests/integration/gate/report.test.ts" line="966" assertions="5" />
+    <testcase name="GATE-006 manifests the tier runner writes bind in the report, and a tracked file changed afterwards breaks the binding" classname="" time="0.350973" file="tests/integration/gate/report.test.ts" line="998" assertions="7" />
+    <testcase name="GATE-005 a matching testcase that errors fails its check like a failure, for bun:test, Vitest, and Playwright" classname="" time="0.123434" file="tests/integration/gate/report.test.ts" line="1016" assertions="9" />
+    <testcase name="GATE-006 a manifest without inputs, with outputs that are not text, or with an incomplete environment is manifest_invalid, and the report is still written" classname="" time="0.62501" file="tests/integration/gate/report.test.ts" line="1034" assertions="8" />
+    <testcase name="GATE-006 postgres is null when one identity field of image.json is an empty string" classname="" time="0.986434" file="tests/integration/gate/report.test.ts" line="1066" assertions="8" />
+    <testcase name="GATE-005 a scannedAt that is not a UTC time makes the scanner summary unusable, and bundle text never starts a console line" classname="" time="0.614103" file="tests/integration/gate/report.test.ts" line="1074" assertions="18" />
+    <testcase name="GATE-006 a tier that starts on an unclean tree is unclean even when a step restores every file before the end" classname="" time="0.162819" file="tests/integration/gate/report.test.ts" line="1099" assertions="5" />
+  </testsuite>
+</testsuites>

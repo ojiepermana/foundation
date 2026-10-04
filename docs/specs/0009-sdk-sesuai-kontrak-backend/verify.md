@@ -145,6 +145,10 @@ _Langkah diturunkan dari acceptance criteria spec 0009 dan tabel Value sourcing.
 - [x] Baca `.github/workflows/application.yml` → `on` memuat `push` dan `pull_request` tanpa `paths`, `paths-ignore`, maupun filter branch atau tag; job tanpa `if`; tepat satu langkah `bun run test:ci` tanpa `if` → AC-8
 - [x] Baca `package.json` → `test:ci` menjalankan `bun run api:check` sebelum `bun run build:frontend`, `bun run test:frontend`, `bun run test:integration`, dan `bun run test:e2e` → AC-8
 
+_Amandemen 2026-10-04 (spec [0010](../0010-pengujian-skenario-gate-ci/index.md), AC-3): dua langkah baca di atas berlaku untuk keadaan sebelum spec 0010. Sejak spec 0010, `test:ci` adalah `bun --no-env-file scripts/gate.ts fast`, urutan `api:check` sebelum keempat konsumen SDK dibaca dari tabel tier `fast` di `scripts/lib/gate.ts`, dan kunci `if` tingkat job hanya boleh ada pada job `report` dengan nilai `${{ !cancelled() }}`. Langkah pengganti:_
+
+- [ ] `bun test ./tests/integration/contract/sdk.test.ts -t "SDK-008 CI"` → 1 test lulus; test membaca `TIERS.fast` dari `scripts/lib/gate.ts`, menolak `if` tingkat job selain `if: ${{ !cancelled() }}` pada job `report`, dan tetap menuntut tepat satu langkah `bun run test:ci` tanpa `if` → AC-8 (spec 0010 AC-3)
+
 ## Perintah: isolasi secret dan aturan (langkah 4)
 
 - [x] `bun test ./tests/integration/contract/sdk.test.ts -t "SDK-009"` → 6 test lulus → AC-9
