@@ -1,8 +1,15 @@
+import type { SQL } from 'bun';
 import { Elysia } from 'elysia';
 import { openapi } from '@elysia/openapi';
 import { developmentRoutes } from './features/development/status.routes';
+import { createReadinessRoutes } from './features/development/readiness.routes';
 
-export function createApp(mode: 'development' | 'production') {
+export interface AppOptions {
+  /** Backend pool from index.ts; createApp never creates one. */
+  database?: SQL;
+}
+
+export function createApp(mode: 'development' | 'production', options: AppOptions = {}) {
   const app = new Elysia().onError(({ code, set }) => {
     set.status = code === 'NOT_FOUND' ? 404 : code === 'VALIDATION' || code === 'PARSE' ? 400 : 500;
     return { error: set.status === 404 ? 'Not found' : set.status === 400 ? 'Invalid request' : 'Internal server error' };
@@ -11,5 +18,5 @@ export function createApp(mode: 'development' | 'production') {
   return app.use(openapi({
     provider: null, openapiVersion: '3.1.0',
     documentation: { info: { title: 'Foundation development API', version: '0.1.0' }, tags: [{ name: 'development' }], security: [] },
-  })).use(developmentRoutes);
+  })).use(createReadinessRoutes(options.database)).use(developmentRoutes);
 }

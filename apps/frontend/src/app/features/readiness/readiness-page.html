@@ -1,0 +1,30 @@
+<section class="w-full max-w-3xl space-y-6 p-6 sm:p-8 lg:p-12" aria-labelledby="readiness-title">
+  <h1 id="readiness-title" class="text-2xl font-semibold">Kesiapan</h1>
+  <Card>
+    <CardHeader>
+      <h2 CardTitle>Database</h2>
+      <p CardDescription>Backend development membaca riwayat migration dengan role runtime. Kelengkapan migration diperiksa oleh doctor.</p>
+    </CardHeader>
+    <CardContent class="space-y-4">
+      <div class="flex min-w-0 items-start gap-2">
+        @if (loading()) {
+          <Spinner decorative class="mt-1 shrink-0" />
+        }
+        <p role="status" aria-live="polite" class="min-w-0 text-base leading-relaxed">{{ view().message }}</p>
+      </div>
+      @if (view().checkedAt; as checkedAt) {
+        <dl class="grid min-w-0 gap-x-6 gap-y-1 text-sm sm:grid-cols-[max-content_1fr]">
+          <dt class="text-muted-foreground">Waktu pemeriksaan</dt>
+          <dd class="mb-2 min-w-0 sm:mb-0"><time [attr.datetime]="checkedAt.datetime">{{ checkedAt.text }}</time></dd>
+          @if (view().appliedMigrations; as appliedMigrations) {
+            <dt class="text-muted-foreground">Migration terapan</dt>
+            <dd class="min-w-0 tabular-nums">{{ appliedMigrations }}</dd>
+          }
+        </dl>
+      }
+    </CardContent>
+    <CardFooter>
+      <button Button type="button" [attr.aria-disabled]="loading() ? 'true' : null" (click)="recheck()">Periksa ulang</button>
+    </CardFooter>
+  </Card>
+</section>

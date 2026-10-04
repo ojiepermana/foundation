@@ -167,8 +167,8 @@ test('OPENAPI-001 negative control: a Bun.sql call in createApp trips the guard,
   const env = { DATABASE_URL: `postgres://sentinel_user:${marker()}@127.0.0.1:${listener.port}/sentinel_db` };
   let unguarded: ReturnType<typeof Bun.spawn> | undefined;
   try {
-    await edit(dir, appModule, "export function createApp(mode: 'development' | 'production') {",
-      "export function createApp(mode: 'development' | 'production') {\n  void Bun.sql`select 1`.catch(() => undefined);");
+    await edit(dir, appModule, "export function createApp(mode: 'development' | 'production', options: AppOptions = {}) {",
+      "export function createApp(mode: 'development' | 'production', options: AppOptions = {}) {\n  void Bun.sql`select 1`.catch(() => undefined);");
     const guarded = await runBun(dir, ['scripts/export-openapi.ts'], { env, guard: true });
     expect(guarded.code).toBe(1);
     expect(guarded.stderr).toBe('OpenAPI export failed\n');
@@ -242,7 +242,7 @@ test('OPENAPI-001 export text is byte identical under the tr_TR, de_DE, and C lo
 const exportFailures: [string, (dir: string, secret: string) => Promise<void>, string][] = [
   ['(a) status route operationId get-development-status', dir => edit(dir, statusRoute, "operationId: 'getDevelopmentStatus'", "operationId: 'get-development-status'"), 'OpenAPI export failed\nrule: operation-id\n'],
   ['(b) route module that throws while it is imported', (dir, secret) => Bun.write(join(dir, statusRoute), `throw new Error('${secret}');\nexport const developmentRoutes = undefined;\n`).then(() => undefined), 'OpenAPI export failed\n'],
-  ['(c) createApp that throws', (dir, secret) => edit(dir, appModule, "export function createApp(mode: 'development' | 'production') {", `export function createApp(mode: 'development' | 'production') {\n  if (mode) throw new Error('${secret}');`), 'OpenAPI export failed\n'],
+  ['(c) createApp that throws', (dir, secret) => edit(dir, appModule, "export function createApp(mode: 'development' | 'production', options: AppOptions = {}) {", `export function createApp(mode: 'development' | 'production', options: AppOptions = {}) {\n  if (mode) throw new Error('${secret}');`), 'OpenAPI export failed\n'],
   ['(d) canonical text above 8 MiB', dir => edit(dir, appModule, "info: { title: 'Foundation development API', version: '0.1.0' }", "info: { title: 'Foundation development API', version: '0.1.0', description: 'x'.repeat(8_400_000) }"), 'OpenAPI export failed\n'],
   // Value sourcing: the accepted version is the 3.1.0 pin of the checker, not whatever the plugin is configured with.
   ['openapiVersion 3.1.2 in the plugin configuration', dir => edit(dir, appModule, "openapiVersion: '3.1.0'", "openapiVersion: '3.1.2'"), 'OpenAPI export failed\nrule: version\n'],
@@ -1099,14 +1099,14 @@ for (const [name, rule, model, exported] of elysiaExports) {
   });
 }
 
-test('OPENAPI-004 REQUIRED_OPERATIONS holds exactly the entry of the required operation table', () => {
-  expect(REQUIRED_OPERATIONS.length).toBe(1);
+test('OPENAPI-004 REQUIRED_OPERATIONS holds exactly the entries of the required operation table', () => {
+  expect(REQUIRED_OPERATIONS.length).toBe(2);
   const { checkComponent, ...entry } = REQUIRED_OPERATIONS[0]!;
   expect(entry).toEqual({
     path: '/api/status', method: 'get', operationId: 'getDevelopmentStatus', tag: 'development',
     security: [], successStatus: '200', component: 'DevelopmentStatus',
   });
-  expect(Object.isFrozen(REQUIRED_OPERATIONS) && Object.isFrozen(REQUIRED_OPERATIONS[0])).toBe(true);
+  expect(Object.isFrozen(REQUIRED_OPERATIONS) && REQUIRED_OPERATIONS.every(operation => Object.isFrozen(operation))).toBe(true);
   const model = statusModel(fresh());
   const copy = structuredClone(model);
   expect(checkComponent(model)).toBe(true);
@@ -1213,7 +1213,7 @@ test('OPENAPI-006 subset-full.json holds the required status operation and every
   expect(d.paths['/api/status']).toStrictEqual(stored.paths['/api/status']);
   expect(d.components.schemas.DevelopmentStatus).toStrictEqual(stored.components.schemas.DevelopmentStatus);
   const operations: any[] = Object.values(d.paths).flatMap((item: any) => Object.values(item));
-  expect(Object.values(d.paths).flatMap((item: any) => Object.keys(item)).sort()).toEqual(['delete', 'get', 'get', 'get', 'get', 'head', 'options', 'patch', 'post', 'put']);
+  expect(Object.values(d.paths).flatMap((item: any) => Object.keys(item)).sort()).toEqual(['delete', 'get', 'get', 'get', 'get', 'get', 'head', 'options', 'patch', 'post', 'put']);
   expect(operations.some(operation => operation.deprecated === true)).toBe(true);
 
   const parameters: any[] = operations.flatMap(operation => operation.parameters ?? []);

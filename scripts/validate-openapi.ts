@@ -89,6 +89,35 @@ export const REQUIRED_OPERATIONS: readonly Readonly<{
         (!hasEnum || (Array.isArray(values) && values.length === 1 && values[0] === 'ok'));
     },
   }),
+  // Spec 0006, "Operasi wajib baru": the development readiness check.
+  Object.freeze({
+    path: '/api/readiness',
+    method: 'get',
+    operationId: 'getDevelopmentReadiness',
+    tag: 'development',
+    security: Object.freeze([]),
+    successStatus: '200',
+    component: 'ReadinessAvailable',
+    checkComponent: (schema: Json) => {
+      const names = ['status', 'checkedAt', 'appliedMigrations'];
+      const properties = own(schema, 'properties');
+      const required = own(schema, 'required');
+      if (own(schema, 'type') !== 'object' || own(schema, 'additionalProperties') !== false) return false;
+      if (!Array.isArray(required) || required.length !== names.length || !names.every(name => required.includes(name))) return false;
+      if (!isRecord(properties) || Object.keys(properties).length !== names.length || !names.every(name => Object.hasOwn(properties, name))) return false;
+      const status = own(properties, 'status');
+      if (!isRecord(status) || isReference(status) || own(status, 'type') !== 'string') return false;
+      const values = own(status, 'enum');
+      const hasConst = Object.hasOwn(status, 'const');
+      const hasEnum = Object.hasOwn(status, 'enum');
+      if (!(hasConst || hasEnum) || (hasConst && own(status, 'const') !== 'available')) return false;
+      if (hasEnum && !(Array.isArray(values) && values.length === 1 && values[0] === 'available')) return false;
+      const checkedAt = own(properties, 'checkedAt');
+      if (!isRecord(checkedAt) || isReference(checkedAt) || own(checkedAt, 'type') !== 'string' || own(checkedAt, 'format') !== 'date-time') return false;
+      const applied = own(properties, 'appliedMigrations');
+      return isRecord(applied) && !isReference(applied) && own(applied, 'type') === 'integer' && own(applied, 'minimum') === 0;
+    },
+  }),
 ]);
 
 const DOCUMENT_KEYS = new Set(['openapi', 'info', 'paths', 'components', 'security', 'tags']);

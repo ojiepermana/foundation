@@ -16,10 +16,16 @@ test('UI-001 shell navigation, focus, and responsive layout work at target sizes
   const mainBounds = await page.getByRole('main').boundingBox();
   if (!navigationBounds || !mainBounds) throw new Error('The desktop shell landmarks did not render.');
   expect(navigationBounds.x + navigationBounds.width).toBeLessThanOrEqual(mainBounds.x);
+  const homeLink = desktopNavigation.getByRole('link', { name: 'Beranda' });
   const readinessLink = desktopNavigation.getByRole('link', { name: 'Kesiapan' });
-  await expect(readinessLink).toHaveAttribute('href', '/');
+  await expect(homeLink).toHaveAttribute('href', '/');
+  await expect(readinessLink).toHaveAttribute('href', '/kesiapan');
+  expect(await homeLink.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await readinessLink.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await readinessLink.click();
+  await expect(page).toHaveURL('/kesiapan');
+  await expect(page.getByRole('heading', { name: 'Kesiapan', exact: true })).toBeVisible();
+  await homeLink.click();
   await expect(page).toHaveURL('/');
   await expect(page.getByRole('heading', { name: 'Foundation', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -79,13 +85,17 @@ test('UI-001 shell navigation, focus, and responsive layout work at target sizes
 
   await page.keyboard.press('Enter');
   await expect(mobileDialog).toBeVisible();
+  const mobileHomeLink = mobileDialog.getByRole('link', { name: 'Beranda' });
   const mobileReadinessLink = mobileDialog.getByRole('link', { name: 'Kesiapan' });
+  await expect(mobileHomeLink).toHaveAttribute('href', '/');
+  await expect(mobileReadinessLink).toHaveAttribute('href', '/kesiapan');
+  expect(await mobileHomeLink.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await mobileReadinessLink.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    if (await mobileReadinessLink.evaluate((element) => element === document.activeElement)) break;
+    if (await mobileHomeLink.evaluate((element) => element === document.activeElement)) break;
     await page.keyboard.press('Tab');
   }
-  await expect(mobileReadinessLink).toBeFocused();
+  await expect(mobileHomeLink).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(mobileDialog).toBeHidden();
   await expect(openNavigation).toBeFocused();

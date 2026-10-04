@@ -10,14 +10,46 @@ import { BaseService } from '../base-service';
 import { StrictHttpResponse } from '../strict-http-response';
 
 import {
+  getDevelopmentReadiness,
+  type GetDevelopmentReadiness$Params,
+} from '../fn/development/get-development-readiness';
+import {
   getDevelopmentStatus,
   type GetDevelopmentStatus$Params,
 } from '../fn/development/get-development-status';
 
 import type { DevelopmentStatus } from '../models/development-status';
+import type { ReadinessAvailable } from '../models/readiness-available';
 
 @Service()
 export class DevelopmentService extends BaseService {
+  /** Development database readiness (GET /api/readiness) */
+  getDevelopmentReadiness$Response(
+    params?: GetDevelopmentReadiness$Params,
+    context?: HttpContext,
+  ): Observable<StrictHttpResponse<ReadinessAvailable>> {
+    return getDevelopmentReadiness(
+      this.http,
+      this.rootUrl,
+      params as GetDevelopmentReadiness$Params,
+      context,
+    ).pipe(
+      filter((r: unknown): r is HttpResponse<unknown> => r instanceof HttpResponse),
+      map((r) => r as StrictHttpResponse<ReadinessAvailable>),
+    );
+  }
+
+  /** Development database readiness (GET /api/readiness) */
+  getDevelopmentReadiness(
+    params?: GetDevelopmentReadiness$Params,
+    context?: HttpContext,
+  ): Observable<ReadinessAvailable> {
+    return this.getDevelopmentReadiness$Response(
+      params as GetDevelopmentReadiness$Params,
+      context,
+    ).pipe(map((r) => r.body));
+  }
+
   /** Development process status (GET /api/status) */
   getDevelopmentStatus$Response(
     params?: GetDevelopmentStatus$Params,

@@ -17,6 +17,72 @@
           "status"
         ],
         "type": "object"
+      },
+      "ReadinessAvailable": {
+        "$id": "#/components/schemas/ReadinessAvailable",
+        "additionalProperties": false,
+        "properties": {
+          "appliedMigrations": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "const": "available",
+            "enum": [
+              "available"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checkedAt",
+          "appliedMigrations"
+        ],
+        "type": "object"
+      },
+      "ReadinessBusy": {
+        "$id": "#/components/schemas/ReadinessBusy",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "const": "busy",
+            "enum": [
+              "busy"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "ReadinessUnavailable": {
+        "$id": "#/components/schemas/ReadinessUnavailable",
+        "additionalProperties": false,
+        "properties": {
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "const": "unavailable",
+            "enum": [
+              "unavailable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checkedAt"
+        ],
+        "type": "object"
       }
     }
   },
@@ -27,6 +93,88 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/readiness": {
+      "get": {
+        "operationId": "getDevelopmentReadiness",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessAvailable"
+                }
+              }
+            },
+            "description": "Response for status 200"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "const": "Invalid request",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Response for status 400"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessBusy"
+                }
+              }
+            },
+            "description": "Response for status 429"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "const": "Internal server error",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Response for status 500"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessUnavailable"
+                }
+              }
+            },
+            "description": "Response for status 503"
+          }
+        },
+        "security": [],
+        "summary": "Development database readiness",
+        "tags": [
+          "development"
+        ]
+      }
+    },
     "/api/status": {
       "get": {
         "operationId": "getDevelopmentStatus",
