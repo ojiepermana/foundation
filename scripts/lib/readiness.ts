@@ -8,6 +8,9 @@ export interface ReadyTarget {
   kind: "frontend" | "backend" | "worker";
 }
 
+/** AC-4 of spec 0003: every service answers within 60 seconds of the first spawn. Fixed by the tooling, never by environment. */
+export const STARTUP_TIMEOUT_MS = 60000;
+
 export interface ReadinessDependencies {
   inspectOwner?: (port: number, groups: ProcessIdentity[]) => Promise<PortOwnerState>;
 }
@@ -39,7 +42,7 @@ async function probe(target: ReadyTarget, timeoutMs: number): Promise<boolean> {
 }
 
 export async function waitForReadiness(targets: ReadyTarget[], groups: ProcessIdentity[],
-  signal: AbortSignal, timeoutMs = 60000, dependencies: ReadinessDependencies = {}): Promise<void> {
+  signal: AbortSignal, timeoutMs = STARTUP_TIMEOUT_MS, dependencies: ReadinessDependencies = {}): Promise<void> {
   const deadline = performance.now() + timeoutMs;
   const inspectOwner = dependencies.inspectOwner ?? inspectPortOwner;
   const ready = new Set<string>();

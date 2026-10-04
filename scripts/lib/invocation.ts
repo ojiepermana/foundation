@@ -34,11 +34,17 @@ async function writeOwner(directory: string, owner: OwnerRecord): Promise<void> 
   await rename(temporary, resolve(directory, "owner.json"));
 }
 
+export interface InvocationDependencies {
+  /** Reads the OS identity of the old supervisor, before and again inside the recovery guard. */
+  processIdentity?: typeof processIdentity;
+}
+
 export class Invocation {
   private constructor(private readonly directory: string, private readonly owner: OwnerRecord,
     readonly staleGroups: ProcessIdentity[], private staleDirectory: string | null) {}
 
-  static async acquire(root: string): Promise<Invocation> {
+  static async acquire(root: string, dependencies: InvocationDependencies = {}): Promise<Invocation> {
+    const identity = dependencies.processIdentity ?? processIdentity;
     const checkout = await realpath(root);
     const local = resolve(checkout, ".local");
     await mkdir(local, { recursive: true });
@@ -61,7 +67,7 @@ export class Invocation {
       if (previous.checkout !== checkout || previous.uid !== process.getuid?.()) {
         throw new Error("Catatan serve bukan milik checkout dan user ini.");
       }
-      if (sameProcess(await processIdentity(previous.supervisor.pid), previous.supervisor)) {
+      if (sameProcess(await identity(previous.supervisor.pid), previous.supervisor)) {
         throw new Error("Serve lain dari checkout ini masih aktif.");
       }
       const guard = resolve(local, "serve.recovery.lock");
@@ -71,7 +77,7 @@ export class Invocation {
         const before = await stat(directory);
         const current = await readOwner(directory);
         if (!current || current.token !== previous.token || current.checkout !== checkout ||
-            sameProcess(await processIdentity(current.supervisor.pid), current.supervisor)) {
+            sameProcess(await identity(current.supervisor.pid), current.supervisor)) {
           throw new Error("Identitas invocation berubah saat pemulihan.");
         }
         if (current.groups.some((group) => !groupInCheckout(group, checkout, current.uid))) {

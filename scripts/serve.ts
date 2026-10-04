@@ -4,7 +4,7 @@ import { runDoctor, printChecks } from "./doctor";
 import { clearPorts } from "./lib/ports";
 import { Invocation } from "./lib/invocation";
 import { captureProcess, groupAlive, processIdentity, sameProcess, type ProcessIdentity } from "./lib/process-identity";
-import { waitForReadiness, type ReadyTarget } from "./lib/readiness";
+import { STARTUP_TIMEOUT_MS, waitForReadiness, type ReadyTarget } from "./lib/readiness";
 import { insideRoot, loadConfig, projectRoot, selectWorkers, servicePorts, withTimeout, type DevelopmentConfig } from "./lib/development";
 
 export interface Service { name: string; command: string[]; cwd: string; env: NodeJS.ProcessEnv }
@@ -36,12 +36,24 @@ export function services(config: DevelopmentConfig, workers: string[], root = pr
   ];
 }
 
+/** The HTTP checks of AC-4 and AC-5: frontend and backend always, plus each selected worker that has a port. */
+export function readyTargets(config: DevelopmentConfig, workers: string[]): ReadyTarget[] {
+  return [
+    { name: "frontend", port: config.frontend.port, path: "/", kind: "frontend" },
+    { name: "backend", port: config.backend.port, path: "/api/status", kind: "backend" },
+    ...workers.flatMap((name): ReadyTarget[] => config.workers[name].port === undefined ? [] : [
+      { name: `worker:${name}`, port: config.workers[name].port!, path: config.workers[name].readinessPath!, kind: "worker" },
+    ]),
+  ];
+}
+
 // Independent process groups let Ctrl+C also stop child build/watch processes.
 export async function supervise(definitions: Service[], options: {
   onSpawn?: (group: ProcessIdentity) => Promise<void>;
   ready?: ReadyTarget[];
   onReady?: () => void;
   timeoutMs?: number;
+  waitForReadiness?: typeof waitForReadiness;
 } = {}): Promise<number> {
   if (!definitions.length) throw new Error("Tidak ada layanan development yang dipilih.");
   const children: ChildProcess[] = [];
@@ -120,9 +132,10 @@ export async function supervise(definitions: Service[], options: {
     }
     if (!stopping && options.ready?.length) {
       try {
+        const readiness = options.waitForReadiness ?? waitForReadiness;
         const ready = await Promise.race([
-          waitForReadiness(options.ready, groups, abort.signal,
-            Math.max(0, (options.timeoutMs ?? 60000) - (performance.now() - startupAt))).then(() => true),
+          readiness(options.ready, groups, abort.signal,
+            Math.max(0, (options.timeoutMs ?? STARTUP_TIMEOUT_MS) - (performance.now() - startupAt))).then(() => true),
           done.then(() => false),
         ]);
         if (ready && !stopping) options.onReady?.();
@@ -140,23 +153,36 @@ export async function supervise(definitions: Service[], options: {
 
 if (import.meta.main) {
   let invocation: Invocation | undefined;
+  // Ctrl+C or termination before any service runs (lock, preflight, cleanup) still releases the invocation record,
+  // which also puts back an old record taken for recovery (spec 0003, state transitions and AC-8). supervise()
+  // installs its own handlers when the services start.
+  let signalCode: number | undefined;
+  let stopBeforeServices = () => {};
+  const interrupted = new Promise<never>((_, reject) => {
+    stopBeforeServices = () => reject(new Error("Serve dihentikan sebelum layanan dijalankan."));
+  });
+  interrupted.catch(() => {});
+  const onInterrupt = () => { signalCode ??= 130; stopBeforeServices(); };
+  const onTerminate = () => { signalCode ??= 143; stopBeforeServices(); };
+  const removeHandlers = () => { process.off("SIGINT", onInterrupt); process.off("SIGTERM", onTerminate); };
+  process.on("SIGINT", onInterrupt);
+  process.on("SIGTERM", onTerminate);
+  const beforeServices = <T>(task: Promise<T>): Promise<T> => Promise.race([task, interrupted]);
+  const checkpoint = () => { if (signalCode !== undefined) throw new Error("Serve dihentikan sebelum layanan dijalankan."); };
   try {
     const config = await loadConfig();
     const workers = selectWorkers(process.argv.slice(2), config);
+    checkpoint();
     invocation = await Invocation.acquire(projectRoot);
-    if (!printChecks(await runDoctor(config, workers))) process.exitCode = 1;
+    checkpoint();
+    if (!printChecks(await beforeServices(runDoctor(config, workers)))) process.exitCode = 1;
     else {
-      await clearPorts(servicePorts(config, workers), invocation.staleGroups);
+      await beforeServices(clearPorts(servicePorts(config, workers), invocation.staleGroups));
       await invocation.clearStale();
-      const ready: ReadyTarget[] = [
-        { name: "frontend", port: config.frontend.port, path: "/", kind: "frontend" },
-        { name: "backend", port: config.backend.port, path: "/api/status", kind: "backend" },
-        ...workers.flatMap((name): ReadyTarget[] => config.workers[name].port === undefined ? [] : [
-          { name: `worker:${name}`, port: config.workers[name].port!, path: config.workers[name].readinessPath!, kind: "worker" },
-        ]),
-      ];
+      checkpoint();
+      removeHandlers();
       process.exitCode = await supervise(services(config, workers), {
-        onSpawn: (group) => invocation!.recordGroup(group), ready,
+        onSpawn: (group) => invocation!.recordGroup(group), ready: readyTargets(config, workers),
         onReady: () => {
           console.log(`Frontend: http://${config.host}:${config.frontend.port}`);
           console.log(`Backend: http://${config.host}:${config.backend.port}`);
@@ -164,6 +190,13 @@ if (import.meta.main) {
         },
       });
     }
-  } catch (error) { console.error((error as Error).message); process.exitCode = 1; }
-  finally { await invocation?.release(); }
+  } catch (error) { console.error((error as Error).message); process.exitCode = signalCode ?? 1; }
+  finally {
+    // Handlers stay until the record is released, so a second Ctrl+C cannot cut the release short.
+    try { await invocation?.release(); }
+    finally {
+      removeHandlers();
+      if (signalCode !== undefined) process.exit(signalCode);
+    }
+  }
 }

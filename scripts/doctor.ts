@@ -46,7 +46,7 @@ export async function runDoctor(config: DevelopmentConfig, workers: string[], ro
     for (const port of servicePorts(config, workers)) {
       try {
         const found = await listeners(port);
-        add(`Port ${port}`, found.length ? "warning" : "ok", found.length ? "Sedang dipakai; serve akan membersihkannya setelah preflight lulus." : "Tersedia.");
+        add(`Port ${port}`, found.length ? "warning" : "ok", found.length ? "Sedang dipakai; serve hanya menggantikan proses Foundation lama dari checkout ini dan gagal bila pemiliknya lain." : "Tersedia.");
       } catch { add(`Port ${port}`, "error", "Listener tidak dapat diperiksa."); }
     }
   }

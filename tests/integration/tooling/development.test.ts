@@ -1,14 +1,15 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
+import { createServer, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { runDoctor } from "../../../scripts/doctor";
-import { services, supervise } from "../../../scripts/serve";
+import { readyTargets, services, supervise } from "../../../scripts/serve";
 import { insideRoot, loadConfig, selectWorkers, type DevelopmentConfig } from "../../../scripts/lib/development";
-import { clearPorts, listeners } from "../../../scripts/lib/ports";
-import { captureProcess, signalVerifiedGroup } from "../../../scripts/lib/process-identity";
+import { clearPorts, listeners, type PortOwnerState } from "../../../scripts/lib/ports";
+import { captureProcess, groupAlive, processIdentity, signalVerifiedGroup, type ProcessIdentity } from "../../../scripts/lib/process-identity";
 import { Invocation } from "../../../scripts/lib/invocation";
-import { waitForReadiness } from "../../../scripts/lib/readiness";
+import { STARTUP_TIMEOUT_MS, waitForReadiness, type ReadyTarget } from "../../../scripts/lib/readiness";
 
 const temporaryDirectories: string[] = [];
 const fixtureProcesses: ReturnType<typeof Bun.spawn>[] = [];
@@ -24,7 +25,7 @@ afterEach(async () => {
     try { process.kill(pid, "SIGKILL"); } catch {}
   }
   for (const path of temporaryDirectories.splice(0)) await rm(path, { recursive: true, force: true });
-  for (const key of ["DATABASE_URL", "NOTIFICATION_DATABASE_URL", "NODE_ENV", "SESSION_SECRET"]) {
+  for (const key of ["DATABASE_URL", "NOTIFICATION_DATABASE_URL", "NODE_ENV", "SESSION_SECRET", "MAIL_API_KEY"]) {
     if (environment[key] === undefined) delete process.env[key];
     else process.env[key] = environment[key];
   }
@@ -86,7 +87,8 @@ test("TOOL-001 doctor reports missing prerequisites without stopping a listener 
   process.env.NODE_ENV = "development";
   const checks = await runDoctor(selected, [], root);
   expect(checks.some((item) => item.name === "Entry backend" && item.status === "error")).toBe(true);
-  expect(checks.some((item) => item.name === `Port ${listener.port}` && item.status === "warning")).toBe(true);
+  expect(checks.find((item) => item.name === `Port ${listener.port}`)).toEqual({ name: `Port ${listener.port}`, status: "warning",
+    message: "Sedang dipakai; serve hanya menggantikan proses Foundation lama dari checkout ini dan gagal bila pemiliknya lain." });
   expect(JSON.stringify(checks)).not.toContain("private-secret");
   expect((await listeners(listener.port)).some((item) => item.pid === listener.child.pid)).toBe(true);
 });
@@ -495,7 +497,7 @@ test("TOOL-006 readiness rejects an HTTP response completed after the startup de
     },
   });
   try {
-    await expect(waitForReadiness([{ name: "backend:slow", port: server.port, path: "/", kind: "backend" }], [],
+    await expect(waitForReadiness([{ name: "backend:slow", port: server.port!, path: "/", kind: "backend" }], [],
       new AbortController().signal, 80, { inspectOwner: async () => "owned" })).rejects.toThrow("batas waktu");
   } finally {
     server.stop(true);
@@ -550,3 +552,593 @@ test("TOOL-008 production mode and invalid database target fail before cleanup",
   await Bun.write(resolve(root, "config/development.json"), JSON.stringify(selected));
   await expect(loadConfig(root)).rejects.toThrow("Daftar schema");
 });
+
+// Spec 0003, /test 2026-10-04: CLI level proofs and the remaining AC-1, AC-3, AC-5, AC-6, and AC-7 cases from
+// verify.md that were only checked by hand. CLI cases run a copy of scripts/ inside a temporary checkout, so they
+// never take the real .local/serve.lock and never signal anything on ports 8888 or 8889.
+
+/** A temporary checkout with a copy of scripts/ and the given config; `projectRoot` of the copy is that checkout. */
+async function temporaryCheckout(configuration: unknown = config()): Promise<string> {
+  const root = await temporaryRoot();
+  await cp(resolve(projectRootForTest(), "scripts"), resolve(root, "scripts"), { recursive: true });
+  await Bun.write(resolve(root, "config/development.json"), JSON.stringify(configuration));
+  return root;
+}
+
+/** Runs doctor or serve of a temporary checkout with an explicit environment (no inherited DATABASE_URL). */
+async function runScript(root: string, script: "doctor" | "serve", args: string[] = [], env: Record<string, string> = {}) {
+  const child = Bun.spawn([process.execPath, "--no-env-file", resolve(root, `scripts/${script}.ts`), ...args], {
+    cwd: root, stdout: "pipe", stderr: "pipe",
+    env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", NODE_ENV: "development", ...env },
+  });
+  fixtureProcesses.push(child);
+  const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  return { code, output: stdout + stderr };
+}
+
+async function exists(path: string): Promise<boolean> {
+  return stat(path).then(() => true, () => false);
+}
+
+/** A loopback port that was free a moment ago. */
+function reservePort(): number {
+  const reserve = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response() });
+  const port = reserve.port;
+  reserve.stop(true);
+  if (!port) throw new Error("Port fixture tidak tersedia.");
+  return port;
+}
+
+/** A long running fixture process; detached makes it the leader of its own process group. */
+function idleProcess(cwd: string, detached = true): ReturnType<typeof Bun.spawn> {
+  const child = Bun.spawn([process.execPath, "-e", "await Bun.sleep(100000)"], { cwd, detached, stdout: "ignore", stderr: "ignore" });
+  fixtureProcesses.push(child);
+  return child;
+}
+
+test("TOOL-001 doctor CLI exits 1 with a safe message when DATABASE_URL is missing", async () => {
+  const root = await temporaryCheckout();
+  const result = await runScript(root, "doctor");
+  expect(result.code).toBe(1);
+  expect(result.output).toContain("[ERROR] Database backend: DATABASE_URL belum disediakan melalui environment lokal.");
+  expect(result.output).toContain("Doctor belum lulus; lengkapi prasyarat sebelum serve.");
+});
+
+test("TOOL-001 doctor CLI exits 1 on an unusable database URL without printing the DSN, password, or raw error", async () => {
+  const root = await temporaryCheckout();
+  const port = reservePort();
+  for (const url of [`postgres://foundation_backend:cli-private-secret@127.0.0.1:${port}/foundation`,
+    `mysql://foundation_backend:cli-private-secret@127.0.0.1:${port}/foundation`]) {
+    const result = await runScript(root, "doctor", [], { DATABASE_URL: url });
+    expect(result.code).toBe(1);
+    expect(result.output).toContain("[ERROR] Database backend: PostgreSQL tidak dapat diverifikasi.");
+    expect(result.output).not.toContain("cli-private-secret");
+    expect(result.output).not.toMatch(/(postgres|postgresql|mysql):\/\//);
+    expect(result.output).not.toMatch(/ECONNREFUSED|connection refused|Invalid database adapter|password authentication/i);
+  }
+});
+
+test("TOOL-001 doctor stops waiting for a database that accepts TCP but never answers", async () => {
+  const root = await temporaryRoot();
+  const sockets: Socket[] = [];
+  const silent = createServer((socket) => { sockets.push(socket); });
+  await new Promise<void>((done) => silent.listen(0, "127.0.0.1", () => done()));
+  const address = silent.address();
+  if (!address || typeof address === "string") throw new Error("Port fixture tidak tersedia.");
+  process.env.NODE_ENV = "development";
+  process.env.DATABASE_URL = `postgres://foundation_backend:silent-private-secret@127.0.0.1:${address.port}/foundation`;
+  try {
+    const started = performance.now();
+    const checks = await runDoctor(config(), [], root);
+    const elapsed = performance.now() - started;
+    expect(elapsed).toBeLessThan(7000);
+    expect(sockets.length).toBeGreaterThan(0);
+    expect(checks.filter((item) => item.name.startsWith("Database backend"))).toEqual([{ name: "Database backend", status: "error",
+      message: "PostgreSQL tidak dapat diverifikasi. Periksa koneksi, role, schema, dan metadata migration; kredensial tidak dicetak." }]);
+    expect(JSON.stringify(checks)).not.toContain("silent-private-secret");
+  } finally {
+    for (const socket of sockets) socket.destroy();
+    await new Promise<void>((done) => silent.close(() => done()));
+  }
+}, 12000);
+
+test("TOOL-008 serve CLI in production mode stops at preflight, starts nothing, and releases its lock", async () => {
+  const root = await temporaryCheckout();
+  const result = await runScript(root, "serve", [], { NODE_ENV: "production" });
+  expect(result.code).toBe(1);
+  expect(result.output).toContain("[ERROR] Environment: Perintah ini khusus development.");
+  expect(result.output).toContain("Doctor belum lulus");
+  expect(result.output).not.toContain("Menjalankan ");
+  expect(await exists(resolve(root, ".local/serve.lock"))).toBe(false);
+});
+
+test("TOOL-008 serve CLI rejects an invalid config before taking the lock", async () => {
+  const selected = config();
+  selected.backend.port = 9999;
+  const root = await temporaryCheckout(selected);
+  const result = await runScript(root, "serve");
+  expect(result.code).toBe(1);
+  expect(result.output).toContain("Port frontend harus 8889 dan backend harus 8888.");
+  expect(result.output).not.toContain("Menjalankan ");
+  expect(await exists(resolve(root, ".local/serve.lock"))).toBe(false);
+});
+
+test("TOOL-003 serve CLI rejects an unknown worker before taking the lock", async () => {
+  const root = await temporaryCheckout();
+  const result = await runScript(root, "serve", ["--worker", "tidak-ada"]);
+  expect(result.code).toBe(1);
+  expect(result.output).toContain("Worker belum terdaftar di config/development.json.");
+  expect(result.output).not.toContain("Menjalankan ");
+  expect(await exists(resolve(root, ".local/serve.lock"))).toBe(false);
+});
+
+test("TOOL-005 a second serve CLI from the same checkout fails clearly and leaves the active invocation untouched", async () => {
+  const root = await temporaryCheckout();
+  const active = await Invocation.acquire(root);
+  try {
+    const ownerPath = resolve(root, ".local/serve.lock/owner.json");
+    const before = await readFile(ownerPath, "utf8");
+    const result = await runScript(root, "serve");
+    expect(result.code).toBe(1);
+    expect(result.output).toContain("Serve lain dari checkout ini masih aktif.");
+    expect(result.output).not.toContain("Doctor");
+    expect(result.output).not.toContain("Menjalankan ");
+    expect(await readFile(ownerPath, "utf8")).toBe(before);
+  } finally { await active.release(); }
+});
+
+test("TOOL-005 the invocation record holds verifiable identities only and is private to the user", async () => {
+  const root = await temporaryRoot();
+  const checkout = await realpath(root);
+  process.env.DATABASE_URL = "postgres://foundation_backend:record-private-secret@127.0.0.1:5432/foundation";
+  const invocation = await Invocation.acquire(root);
+  const lock = resolve(root, ".local/serve.lock");
+  try {
+    const group = await captureProcess(idleProcess(root).pid);
+    await invocation.recordGroup(group);
+    const raw = await readFile(resolve(lock, "owner.json"), "utf8");
+    const record = JSON.parse(raw);
+    expect((await stat(lock)).mode & 0o777).toBe(0o700);
+    expect((await stat(resolve(lock, "owner.json"))).mode & 0o777).toBe(0o600);
+    expect(Object.keys(record).sort()).toEqual(["checkout", "groups", "supervisor", "token", "uid"]);
+    expect(record.token).toMatch(/^[0-9a-f-]{36}$/);
+    expect(record.checkout).toBe(checkout);
+    expect(record.uid).toBe(process.getuid!());
+    expect(record.supervisor).toMatchObject({ pid: process.pid, uid: process.getuid!(), pgid: expect.any(Number), started: expect.any(String) });
+    expect(record.groups).toEqual([group]);
+    expect(group.pgid).toBe(group.pid);
+    expect(group.cwd).toBe(checkout);
+    expect(raw).not.toContain("record-private-secret");
+    expect(raw).not.toContain("DATABASE_URL");
+    expect(raw).not.toContain("postgres://");
+  } finally { await invocation.release(); }
+  expect(await exists(lock)).toBe(false);
+});
+
+test("TOOL-005 an invocation refuses to record a group from another checkout or a process that does not lead its group", async () => {
+  const root = await temporaryRoot();
+  const other = await temporaryRoot();
+  const invocation = await Invocation.acquire(root);
+  try {
+    const foreignCheckout = await captureProcess(idleProcess(other).pid);
+    await expect(invocation.recordGroup(foreignCheckout)).rejects.toThrow("bukan milik checkout ini");
+    const sharedGroup = await captureProcess(idleProcess(root, false).pid);
+    expect(sharedGroup.pgid).not.toBe(sharedGroup.pid);
+    await expect(invocation.recordGroup(sharedGroup)).rejects.toThrow("bukan milik checkout ini");
+    const record = JSON.parse(await readFile(resolve(root, ".local/serve.lock/owner.json"), "utf8"));
+    expect(record.groups).toEqual([]);
+  } finally { await invocation.release(); }
+});
+
+test("TOOL-003 doctor requires the selected worker's own variables and database URL without printing their values", async () => {
+  const root = await temporaryRoot();
+  const selected = config();
+  selected.workers.notification = { entry: "apps/worker/notification/src/index.ts", env: ["MAIL_API_KEY"],
+    databaseUrlEnv: "NOTIFICATION_DATABASE_URL", schemas: ["users"] };
+  process.env.NODE_ENV = "development";
+  for (const key of ["MAIL_API_KEY", "NOTIFICATION_DATABASE_URL", "DATABASE_URL"]) delete process.env[key];
+  const find = (checks: Awaited<ReturnType<typeof runDoctor>>, name: string) => checks.find((item) => item.name === name);
+
+  const missing = await runDoctor(selected, ["notification"], root);
+  expect(find(missing, "Entry worker notification")?.status).toBe("error");
+  expect(find(missing, "Environment worker notification")).toEqual({ name: "Environment worker notification", status: "error",
+    message: "MAIL_API_KEY harus disediakan; nilainya tidak dicetak." });
+  expect(find(missing, "Database worker notification")).toEqual({ name: "Database worker notification", status: "error",
+    message: "NOTIFICATION_DATABASE_URL belum disediakan melalui environment lokal." });
+
+  process.env.MAIL_API_KEY = "mail-private-key";
+  const provided = await runDoctor(selected, ["notification"], root);
+  expect(find(provided, "Environment worker notification")?.status).toBe("ok");
+  expect(JSON.stringify(provided)).not.toContain("mail-private-key");
+
+  const unselected = await runDoctor(selected, [], root);
+  expect(unselected.some((item) => item.name.includes("worker"))).toBe(false);
+});
+
+test("TOOL-003 a selected worker without a port that exits during startup fails startup before readiness is announced", async () => {
+  const root = await temporaryRoot();
+  const port = reservePort();
+  const workerPid = resolve(root, "worker.pid");
+  const groups: ProcessIdentity[] = [];
+  let announced = false;
+  // No fixed sleep decides the order: the backend listens only once the worker has exited and was reaped by supervise,
+  // so readiness would pass right after the exit if supervise ignored it.
+  const backend = `
+    while (!(await Bun.file(${JSON.stringify(workerPid)}).exists())) await Bun.sleep(10);
+    const pid = Number(await Bun.file(${JSON.stringify(workerPid)}).text());
+    while (true) { try { process.kill(pid, 0); await Bun.sleep(10); } catch { break; } }
+    Bun.serve({ hostname: "127.0.0.1", port: ${port}, fetch: () => Response.json({ status: "ok" }) });
+  `;
+  const worker = `
+    const { renameSync, writeFileSync } = await import("node:fs");
+    writeFileSync(${JSON.stringify(`${workerPid}.tmp`)}, String(process.pid));
+    renameSync(${JSON.stringify(`${workerPid}.tmp`)}, ${JSON.stringify(workerPid)});
+    await Bun.sleep(300);
+    process.exit(3);
+  `;
+  const result = await supervise([
+    { name: "backend", cwd: root, env: {}, command: [process.execPath, "-e", backend] },
+    { name: "worker:mail", cwd: root, env: {}, command: [process.execPath, "-e", worker] },
+  ], {
+    ready: [{ name: "backend", port, path: "/api/status", kind: "backend" }],
+    onSpawn: async (group) => { groups.push(group); descendantPids.push(group.pid); },
+    onReady: () => { announced = true; },
+    timeoutMs: 10000,
+  });
+  expect(result).toBe(3);
+  expect(announced).toBe(false);
+  expect(groups).toHaveLength(2);
+  for (const group of groups) expect(await groupAlive(group.pgid)).toBe(false);
+  expect(await listeners(port)).toEqual([]);
+}, 12000);
+
+test("TOOL-003 a selected worker without a port counts as ready while it stays alive, and shutdown stops its group", async () => {
+  const root = await temporaryRoot();
+  const port = reservePort();
+  const stateFile = resolve(root, "ready.json");
+  const servePath = resolve(import.meta.dir, "../../../scripts/serve.ts");
+  const backend = `Bun.serve({ hostname: "127.0.0.1", port: ${port}, fetch: () => Response.json({ status: "ok" }) });`;
+  const runner = Bun.spawn([process.execPath, "-e", `
+    const { supervise } = await import(${JSON.stringify(servePath)});
+    const { renameSync, writeFileSync } = await import("node:fs");
+    const groups = [];
+    process.exitCode = await supervise([
+      { name: "backend", cwd: ${JSON.stringify(root)}, env: {}, command: [process.execPath, "-e", ${JSON.stringify(backend)}] },
+      { name: "worker:mail", cwd: ${JSON.stringify(root)}, env: {}, command: [process.execPath, "-e", "await Bun.sleep(100000)"] },
+    ], {
+      ready: [{ name: "backend", port: ${port}, path: "/api/status", kind: "backend" }],
+      onSpawn: async (group) => { groups.push(group); },
+      onReady: () => {
+        writeFileSync(${JSON.stringify(`${stateFile}.tmp`)}, JSON.stringify(groups));
+        renameSync(${JSON.stringify(`${stateFile}.tmp`)}, ${JSON.stringify(stateFile)});
+      },
+      timeoutMs: 10000,
+    });
+  `], { stdout: "pipe", stderr: "pipe" });
+  fixtureProcesses.push(runner);
+  // Every wait has its own limit, and a failure shows what the supervisor printed instead of a bare test timeout.
+  const runnerOutput = Promise.all([new Response(runner.stdout).text(), new Response(runner.stderr).text()])
+    .then(([stdout, stderr]) => `${stdout}${stderr}`.trim());
+  const fail = async (reason: string): Promise<never> => {
+    runner.kill("SIGKILL");
+    throw new Error(`${reason} Output supervisor: ${await runnerOutput}`);
+  };
+  const deadline = Date.now() + 10000;
+  while (!(await Bun.file(stateFile).exists())) {
+    if (Date.now() >= deadline || runner.exitCode !== null) await fail("Supervisor fixture tidak mengumumkan siap.");
+    await Bun.sleep(20);
+  }
+  const groups: ProcessIdentity[] = await Bun.file(stateFile).json();
+  descendantPids.push(...groups.map((group) => group.pid));
+  expect(groups).toHaveLength(2);
+  for (const group of groups) expect(await groupAlive(group.pgid)).toBe(true);
+  runner.kill("SIGTERM");
+  const exitCode = await Promise.race([runner.exited, Bun.sleep(8000).then(() => null)]);
+  if (exitCode === null) await fail("Supervisor fixture tidak berhenti dalam 8 detik setelah SIGTERM.");
+  expect(exitCode).toBe(143);
+  for (const group of groups) expect(await groupAlive(group.pgid)).toBe(false);
+  expect(await listeners(port)).toEqual([]);
+}, 25000);
+
+// Review of 2026-10-04 (docs/reviews/2026-10-04-main-doctor-serve.md): a listener that changes owner during readiness
+// (AC-4, invariant 4), the 60 second limit, the readiness targets of selected workers (AC-5), the recovery guard and an
+// old record that changes during recovery (AC-7, invariant 2), and a signal before any service runs (AC-8).
+
+/** Readiness of one worker target that answers HTTP 200, with port owner states taken in order from `states`. */
+async function readinessWithOwners(states: PortOwnerState[]) {
+  const target = await fixtureListener(false, "ready");
+  const observed: PortOwnerState[] = [];
+  const run = waitForReadiness([{ name: "worker:fixture", port: target.port, path: "/", kind: "worker" }], [],
+    new AbortController().signal, 3000, {
+      inspectOwner: async () => {
+        const state = states[Math.min(observed.length, states.length - 1)]!;
+        observed.push(state);
+        return state;
+      },
+    });
+  return { run, observed };
+}
+
+test("TOOL-006 readiness rejects a listener whose owner changes right after a passed probe", async () => {
+  const { run, observed } = await readinessWithOwners(["owned", "foreign"]);
+  await expect(run).rejects.toThrow("Listener worker:fixture berubah saat readiness.");
+  expect(observed).toEqual(["owned", "foreign"]);
+});
+
+test("TOOL-006 readiness rejects a listener whose owner changes right before readiness is announced", async () => {
+  const { run, observed } = await readinessWithOwners(["owned", "owned", "foreign"]);
+  await expect(run).rejects.toThrow("Listener worker:fixture berubah sebelum siap.");
+  expect(observed).toEqual(["owned", "owned", "foreign"]);
+});
+
+test("TOOL-006 supervise announces nothing and stops its group when another process takes the port during the probe", async () => {
+  const root = await temporaryRoot();
+  const port = reservePort();
+  const probed = resolve(root, "probed");
+  const taken = resolve(root, "taken");
+  // The service holds its first answer until a process outside the invocation also listens on [::1] with that port.
+  const service = `
+    let first = true;
+    Bun.serve({ hostname: "127.0.0.1", port: ${port}, async fetch() {
+      if (first) {
+        first = false;
+        await Bun.write(${JSON.stringify(probed)}, "probed");
+        while (!(await Bun.file(${JSON.stringify(taken)}).exists())) await Bun.sleep(5);
+      }
+      return new Response("ready");
+    } });
+  `;
+  const foreign = Bun.spawn([process.execPath, "-e", `
+    while (!(await Bun.file(${JSON.stringify(probed)}).exists())) await Bun.sleep(5);
+    Bun.serve({ hostname: "::1", port: ${port}, fetch: () => new Response("asing") });
+    await Bun.write(${JSON.stringify(taken)}, "taken");
+  `], { stdout: "ignore", stderr: "ignore", detached: true });
+  fixtureProcesses.push(foreign);
+  const groups: ProcessIdentity[] = [];
+  const errors: string[] = [];
+  const consoleError = console.error;
+  console.error = (...values: unknown[]) => { errors.push(values.join(" ")); };
+  let announced = false;
+  let result: number;
+  try {
+    result = await supervise([{ name: "worker:fixture", cwd: root, env: {}, command: [process.execPath, "-e", service] }], {
+      ready: [{ name: "worker:fixture", port, path: "/", kind: "worker" }],
+      onSpawn: async (group) => { groups.push(group); descendantPids.push(group.pid); },
+      onReady: () => { announced = true; },
+      timeoutMs: 10000,
+    });
+  } finally { console.error = consoleError; }
+  expect(result).toBe(1);
+  expect(announced).toBe(false);
+  expect(errors).toContain("Listener worker:fixture berubah saat readiness.");
+  expect(groups).toHaveLength(1);
+  for (const group of groups) expect(await groupAlive(group.pgid)).toBe(false);
+  expect(foreign.exitCode).toBeNull();
+  expect((await listeners(port)).map((item) => item.pid)).toEqual([foreign.pid]);
+}, 15000);
+
+test("TOOL-006 the startup limit is 60 seconds and supervise passes it to readiness when no limit is given", async () => {
+  expect(STARTUP_TIMEOUT_MS).toBe(60000);
+  const root = await temporaryRoot();
+  const forwarded: number[] = [];
+  let announced = false;
+  const result = await supervise([{ name: "fixture", cwd: root, env: {},
+    command: [process.execPath, "-e", "await Bun.sleep(300); process.exit(5);"] }], {
+    ready: [{ name: "fixture", port: reservePort(), path: "/", kind: "worker" }],
+    onSpawn: async (group) => { descendantPids.push(group.pid); },
+    onReady: () => { announced = true; },
+    waitForReadiness: async (_targets, _groups, _signal, timeoutMs) => { forwarded.push(timeoutMs ?? Number.NaN); },
+  });
+  expect(result).toBe(5);
+  expect(announced).toBe(true);
+  expect(forwarded).toHaveLength(1);
+  // The limit counts from the first spawn, so what is left when readiness starts is a little under 60 seconds.
+  expect(forwarded[0]!).toBeGreaterThan(STARTUP_TIMEOUT_MS - 5000);
+  expect(forwarded[0]!).toBeLessThanOrEqual(STARTUP_TIMEOUT_MS);
+});
+
+test("TOOL-003 readiness targets are the frontend, the backend, and each selected worker with an HTTP port", () => {
+  const selected = config();
+  selected.workers.notification = { entry: "apps/worker/notification/src/index.ts", port: 9001, readinessPath: "/ready" };
+  selected.workers.mail = { entry: "apps/worker/mail/src/index.ts" };
+  const always: ReadyTarget[] = [
+    { name: "frontend", port: 8889, path: "/", kind: "frontend" },
+    { name: "backend", port: 8888, path: "/api/status", kind: "backend" },
+  ];
+  expect(readyTargets(selected, [])).toEqual(always);
+  expect(readyTargets(selected, ["mail"])).toEqual(always);
+  expect(readyTargets(selected, ["notification", "mail"])).toEqual([...always,
+    { name: "worker:notification", port: 9001, path: "/ready", kind: "worker" }]);
+});
+
+/**
+ * Writes an old invocation record through a temporary file and a rename. Its supervisor is this test process with
+ * another start time, so the record counts as left by a serve that is gone. Returns the exact text written.
+ */
+async function staleRecord(root: string, overrides: Record<string, unknown> = {}): Promise<string> {
+  const lock = resolve(root, ".local/serve.lock");
+  const supervisor = await captureProcess(process.pid);
+  const raw = JSON.stringify({ token: "old-token", checkout: await realpath(root), uid: process.getuid?.() ?? -1,
+    supervisor: { ...supervisor, started: `${supervisor.started} stale` }, groups: [], ...overrides });
+  await mkdir(lock, { recursive: true, mode: 0o700 });
+  await writeFile(resolve(lock, "owner.tmp"), raw, { mode: 0o600 });
+  await rename(resolve(lock, "owner.tmp"), resolve(lock, "owner.json"));
+  return raw;
+}
+
+/** What `.local/` of a checkout holds: entry names (lock, guard, moved records) and the lock record text. */
+async function lockState(root: string): Promise<{ entries: string[]; record: string | null }> {
+  const local = resolve(root, ".local");
+  return {
+    entries: (await readdir(local).catch(() => [])).sort(),
+    record: await readFile(resolve(local, "serve.lock/owner.json"), "utf8").catch(() => null),
+  };
+}
+
+test("TOOL-005 a recovery guard left by a crash blocks serve and leaves the old record where it is", async () => {
+  const root = await temporaryRoot();
+  const record = await staleRecord(root);
+  await mkdir(resolve(root, ".local/serve.recovery.lock"));
+  await expect(Invocation.acquire(root)).rejects.toThrow("Pemulihan serve perlu diselesaikan secara manual.");
+  expect(await lockState(root)).toEqual({ entries: ["serve.lock", "serve.recovery.lock"], record });
+});
+
+test("TOOL-005 a recoverer that finds the guard taken fails and leaves the other recovery alone", async () => {
+  const root = await temporaryRoot();
+  const record = await staleRecord(root);
+  // Another recoverer takes the guard right after this one found the old supervisor gone.
+  await expect(Invocation.acquire(root, {
+    processIdentity: async () => { await mkdir(resolve(root, ".local/serve.recovery.lock")); return null; },
+  })).rejects.toThrow("Pemulihan serve sedang berjalan atau perlu dihentikan secara manual.");
+  expect(await lockState(root)).toEqual({ entries: ["serve.lock", "serve.recovery.lock"], record });
+});
+
+test("TOOL-005 two processes recovering the same old record end with exactly one owner", async () => {
+  const root = await temporaryRoot();
+  const record = await staleRecord(root);
+  const modulePath = resolve(import.meta.dir, "../../../scripts/lib/invocation.ts");
+  const gate = resolve(root, "start");
+  const release = resolve(root, "release");
+  // Each process reports its outcome in a file; the owner keeps the lock until both outcomes exist.
+  const code = (index: number) => `
+    const { Invocation } = await import(${JSON.stringify(modulePath)});
+    const { renameSync, writeFileSync } = await import("node:fs");
+    const report = (text) => {
+      writeFileSync(${JSON.stringify(root)} + "/outcome-${index}.tmp", text);
+      renameSync(${JSON.stringify(root)} + "/outcome-${index}.tmp", ${JSON.stringify(root)} + "/outcome-${index}");
+    };
+    writeFileSync(${JSON.stringify(root)} + "/ready-${index}", "ready");
+    while (!(await Bun.file(${JSON.stringify(gate)}).exists())) await Bun.sleep(2);
+    let owner;
+    try { owner = await Invocation.acquire(${JSON.stringify(root)}); report("acquired"); }
+    catch (error) { report("rejected: " + error.message); }
+    if (owner) {
+      while (!(await Bun.file(${JSON.stringify(release)}).exists())) await Bun.sleep(10);
+      await owner.release();
+    }
+  `;
+  const children = [0, 1].map((index) => Bun.spawn([process.execPath, "-e", code(index)], { stdout: "ignore", stderr: "pipe" }));
+  fixtureProcesses.push(...children);
+  const waitFor = async (paths: string[], what: string) => {
+    const deadline = Date.now() + 10000;
+    while (!(await Promise.all(paths.map((path) => Bun.file(path).exists()))).every(Boolean)) {
+      if (Date.now() >= deadline) throw new Error(`${what} tidak tersedia dalam 10 detik.`);
+      await Bun.sleep(10);
+    }
+  };
+  await waitFor([0, 1].map((index) => resolve(root, `ready-${index}`)), "Proses pemulih");
+  await Bun.write(gate, "go");
+  await waitFor([0, 1].map((index) => resolve(root, `outcome-${index}`)), "Hasil pemulihan");
+  const outcomes = (await Promise.all([0, 1].map((index) => Bun.file(resolve(root, `outcome-${index}`)).text()))).sort();
+  await Bun.write(release, "go");
+  for (const child of children) {
+    const [stderr, status] = await Promise.all([new Response(child.stderr).text(), child.exited]);
+    expect(stderr).toBe("");
+    expect(status).toBe(0);
+  }
+  expect(outcomes[0]).toBe("acquired");
+  // Which safe refusal the other process gets depends on how far the owner was; none of them moves the old record.
+  expect([
+    "rejected: Pemulihan serve sedang berjalan atau perlu dihentikan secara manual.",
+    "rejected: Pemulihan serve perlu diselesaikan secara manual.",
+    "rejected: Identitas invocation berubah saat pemulihan.",
+    "rejected: Serve lain dari checkout ini masih aktif.",
+  ]).toContain(outcomes[1]!);
+  // The owner released without clearing the old record, so the record is back in the lock and nothing else is left.
+  expect(await lockState(root)).toEqual({ entries: ["serve.lock"], record });
+}, 15000);
+
+test("TOOL-005 an old record of another checkout or user is refused and never moved", async () => {
+  for (const overrides of [{ checkout: "/tmp/another-foundation-checkout" }, { uid: (process.getuid?.() ?? 0) + 1 }]) {
+    const root = await temporaryRoot();
+    const record = await staleRecord(root, overrides);
+    await expect(Invocation.acquire(root)).rejects.toThrow("Catatan serve bukan milik checkout dan user ini.");
+    expect(await lockState(root)).toEqual({ entries: ["serve.lock"], record });
+  }
+});
+
+test("TOOL-005 recovery fails safely when the old record changes before the guard is taken", async () => {
+  const root = await temporaryRoot();
+  await staleRecord(root);
+  let changed = "";
+  await expect(Invocation.acquire(root, {
+    processIdentity: async () => {
+      if (!changed) changed = await staleRecord(root, { token: "newer-token" });
+      return null;
+    },
+  })).rejects.toThrow("Identitas invocation berubah saat pemulihan.");
+  expect(await lockState(root)).toEqual({ entries: ["serve.lock"], record: changed });
+});
+
+test("TOOL-005 recovery fails safely when the old supervisor proves alive at the second look", async () => {
+  const root = await temporaryRoot();
+  const record = await staleRecord(root, { supervisor: await captureProcess(process.pid) });
+  let calls = 0;
+  // The first look (before the guard) misses the process; the second look inside the guard sees it alive.
+  await expect(Invocation.acquire(root, {
+    processIdentity: async (pid) => (++calls === 1 ? null : processIdentity(pid)),
+  })).rejects.toThrow("Identitas invocation berubah saat pemulihan.");
+  expect(calls).toBe(2);
+  expect(await lockState(root)).toEqual({ entries: ["serve.lock"], record });
+});
+
+test("TOOL-005 recovery fails safely when the lock directory is replaced during the review", async () => {
+  const root = await temporaryRoot();
+  const record = await staleRecord(root);
+  let calls = 0;
+  // Inside the guard, the lock directory is swapped for a new one that holds the same record text.
+  await expect(Invocation.acquire(root, {
+    processIdentity: async () => {
+      if (++calls === 2) {
+        await rename(resolve(root, ".local/serve.lock"), resolve(root, "replaced-lock"));
+        await staleRecord(root);
+      }
+      return null;
+    },
+  })).rejects.toThrow("Lock berubah saat pemulihan.");
+  expect(calls).toBe(2);
+  expect(await lockState(root)).toEqual({ entries: ["serve.lock"], record });
+});
+
+test("TOOL-004 Ctrl+C or termination during preflight stops serve, releases its lock, and puts back an old record", async () => {
+  const sockets: Socket[] = [];
+  const silent = createServer((socket) => { sockets.push(socket); });
+  await new Promise<void>((done) => silent.listen(0, "127.0.0.1", () => done()));
+  const address = silent.address();
+  if (!address || typeof address === "string") throw new Error("Port fixture tidak tersedia.");
+  try {
+    for (const [signal, code, withOldRecord] of [["SIGINT", 130, false], ["SIGTERM", 143, true]] as const) {
+      const root = await temporaryCheckout();
+      const record = withOldRecord ? await staleRecord(root) : null;
+      const child = Bun.spawn([process.execPath, "--no-env-file", resolve(root, "scripts/serve.ts")], {
+        cwd: root, stdout: "pipe", stderr: "pipe",
+        env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", NODE_ENV: "development",
+          DATABASE_URL: `postgres://foundation_backend:signal-private-secret@127.0.0.1:${address.port}/foundation` },
+      });
+      fixtureProcesses.push(child);
+      const output = Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text()])
+        .then(([stdout, stderr]) => stdout + stderr);
+      // The database never answers, so serve stays in preflight once doctor has connected.
+      const connected = sockets.length;
+      const deadline = Date.now() + 10000;
+      while (sockets.length === connected) {
+        if (Date.now() >= deadline || child.exitCode !== null) throw new Error(`Serve tidak mencapai pemeriksaan database. ${await output}`);
+        await Bun.sleep(20);
+      }
+      expect(await exists(resolve(root, ".local/serve.lock/owner.json"))).toBe(true);
+      if (record) expect((await lockState(root)).record).not.toBe(record);
+      const sent = performance.now();
+      child.kill(signal);
+      expect(await child.exited).toBe(code);
+      expect(performance.now() - sent).toBeLessThan(2000);
+      const text = await output;
+      expect(text).toContain("Serve dihentikan sebelum layanan dijalankan.");
+      expect(text).not.toContain("Menjalankan ");
+      expect(text).not.toContain("signal-private-secret");
+      expect(await lockState(root)).toEqual(record ? { entries: ["serve.lock"], record } : { entries: [], record: null });
+    }
+  } finally {
+    for (const socket of sockets) socket.destroy();
+    await new Promise<void>((done) => silent.close(() => done()));
+  }
+}, 30000);
