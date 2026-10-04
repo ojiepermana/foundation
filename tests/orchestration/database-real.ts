@@ -39,10 +39,15 @@ const handlers = (Object.keys(signalCodes) as HandledSignal[]).map((signal) => {
   return [signal, handler] as const;
 });
 
-/** Runs one step as the leader of its own process group, so a timeout or an interrupt stops every process it started. */
-async function run(command: string[], env: Record<string, string>) {
+/**
+ * Runs one step as the leader of its own process group, so a timeout or an interrupt stops every process it started.
+ * `graceMs` is the wait after SIGTERM before SIGKILL; the default of `runProcessGroup` (5000 ms) when absent.
+ */
+async function run(command: string[], env: Record<string, string>, options: { graceMs?: number } = {}) {
   if (interrupt.signal.aborted) throw new Error('Interrupted');
-  const result = await runProcessGroup(command, { cwd: root, env, timeoutMs: 300000, output: 'pipe', signal: interrupt.signal });
+  const result = await runProcessGroup(command, {
+    cwd: root, env, timeoutMs: 300000, output: 'pipe', signal: interrupt.signal, graceMs: options.graceMs,
+  });
   if (interrupt.signal.aborted) throw new Error('Interrupted');
   return { code: result.code, timedOut: result.timedOut, output: safeOutput(result.stdout + result.stderr) };
 }
@@ -107,9 +112,13 @@ try {
   // Temporary files of the database tests (for example the PostgreSQL env file with a random password) go to a folder
   // this script owns and removes on every exit path, even when bun test never reached its own cleanup.
   scratch = await mkdtemp(join(tmpdir(), 'foundation-database-real-'));
+  // The bun test group gets 75000 ms after SIGTERM (spec 0010, row *Pembersihan sinyal suite nyata*): the 60000 ms limit
+  // of tests/orchestration/signal-cleanup.ts plus 15000 ms, so bun test, the Docker clients the signal stopped, and the
+  // READY-008 backend can exit before SIGKILL. That module is not imported here, because importing it installs its
+  // signal handlers in this process.
   const tests = await run([process.execPath, '--no-env-file', 'test', './tests/integration/database', '--reporter=junit', `--reporter-outfile=${junit}`], {
     ...baseEnv, TMPDIR: scratch, TMP: scratch, TEMP: scratch, FOUNDATION_TEST_SECRET_SEED: seed, FOUNDATION_READINESS_DB_CONTAINER: readinessContainer,
-  });
+  }, { graceMs: 75_000 });
   console.log(tests.output.trim());
   if (tests.timedOut) throw new Error('Database integration tests exceeded 300 seconds');
   const paths = [junit, ...await filesUnder(bundle)];

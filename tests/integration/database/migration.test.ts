@@ -1,14 +1,49 @@
 import { expect, test } from 'bun:test';
 import { SQL } from 'bun';
 import { randomBytes } from 'node:crypto';
+import { rmSync } from 'node:fs';
 import { copyFile, mkdir, mkdtemp, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { runDatabaseCommand } from '../../../database/runner';
+import { onSignalCleanup, type SignalCleanupCallback } from '../../orchestration/signal-cleanup';
 
 const root = resolve(import.meta.dir, '../../..');
 const baseline = '0001-common-metadata-comment.sql';
 const token = () => randomBytes(24).toString('hex');
+const containerPattern = /^foundation-mig-test-[0-9a-f]{8}$/;
+
+/** Synchronous `docker <args>` of the signal cleanup (spec 0010), with the environment of the other Docker calls; output never printed. */
+function dockerSync(args: string[], timeout: number): number | undefined {
+  if (timeout <= 0) return undefined;
+  try {
+    const result = Bun.spawnSync(['docker', ...args], { cwd: root, env: process.env, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe', timeout });
+    return result.exitedDueToTimeout ? undefined : result.exitCode;
+  } catch {
+    return undefined;
+  }
+}
+
+/** One container of `withDatabase`: `docker rm -f` on every pass, only for a name this process made. */
+function containerCleanup(name: string): SignalCleanupCallback {
+  return ({ timeout }) => {
+    if (!containerPattern.test(name)) return [name];
+    return dockerSync(['rm', '-f', name], timeout(30000)) === 0 ? [] : [name];
+  };
+}
+
+/** The temporary folder of `withDatabase`: removed on pass 2, after its container. */
+function folderCleanup(path: string): SignalCleanupCallback {
+  return ({ pass }) => {
+    if (pass !== 2) return [];
+    try {
+      rmSync(path, { recursive: true, force: true });
+      return [];
+    } catch {
+      return [path];
+    }
+  };
+}
 
 async function command(args: string[], env?: Record<string, string>) {
   const child = Bun.spawn(args, { cwd: root, env: env ?? process.env, stdout: 'pipe', stderr: 'pipe', timeout: 30000 });
@@ -33,6 +68,10 @@ interface Fixture {
 async function withDatabase(run: (fixture: Fixture) => Promise<void>): Promise<void> {
   const name = `foundation-mig-test-${randomBytes(4).toString('hex')}`;
   const folder = await mkdtemp(resolve(tmpdir(), 'foundation-migration-'));
+  // Signal cleanup of spec 0010 (row *Pembersihan sinyal suite nyata*): bun test runs no finally on SIGINT or SIGTERM,
+  // so the folder and then the container are registered before docker run, and released once finally removed them.
+  const releaseFolder = onSignalCleanup(folderCleanup(folder));
+  const releaseContainer = onSignalCleanup(containerCleanup(name));
   const adminPassword = token();
   const migratorPassword = token();
   const backendPassword = token();
@@ -81,8 +120,11 @@ async function withDatabase(run: (fixture: Fixture) => Promise<void>): Promise<v
     });
   } finally {
     await Promise.all(pools.map((pool) => pool.close()));
-    if (started) await command(['docker', 'rm', '-f', name]);
+    const removed = !started || (containerPattern.test(name) && (await command(['docker', 'rm', '-f', name])).code === 0);
     await rm(folder, { recursive: true, force: true });
+    // A container the normal path could not remove stays registered, so a later signal still removes it.
+    if (removed) releaseContainer();
+    releaseFolder();
   }
 }
 

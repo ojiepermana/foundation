@@ -1,10 +1,12 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { SQL } from 'bun';
 import { createHmac, randomBytes } from 'node:crypto';
+import { rmSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { createDatabasePool } from '../../../libs/server/database/client';
+import { onSignalCleanup, type SignalCleanupCallback } from '../../orchestration/signal-cleanup';
 
 const root = resolve(import.meta.dir, '../../..');
 const testSeed = Bun.env.FOUNDATION_TEST_SECRET_SEED;
@@ -18,6 +20,41 @@ let port = 0;
 let adminUrl = '';
 let backendUrl = '';
 let migratorUrl = '';
+// Signal cleanup of spec 0010 (row *Pembersihan sinyal suite nyata*): bun test runs no afterAll on SIGINT or SIGTERM, so
+// the folder and the container are registered before they are created and released once afterAll removed them.
+let releaseFolder = () => {};
+let releaseContainer = () => {};
+const containerPattern = /^foundation-db-test-[0-9a-f]{8}$/;
+
+/** Synchronous `docker <args>` of the signal cleanup, with the environment of the other Docker calls; output never printed. */
+function dockerSync(args: string[], timeout: number): number | undefined {
+  if (timeout <= 0) return undefined;
+  try {
+    const result = Bun.spawnSync(['docker', ...args], { cwd: root, env: process.env, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe', timeout });
+    return result.exitedDueToTimeout ? undefined : result.exitCode;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The container: `docker rm -f` on every pass, only for the name this process made. */
+const containerCleanup: SignalCleanupCallback = ({ timeout }) => {
+  if (!containerPattern.test(name)) return [name];
+  return dockerSync(['rm', '-f', name], timeout(30000)) === 0 ? [] : [name];
+};
+
+/** The temporary folder with the env file: removed on pass 2, after the container. */
+function folderCleanup(path: string): SignalCleanupCallback {
+  return ({ pass }) => {
+    if (pass !== 2) return [];
+    try {
+      rmSync(path, { recursive: true, force: true });
+      return [];
+    } catch {
+      return [path];
+    }
+  };
+}
 
 async function command(args: string[], env?: Record<string, string>) {
   const child = Bun.spawn(args, { cwd: root, env: env ?? process.env, stdout: 'pipe', stderr: 'pipe', timeout: 30000 });
@@ -36,8 +73,10 @@ async function runProvision(options: { passwords?: boolean; url?: string; flag?:
 
 beforeAll(async () => {
   directory = await mkdtemp(resolve(tmpdir(), 'foundation-db-test-'));
+  releaseFolder = onSignalCleanup(folderCleanup(directory));
   const envFile = resolve(directory, 'postgres.env');
   await writeFile(envFile, `POSTGRES_DB=foundation\nPOSTGRES_USER=foundation_admin\nPOSTGRES_PASSWORD=${adminPassword}\n`, { mode: 0o600 });
+  releaseContainer = onSignalCleanup(containerCleanup);
   const started = await command(['docker', 'run', '--rm', '-d', '--name', name, '--env-file', envFile, '-p', '127.0.0.1::5432', 'foundation-postgres:18-pinned']);
   if (started.code !== 0) throw new Error('Isolated PostgreSQL 18 did not start');
   const mapped = await command(['docker', 'port', name, '5432/tcp']);
@@ -55,8 +94,10 @@ beforeAll(async () => {
 }, 40000);
 
 afterAll(async () => {
-  if (/^foundation-db-test-[0-9a-f]{8}$/.test(name)) await command(['docker', 'rm', '-f', name]);
+  // A container the normal path could not remove stays registered, so a later signal still removes it.
+  if (/^foundation-db-test-[0-9a-f]{8}$/.test(name) && (await command(['docker', 'rm', '-f', name])).code === 0) releaseContainer();
   if (directory) await rm(directory, { recursive: true, force: true });
+  releaseFolder();
 });
 
 test('DATA-001 rejects absent flag without mutation, provisions roles, and repeats without passwords', async () => {

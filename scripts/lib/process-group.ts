@@ -2,10 +2,11 @@ import { spawn } from 'node:child_process';
 import { groupAlive } from './process-identity.ts';
 
 // Runs one command as the leader of its own process group and never returns while a member of that group is alive
-// (spec 0009, *Grup proses* and the *Penghentian tahap* row of Value sourcing). Used by `api:check` and the
-// contract test helpers, so a stage that hangs or is interrupted leaves no process behind.
+// (spec 0009, *Grup proses* and the *Penghentian tahap* row of Value sourcing). Used by `api:check`, the contract test
+// helpers, and the tier runner of spec 0010, so a stage that hangs or is interrupted leaves no process behind.
 
-const graceMs = 5_000;
+/** Default wait after SIGTERM before SIGKILL, and the fixed wait after SIGKILL and for closing pipes. */
+const defaultGraceMs = 5_000;
 const pollMs = 100;
 
 export type ProcessGroupOptions = {
@@ -18,6 +19,14 @@ export type ProcessGroupOptions = {
   output: 'inherit' | 'pipe';
   /** Aborting stops the whole group and sets `aborted`. */
   signal?: AbortSignal;
+  /** Wait after SIGTERM before SIGKILL on timeout or abort; 5000 ms when absent (spec 0010, *Tabel tier*). */
+  graceMs?: number;
+  /**
+   * With `output: 'pipe'`: once stdout and stderr together would pass this many bytes, nothing more is kept, the whole
+   * group is stopped, and `outputExceeded` is true (spec 0010, *Pemanggilan pemindai*: scanner output stays in memory
+   * with a 50 MB limit). No limit when absent.
+   */
+  outputLimitBytes?: number;
 };
 
 export type ProcessGroupResult = {
@@ -25,6 +34,11 @@ export type ProcessGroupResult = {
   code: number | null;
   timedOut: boolean;
   aborted: boolean;
+  /**
+   * Present only with `outputLimitBytes`, so the result other callers see is unchanged: true when the output passed the
+   * limit; the collected output is then incomplete.
+   */
+  outputExceeded?: boolean;
   /** Collected output with `output: 'pipe'`; empty with `inherit`. */
   stdout: string;
   stderr: string;
@@ -52,9 +66,9 @@ function signalGroup(pgid: number, signal: NodeJS.Signals): void {
   }
 }
 
-/** Polls every 100 ms for at most 5 seconds; true once no live member of the group is left. */
-async function groupGone(pgid: number): Promise<boolean> {
-  const deadline = performance.now() + graceMs;
+/** Polls every 100 ms for at most `waitMs`; true once no live member of the group is left. */
+async function groupGone(pgid: number, waitMs: number): Promise<boolean> {
+  const deadline = performance.now() + waitMs;
   for (;;) {
     if (!(await groupAlive(pgid))) return true;
     if (performance.now() >= deadline) return false;
@@ -65,20 +79,21 @@ async function groupGone(pgid: number): Promise<boolean> {
 /** SIGKILL to the group, then waits; throws when a member is still alive 5 seconds later. */
 async function killGroup(pgid: number): Promise<void> {
   signalGroup(pgid, 'SIGKILL');
-  if (!(await groupGone(pgid))) throw new Error('Process group did not stop');
+  if (!(await groupGone(pgid, defaultGraceMs))) throw new Error('Process group did not stop');
 }
 
-/** SIGTERM to the group, then SIGKILL when it is still alive after 5 seconds. */
-async function stopGroup(pgid: number): Promise<void> {
+/** SIGTERM to the group, then SIGKILL when it is still alive after `graceMs`. */
+async function stopGroup(pgid: number, graceMs: number): Promise<void> {
   signalGroup(pgid, 'SIGTERM');
-  if (await groupGone(pgid)) return;
+  if (await groupGone(pgid, graceMs)) return;
   await killGroup(pgid);
 }
 
 /**
  * Starts `argv` with `detached: true`, so the child leads its own process group. On timeout or abort the group gets
- * SIGTERM, then SIGKILL after 5 seconds. When the leader exits on its own, members still alive get SIGKILL. The
- * promise settles only after the whole group is gone, and rejects when the group survives SIGKILL for 5 seconds.
+ * SIGTERM, then SIGKILL after `graceMs` (5 seconds by default). When the leader exits on its own, members still alive
+ * get SIGKILL. The promise settles only after the whole group is gone, and rejects when the group survives SIGKILL for
+ * 5 seconds.
  */
 export async function runProcessGroup(argv: readonly string[], options: ProcessGroupOptions): Promise<ProcessGroupResult> {
   const [command, ...args] = argv;
@@ -94,8 +109,22 @@ export async function runProcessGroup(argv: readonly string[], options: ProcessG
 
   const stdout: Buffer[] = [];
   const stderr: Buffer[] = [];
-  child.stdout?.on('data', (chunk: Buffer) => stdout.push(chunk));
-  child.stderr?.on('data', (chunk: Buffer) => stderr.push(chunk));
+  let collected = 0;
+  let outputExceeded = false;
+  // Set once the group exists; output that passes the limit before that only stops collecting.
+  let stopForOutput: () => void = () => undefined;
+  const collect = (target: Buffer[]) => (chunk: Buffer) => {
+    if (outputExceeded) return;
+    if (options.outputLimitBytes !== undefined && collected + chunk.length > options.outputLimitBytes) {
+      outputExceeded = true;
+      stopForOutput();
+      return;
+    }
+    collected += chunk.length;
+    target.push(chunk);
+  };
+  child.stdout?.on('data', collect(stdout));
+  child.stderr?.on('data', collect(stderr));
   const streamsClosed = new Promise<void>((resolve) => child.once('close', () => resolve()));
   const exited = new Promise<number | null>((resolve) => child.once('exit', (code) => resolve(code)));
 
@@ -114,7 +143,7 @@ export async function runProcessGroup(argv: readonly string[], options: ProcessG
   const failure = new Promise<never>((_resolve, reject) => {
     stopFailed = reject;
   });
-  const stop = () => (stopping ??= stopGroup(pgid).catch((error: unknown) => {
+  const stop = () => (stopping ??= stopGroup(pgid, options.graceMs ?? defaultGraceMs).catch((error: unknown) => {
     stopFailed(error);
     throw error;
   }));
@@ -126,6 +155,10 @@ export async function runProcessGroup(argv: readonly string[], options: ProcessG
     aborted = true;
     stop().catch(() => undefined);
   };
+  stopForOutput = () => {
+    stop().catch(() => undefined);
+  };
+  if (outputExceeded) stopForOutput();
   options.signal?.addEventListener('abort', onAbort, { once: true });
   // An abort that came while the child was spawning fired before the listener existed and never fires again.
   if (options.signal?.aborted) onAbort();
@@ -137,11 +170,12 @@ export async function runProcessGroup(argv: readonly string[], options: ProcessG
     if (stopping) await stopping;
     else if (await groupAlive(pgid)) await killGroup(pgid);
     // Pipes close once every writer is gone; a writer that left the group must not hold the result forever.
-    if (options.output === 'pipe') await settleWithin(streamsClosed, graceMs);
+    if (options.output === 'pipe') await settleWithin(streamsClosed, defaultGraceMs);
     return {
       code,
       timedOut,
       aborted,
+      ...(options.outputLimitBytes === undefined ? {} : { outputExceeded }),
       stdout: Buffer.concat(stdout).toString('utf8'),
       stderr: Buffer.concat(stderr).toString('utf8'),
     };

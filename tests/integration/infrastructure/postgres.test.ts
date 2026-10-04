@@ -1,11 +1,13 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { SQL } from "bun";
 import { randomBytes } from "node:crypto";
+import { rmSync } from "node:fs";
 import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { runDoctor } from "../../../scripts/doctor";
 import { loadConfig } from "../../../scripts/lib/development";
+import { onSignalCleanup, type SignalCleanupCallback } from "../../orchestration/signal-cleanup";
 
 // Suite infrastruktur spec 0002. Setiap project Compose memakai nama unik berawalan foundation-infra-test-,
 // port bebas, dan password acak; project foundation milik pengembang tidak pernah disentuh.
@@ -28,6 +30,11 @@ const identity: Record<string, unknown> = {};
 let workspace = "";
 let foundationBefore = "";
 let main: Stack;
+// Signal cleanup of spec 0010 (row *Pembersihan sinyal suite nyata*): bun test runs neither afterAll nor finally on
+// SIGINT or SIGTERM, so every folder, project, and verification container is registered before it is created and
+// released once the normal path removed it.
+const releases = new Map<string, () => void>();
+const verifierPrefix = "foundation-infra-verify-";
 
 const docker = await detectDocker();
 const cliTest = test.skipIf(!docker.cli);
@@ -39,6 +46,7 @@ const nestedLabel = " (dilewati: sudah di dalam run bersarang)";
 
 beforeAll(async () => {
   workspace = await mkdtemp(resolve(tmpdir(), testPrefix));
+  releases.set(workspace, onSignalCleanup(folderCleanup(workspace)));
   if (docker.daemon) foundationBefore = await foundationState();
 });
 
@@ -49,7 +57,10 @@ afterAll(async () => {
       try { await removeStack(stack); } catch (error) { failures.push(mask(String(error))); }
     }
   }
-  if (workspace) await rm(workspace, { recursive: true, force: true });
+  if (workspace) {
+    await rm(workspace, { recursive: true, force: true });
+    release(workspace);
+  }
   if (failures.length) throw new Error(failures.join("\n"));
 });
 
@@ -82,11 +93,86 @@ async function dockerCommand(args: string[], timeout?: number): Promise<Result> 
 
 async function runVerifierInContainer(script: string, timeout = 300000): Promise<Result> {
   const verifier = resolve(root, "infrastructure/postgres/verify-pgdg-repo-rpm.sh");
-  return run([
-    "docker", "run", "--rm", "--user", "0",
-    "--mount", `type=bind,source=${verifier},target=/tmp/verify-pgdg-repo-rpm.sh,readonly`,
-    "--entrypoint", "/bin/bash", pins.baseImage, "-c", script,
-  ], { timeout });
+  // Named, so the signal cleanup can remove it: without a name it keeps running after a signal, because bash as PID 1
+  // ignores SIGTERM, and --rm only removes it once the script ends.
+  const name = `${verifierPrefix}${randomBytes(4).toString("hex")}`;
+  const releaseVerifier = onSignalCleanup(verifierCleanup(name));
+  try {
+    return await run([
+      "docker", "run", "--rm", "--name", name, "--user", "0",
+      "--mount", `type=bind,source=${verifier},target=/tmp/verify-pgdg-repo-rpm.sh,readonly`,
+      "--entrypoint", "/bin/bash", pins.baseImage, "-c", script,
+    ], { timeout });
+  } finally {
+    releaseVerifier();
+  }
+}
+
+function release(key: string): void {
+  releases.get(key)?.();
+  releases.delete(key);
+}
+
+/**
+ * Synchronous Docker call of the signal cleanup: an argument array, never a shell, the same environment as every other
+ * Docker call in this file, output captured and never printed. `undefined` when no time is left, the call timed out, or
+ * it could not start.
+ */
+function dockerSync(args: string[], timeout: number): { code: number; stdout: string } | undefined {
+  if (timeout <= 0) return undefined;
+  try {
+    const result = Bun.spawnSync(["docker", ...args], { cwd: root, env: cleanEnvironment(), stdin: "ignore", stdout: "pipe", stderr: "pipe", timeout });
+    return result.exitedDueToTimeout ? undefined : { code: result.exitCode, stdout: result.stdout.toString() };
+  } catch {
+    return undefined;
+  }
+}
+
+/** A temporary folder: removed on pass 2, after the Compose actions that still need its env files. */
+function folderCleanup(path: string): SignalCleanupCallback {
+  return ({ pass }) => {
+    if (pass !== 2) return [];
+    try {
+      rmSync(path, { recursive: true, force: true });
+      return [];
+    } catch {
+      return [path];
+    }
+  };
+}
+
+/** A verification container: `docker rm -f` on every pass, only for a name this process made. */
+function verifierCleanup(name: string): SignalCleanupCallback {
+  return ({ timeout }) => {
+    if (!/^foundation-infra-verify-[0-9a-f]{8}$/.test(name)) return [name];
+    return dockerSync(["rm", "-f", name], timeout(30000))?.code === 0 ? [] : [name];
+  };
+}
+
+/**
+ * A Compose project: `down` with the same arguments as `removeStack` on every pass. Exit code 0 of `down` is no proof
+ * that the project is gone (a volume still used by a `run --rm` container is skipped), so pass 2 also lists the
+ * containers, networks, and volumes that carry the label of this project and reports the project when one is left.
+ * Nothing is ever removed by label.
+ */
+function stackCleanup(stack: Stack): SignalCleanupCallback {
+  return ({ pass, timeout }) => {
+    try {
+      assertTestProject(stack.project);
+    } catch {
+      return [stack.project];
+    }
+    const down = dockerSync(["compose", "-p", stack.project, "--env-file", stack.envFile, "-f", "docker-compose.yml", "-f", overrideFile,
+      "down", "--volumes", "--remove-orphans"], timeout(45000));
+    if (down?.code !== 0) return [stack.project];
+    if (pass === 1) return [];
+    const filter = `label=com.docker.compose.project=${stack.project}`;
+    for (const args of [["ps", "-aq"], ["network", "ls", "-q"], ["volume", "ls", "-q"]]) {
+      const listed = dockerSync([...args, "--filter", filter], timeout(30000));
+      if (listed?.code !== 0 || listed.stdout.trim() !== "") return [stack.project];
+    }
+    return [];
+  };
 }
 
 async function detectDocker(): Promise<{ cli: boolean; daemon: boolean; wait: boolean; reason: string }> {
@@ -126,6 +212,8 @@ async function createStack(): Promise<Stack> {
     `FOUNDATION_POSTGRES_PACKAGE_VERSION=${pins.postgresPackageVersion}`,
   ].join("\n") + "\n", { mode: 0o600 });
   const stack = { project, port, password, envFile };
+  // After the env file exists and before the first Compose command of this project.
+  releases.set(project, onSignalCleanup(stackCleanup(stack)));
   stacks.push(stack);
   return stack;
 }
@@ -142,6 +230,7 @@ async function compose(stack: Stack, args: string[], options: { allowFailure?: b
 async function removeStack(stack: Stack): Promise<void> {
   assertTestProject(stack.project);
   await compose(stack, ["down", "--volumes", "--remove-orphans"], { timeout: 120000 });
+  release(stack.project);
 }
 
 async function up(stack: Stack): Promise<void> {
@@ -239,6 +328,7 @@ test("INFRA-001 Compose root hanya berisi postgres dan secret admin tidak masuk 
   expect(example.split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("#"))).toEqual(["FOUNDATION_POSTGRES_PASSWORD="]);
 
   const probe = await mkdtemp(resolve(tmpdir(), "foundation-infra-bun-"));
+  releases.set(probe, onSignalCleanup(folderCleanup(probe)));
   try {
     await writeFile(resolve(probe, ".env.infrastructure"), "FOUNDATION_POSTGRES_PASSWORD=sentinel-bun-autoload\n");
     for (const nodeEnvironment of [undefined, "development", "test"]) {
@@ -249,7 +339,7 @@ test("INFRA-001 Compose root hanya berisi postgres dan secret admin tidak masuk 
       expect(loaded.code).toBe(0);
       expect(loaded.stdout).toBe("");
     }
-  } finally { await rm(probe, { recursive: true, force: true }); }
+  } finally { await rm(probe, { recursive: true, force: true }); release(probe); }
 
   for (const name of await readdir(resolve(root, "scripts"), { recursive: true })) {
     if (name.endsWith(".ts")) expect(await Bun.file(resolve(root, "scripts", name)).text()).not.toMatch(/\bdocker\b/i);

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { SQL } from 'bun';
 import { createHmac, randomBytes } from 'node:crypto';
+import { rmSync } from 'node:fs';
 import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -15,6 +16,7 @@ import {
   readinessImageLabelsAccepted,
   readinessNameAccepted,
 } from '../../orchestration/readiness-container';
+import { onSignalCleanup, type SignalCleanupCallback } from '../../orchestration/signal-cleanup';
 
 // READY-008 (spec 0006): a real backend process on an isolated PostgreSQL 18 answers 200 with 0 applied migrations
 // after provisioning, then with the number of database/migrations/*.sql files after migrate.ts (build plan step 1).
@@ -51,6 +53,12 @@ let backendUrl = '';
 let backend: ReturnType<typeof Bun.spawn> | undefined;
 let backendOutput: Promise<[string, string]> | undefined;
 const responseTexts: string[] = [];
+// Signal cleanup of spec 0010 (row *Pembersihan sinyal suite nyata*): bun test runs no afterAll on SIGINT or SIGTERM, so
+// the folder and the container are registered before they are created, and every backend process right after
+// Bun.spawn returns it; each is released once the normal path removed it.
+let releaseFolder = () => {};
+let releaseContainer = () => {};
+let releaseBackend = () => {};
 
 async function command(args: string[], env: Record<string, string>, timeout = 30_000) {
   const child = Bun.spawn(args, { cwd: root, env, stdout: 'pipe', stderr: 'pipe', timeout });
@@ -75,6 +83,57 @@ function parsedLabels(stdout: string): unknown {
   } catch {
     return undefined;
   }
+}
+
+/** Synchronous `docker <args>` of the signal cleanup with `dockerEnv`; output captured, never printed. */
+function dockerSync(args: string[], timeout: number): { code: number; stdout: string; stderr: string } | undefined {
+  if (timeout <= 0) return undefined;
+  try {
+    const result = Bun.spawnSync(['docker', ...args], { cwd: root, env: dockerEnv, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe', timeout });
+    return result.exitedDueToTimeout ? undefined : { code: result.exitCode, stdout: result.stdout.toString(), stderr: result.stderr.toString() };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The READY-008 container on every pass: the guard of spec 0006 with owner `'database'`, run synchronously. The name
+ * pattern before Docker is called, `docker container inspect`, where only Docker's missing answer counts as already
+ * removed, the labels, and only then `docker rm -f`.
+ */
+const containerCleanup: SignalCleanupCallback = ({ timeout }) => {
+  if (!readinessNameAccepted('database', containerName)) return [containerName];
+  const inspected = dockerSync(['container', 'inspect', '--format', '{{json .Config.Labels}}', containerName], timeout(30_000));
+  if (inspected === undefined) return [containerName];
+  if (inspected.code !== 0) return readinessContainerMissing(inspected.code, inspected.stderr) ? [] : [containerName];
+  if (!readinessContainerLabelsAccepted(parsedLabels(inspected.stdout))) return [containerName];
+  return dockerSync(['rm', '-f', containerName], timeout(30_000))?.code === 0 ? [] : [containerName];
+};
+
+/** A backend process: SIGKILL while it is still alive. */
+function backendCleanup(child: ReturnType<typeof Bun.spawn>): SignalCleanupCallback {
+  return () => {
+    if (child.exitCode !== null || child.signalCode !== null) return [];
+    try {
+      child.kill('SIGKILL');
+      return [];
+    } catch {
+      return [`backend ${child.pid}`];
+    }
+  };
+}
+
+/** The temporary folder with the env file: removed on pass 2, after the container. */
+function folderCleanup(path: string): SignalCleanupCallback {
+  return ({ pass }) => {
+    if (pass !== 2) return [];
+    try {
+      rmSync(path, { recursive: true, force: true });
+      return [];
+    } catch {
+      return [path];
+    }
+  };
 }
 
 /**
@@ -187,19 +246,23 @@ async function stopBackend(): Promise<void> {
 async function cleanup(): Promise<void> {
   try {
     await stopBackend();
+    releaseBackend();
     if (containerCreated) {
       await guardedDocker('rm', { ifPresent: true });
       containerCreated = false;
     }
+    releaseContainer();
   } finally {
     if (directory) await rm(directory, { recursive: true, force: true });
     directory = '';
+    releaseFolder();
   }
 }
 
 beforeAll(async () => {
   try {
     directory = await mkdtemp(resolve(tmpdir(), 'foundation-readiness-test-'));
+    releaseFolder = onSignalCleanup(folderCleanup(directory));
     const envFile = resolve(directory, 'postgres.env');
     await writeFile(envFile, `POSTGRES_DB=foundation\nPOSTGRES_USER=foundation_admin\nPOSTGRES_PASSWORD=${adminPassword}\n`, { mode: 0o600 });
     // Image check of spec 0006 (*Pemeriksaan image sebelum `docker run`*): a container inherits the labels of its image,
@@ -215,6 +278,7 @@ beforeAll(async () => {
     // A fixed host port and no --rm, so a later docker start in build plan step 2 reuses the same address.
     hostPort = await freePort();
     // From here a failed docker run may still have created the container, so cleanup removes it if it exists.
+    releaseContainer = onSignalCleanup(containerCleanup);
     containerCreated = true;
     const started = await command(['docker', 'run', '-d', '--name', containerName, ...READINESS_RUN_LABEL_ARGS, '--env-file', envFile,
       '-p', `127.0.0.1:${hostPort}:5432`, image], dockerEnv);
@@ -248,6 +312,7 @@ beforeAll(async () => {
       env: { PATH: process.env['PATH'] ?? '', HOME: process.env['HOME'] ?? '', NODE_ENV: 'development', HOST: '127.0.0.1', PORT: String(backendPort), DATABASE_URL: backendUrl },
       stdout: 'pipe', stderr: 'pipe',
     });
+    releaseBackend = onSignalCleanup(backendCleanup(backend));
     backendOutput = Promise.all([new Response(backend.stdout as ReadableStream).text(), new Response(backend.stderr as ReadableStream).text()]);
     const listening = await waitFor(async () => {
       try {
@@ -483,6 +548,7 @@ test('READY-008 SIGTERM while a check waits on a paused database stops a backend
     env: { PATH: process.env['PATH'] ?? '', HOME: process.env['HOME'] ?? '', NODE_ENV: 'development', HOST: '127.0.0.1', PORT: String(port), DATABASE_URL: backendUrl },
     stdout: 'pipe', stderr: 'pipe',
   });
+  const releaseChild = onSignalCleanup(backendCleanup(child));
   const output = Promise.all([new Response(child.stdout as ReadableStream).text(), new Response(child.stderr as ReadableStream).text()]);
   let paused = false;
   try {
@@ -521,6 +587,7 @@ test('READY-008 SIGTERM while a check waits on a paused database stops a backend
       child.kill('SIGKILL');
       await child.exited;
     }
+    releaseChild();
     if (paused) await guardedDocker('unpause');
   }
   // The main backend, idle during the pause, reads the count again without a restart.
