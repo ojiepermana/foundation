@@ -1,34 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="bun test" tests="29" assertions="79" failures="0" skipped="0" time="19.836226">
-  <testsuite name="tests/integration/tooling/development.test.ts" file="tests/integration/tooling/development.test.ts" tests="29" assertions="79" failures="0" skipped="0" time="19.833209">
-    <testcase name="TOOL-001 doctor reports missing prerequisites without stopping a listener or leaking credentials" classname="" time="0.158931" file="tests/integration/tooling/development.test.ts" line="80" assertions="4" />
-    <testcase name="TOOL-002 cleanup only stops the configured fixture listener" classname="" time="0.558707" file="tests/integration/tooling/development.test.ts" line="94" assertions="3" />
-    <testcase name="TOOL-002 cleanup escalates when the fixture ignores SIGTERM" classname="" time="0.647888" file="tests/integration/tooling/development.test.ts" line="103" assertions="2" />
-    <testcase name="TOOL-002 cleanup refuses an unrecorded listener" classname="" time="0.106215" file="tests/integration/tooling/development.test.ts" line="111" assertions="2" />
-    <testcase name="TOOL-002 cleanup rejects a reused PID identity without signaling it" classname="" time="0.135463" file="tests/integration/tooling/development.test.ts" line="117" assertions="2" />
-    <testcase name="TOOL-002 cleanup rechecks port ownership immediately before SIGTERM" classname="" time="0.308463" file="tests/integration/tooling/development.test.ts" line="125" assertions="3" />
-    <testcase name="TOOL-002 cleanup rechecks port ownership immediately before SIGKILL" classname="" time="0.540422" file="tests/integration/tooling/development.test.ts" line="152" assertions="3" />
-    <testcase name="TOOL-003 worker selection is explicit, deduplicated, and rejects unknown workers" classname="" time="0.00016" file="tests/integration/tooling/development.test.ts" line="180" assertions="4" />
-    <testcase name="TOOL-003 service configuration isolates database credentials and uses the requested ports" classname="" time="0.000348" file="tests/integration/tooling/development.test.ts" line="189" assertions="16" />
-    <testcase name="TOOL-003 configuration rejects overlapping worker ports and paths outside the repository" classname="" time="0.001496" file="tests/integration/tooling/development.test.ts" line="219" assertions="2" />
-    <testcase name="TOOL-003 worker HTTP readiness path is required and local" classname="" time="0.001157" file="tests/integration/tooling/development.test.ts" line="228" assertions="3" />
-    <testcase name="TOOL-003 selected HTTP worker must answer on its configured readiness path" classname="" time="0.715691" file="tests/integration/tooling/development.test.ts" line="242" assertions="1" />
-    <testcase name="TOOL-004 service failure stops the other service and its stubborn descendant" classname="" time="1.745598" file="tests/integration/tooling/development.test.ts" line="251" assertions="2" />
-    <testcase name="TOOL-004 termination stops the supervised listener" classname="" time="1.655532" file="tests/integration/tooling/development.test.ts" line="284" assertions="2" />
-    <testcase name="TOOL-004 Ctrl+C stops the supervised listener" classname="" time="1.654173" file="tests/integration/tooling/development.test.ts" line="312" assertions="2" />
-    <testcase name="TOOL-005 a second invocation cannot take the active lock" classname="" time="0.117207" file="tests/integration/tooling/development.test.ts" line="340" assertions="1" />
-    <testcase name="TOOL-005 an incomplete invocation lock fails safely within five seconds" classname="" time="5.007215" file="tests/integration/tooling/development.test.ts" line="349" assertions="3" />
-    <testcase name="TOOL-005 recovery rejects groups whose recorded checkout differs" classname="" time="0.187132" file="tests/integration/tooling/development.test.ts" line="358" assertions="2" />
-    <testcase name="TOOL-005 one recovery can take a stale invocation lock" classname="" time="0.139544" file="tests/integration/tooling/development.test.ts" line="373" assertions="4" />
-    <testcase name="TOOL-005 concurrent invocations allow one owner" classname="" time="0.664497" file="tests/integration/tooling/development.test.ts" line="392" assertions="3" />
-    <testcase name="TOOL-005 stale invocation can clear its recorded listener" classname="" time="0.668854" file="tests/integration/tooling/development.test.ts" line="417" assertions="4" />
-    <testcase name="TOOL-002 cleanup stops a recorded worker group without an HTTP port" classname="" time="0.331403" file="tests/integration/tooling/development.test.ts" line="451" assertions="1" />
-    <testcase name="TOOL-006 readiness timeout stops the supervised process" classname="" time="2.096179" file="tests/integration/tooling/development.test.ts" line="462" assertions="2" />
-    <testcase name="TOOL-006 readiness retries after an empty port snapshot before the owned listener appears" classname="" time="0.214752" file="tests/integration/tooling/development.test.ts" line="474" assertions="1" />
-    <testcase name="TOOL-006 readiness rejects an HTTP response completed after the startup deadline" classname="" time="0.083408" file="tests/integration/tooling/development.test.ts" line="488" assertions="1" />
-    <testcase name="TOOL-006 readiness accepts owned HTTP responses and rejects a foreign port" classname="" time="1.039852" file="tests/integration/tooling/development.test.ts" line="509" assertions="1" />
-    <testcase name="TOOL-006 readiness times out on the wrong HTTP body" classname="" time="0.444504" file="tests/integration/tooling/development.test.ts" line="522" assertions="1" />
-    <testcase name="TOOL-006 readiness rejects a non HTML frontend body" classname="" time="0.443637" file="tests/integration/tooling/development.test.ts" line="530" assertions="1" />
-    <testcase name="TOOL-008 production mode and invalid database target fail before cleanup" classname="" time="0.155091" file="tests/integration/tooling/development.test.ts" line="538" assertions="3" />
+<testsuites name="bun test" tests="54" assertions="209" failures="0" skipped="0" time="32.933309">
+  <testsuite name="tests/integration/tooling/development.test.ts" file="tests/integration/tooling/development.test.ts" tests="54" assertions="209" failures="0" skipped="0" time="32.931101">
+    <testcase name="TOOL-001 doctor reports missing prerequisites without stopping a listener or leaking credentials" classname="" time="0.147975" file="tests/integration/tooling/development.test.ts" line="81" assertions="4" />
+    <testcase name="TOOL-002 cleanup only stops the configured fixture listener" classname="" time="0.521846" file="tests/integration/tooling/development.test.ts" line="96" assertions="3" />
+    <testcase name="TOOL-002 cleanup escalates when the fixture ignores SIGTERM" classname="" time="0.766486" file="tests/integration/tooling/development.test.ts" line="105" assertions="2" />
+    <testcase name="TOOL-002 cleanup refuses an unrecorded listener" classname="" time="0.100009" file="tests/integration/tooling/development.test.ts" line="113" assertions="2" />
+    <testcase name="TOOL-002 cleanup rejects a reused PID identity without signaling it" classname="" time="0.127663" file="tests/integration/tooling/development.test.ts" line="119" assertions="2" />
+    <testcase name="TOOL-002 cleanup rechecks port ownership immediately before SIGTERM" classname="" time="0.292759" file="tests/integration/tooling/development.test.ts" line="127" assertions="3" />
+    <testcase name="TOOL-002 cleanup rechecks port ownership immediately before SIGKILL" classname="" time="0.511184" file="tests/integration/tooling/development.test.ts" line="154" assertions="3" />
+    <testcase name="TOOL-003 worker selection is explicit, deduplicated, and rejects unknown workers" classname="" time="0.000145" file="tests/integration/tooling/development.test.ts" line="182" assertions="4" />
+    <testcase name="TOOL-003 service configuration isolates database credentials and uses the requested ports" classname="" time="0.000358" file="tests/integration/tooling/development.test.ts" line="191" assertions="16" />
+    <testcase name="TOOL-003 configuration rejects overlapping worker ports and paths outside the repository" classname="" time="0.001345" file="tests/integration/tooling/development.test.ts" line="221" assertions="2" />
+    <testcase name="TOOL-003 worker HTTP readiness path is required and local" classname="" time="0.000961" file="tests/integration/tooling/development.test.ts" line="230" assertions="3" />
+    <testcase name="TOOL-003 selected HTTP worker must answer on its configured readiness path" classname="" time="0.695872" file="tests/integration/tooling/development.test.ts" line="244" assertions="1" />
+    <testcase name="TOOL-004 service failure stops the other service and its stubborn descendant" classname="" time="1.732572" file="tests/integration/tooling/development.test.ts" line="253" assertions="2" />
+    <testcase name="TOOL-004 termination stops the supervised listener" classname="" time="1.649137" file="tests/integration/tooling/development.test.ts" line="286" assertions="2" />
+    <testcase name="TOOL-004 Ctrl+C stops the supervised listener" classname="" time="1.64923" file="tests/integration/tooling/development.test.ts" line="314" assertions="2" />
+    <testcase name="TOOL-005 a second invocation cannot take the active lock" classname="" time="0.112155" file="tests/integration/tooling/development.test.ts" line="342" assertions="1" />
+    <testcase name="TOOL-005 an incomplete invocation lock fails safely within five seconds" classname="" time="5.043499" file="tests/integration/tooling/development.test.ts" line="351" assertions="3" />
+    <testcase name="TOOL-005 recovery rejects groups whose recorded checkout differs" classname="" time="0.194611" file="tests/integration/tooling/development.test.ts" line="360" assertions="2" />
+    <testcase name="TOOL-005 one recovery can take a stale invocation lock" classname="" time="0.137302" file="tests/integration/tooling/development.test.ts" line="375" assertions="4" />
+    <testcase name="TOOL-005 concurrent invocations allow one owner" classname="" time="0.663968" file="tests/integration/tooling/development.test.ts" line="394" assertions="3" />
+    <testcase name="TOOL-005 stale invocation can clear its recorded listener" classname="" time="0.629841" file="tests/integration/tooling/development.test.ts" line="419" assertions="4" />
+    <testcase name="TOOL-002 cleanup stops a recorded worker group without an HTTP port" classname="" time="0.315111" file="tests/integration/tooling/development.test.ts" line="453" assertions="1" />
+    <testcase name="TOOL-006 readiness timeout stops the supervised process" classname="" time="2.091339" file="tests/integration/tooling/development.test.ts" line="464" assertions="2" />
+    <testcase name="TOOL-006 readiness retries after an empty port snapshot before the owned listener appears" classname="" time="0.212065" file="tests/integration/tooling/development.test.ts" line="476" assertions="1" />
+    <testcase name="TOOL-006 readiness rejects an HTTP response completed after the startup deadline" classname="" time="0.084111" file="tests/integration/tooling/development.test.ts" line="490" assertions="1" />
+    <testcase name="TOOL-006 readiness accepts owned HTTP responses and rejects a foreign port" classname="" time="0.989099" file="tests/integration/tooling/development.test.ts" line="511" assertions="1" />
+    <testcase name="TOOL-006 readiness times out on the wrong HTTP body" classname="" time="0.44889" file="tests/integration/tooling/development.test.ts" line="524" assertions="1" />
+    <testcase name="TOOL-006 readiness rejects a non HTML frontend body" classname="" time="0.427235" file="tests/integration/tooling/development.test.ts" line="532" assertions="1" />
+    <testcase name="TOOL-008 production mode and invalid database target fail before cleanup" classname="" time="0.145904" file="tests/integration/tooling/development.test.ts" line="540" assertions="3" />
+    <testcase name="TOOL-001 doctor CLI exits 1 with a safe message when DATABASE_URL is missing" classname="" time="0.110518" file="tests/integration/tooling/development.test.ts" line="599" assertions="3" />
+    <testcase name="TOOL-001 doctor CLI exits 1 on an unusable database URL without printing the DSN, password, or raw error" classname="" time="0.217847" file="tests/integration/tooling/development.test.ts" line="607" assertions="10" />
+    <testcase name="TOOL-001 doctor stops waiting for a database that accepts TCP but never answers" classname="" time="3.105849" file="tests/integration/tooling/development.test.ts" line="621" assertions="4" />
+    <testcase name="TOOL-008 serve CLI in production mode stops at preflight, starts nothing, and releases its lock" classname="" time="0.178856" file="tests/integration/tooling/development.test.ts" line="645" assertions="5" />
+    <testcase name="TOOL-008 serve CLI rejects an invalid config before taking the lock" classname="" time="0.019277" file="tests/integration/tooling/development.test.ts" line="655" assertions="4" />
+    <testcase name="TOOL-003 serve CLI rejects an unknown worker before taking the lock" classname="" time="0.018491" file="tests/integration/tooling/development.test.ts" line="666" assertions="4" />
+    <testcase name="TOOL-005 a second serve CLI from the same checkout fails clearly and leaves the active invocation untouched" classname="" time="0.094216" file="tests/integration/tooling/development.test.ts" line="675" assertions="5" />
+    <testcase name="TOOL-005 the invocation record holds verifiable identities only and is private to the user" classname="" time="0.076238" file="tests/integration/tooling/development.test.ts" line="690" assertions="14" />
+    <testcase name="TOOL-005 an invocation refuses to record a group from another checkout or a process that does not lead its group" classname="" time="0.116978" file="tests/integration/tooling/development.test.ts" line="718" assertions="4" />
+    <testcase name="TOOL-003 doctor requires the selected worker&apos;s own variables and database URL without printing their values" classname="" time="0.275347" file="tests/integration/tooling/development.test.ts" line="733" assertions="6" />
+    <testcase name="TOOL-003 a selected worker without a port that exits during startup fails startup before readiness is announced" classname="" time="2.071666" file="tests/integration/tooling/development.test.ts" line="758" assertions="6" />
+    <testcase name="TOOL-003 a selected worker without a port counts as ready while it stays alive, and shutdown stops its group" classname="" time="2.126737" file="tests/integration/tooling/development.test.ts" line="795" assertions="7" />
+    <testcase name="TOOL-006 readiness rejects a listener whose owner changes right after a passed probe" classname="" time="0.008112" file="tests/integration/tooling/development.test.ts" line="862" assertions="2" />
+    <testcase name="TOOL-006 readiness rejects a listener whose owner changes right before readiness is announced" classname="" time="0.007265" file="tests/integration/tooling/development.test.ts" line="868" assertions="2" />
+    <testcase name="TOOL-006 supervise announces nothing and stops its group when another process takes the port during the probe" classname="" time="1.872609" file="tests/integration/tooling/development.test.ts" line="874" assertions="7" />
+    <testcase name="TOOL-006 the startup limit is 60 seconds and supervise passes it to readiness when no limit is given" classname="" time="1.889891" file="tests/integration/tooling/development.test.ts" line="920" assertions="6" />
+    <testcase name="TOOL-003 readiness targets are the frontend, the backend, and each selected worker with an HTTP port" classname="" time="0.000183" file="tests/integration/tooling/development.test.ts" line="940" assertions="3" />
+    <testcase name="TOOL-005 a recovery guard left by a crash blocks serve and leaves the old record where it is" classname="" time="0.043026" file="tests/integration/tooling/development.test.ts" line="978" assertions="2" />
+    <testcase name="TOOL-005 a recoverer that finds the guard taken fails and leaves the other recovery alone" classname="" time="0.038288" file="tests/integration/tooling/development.test.ts" line="986" assertions="2" />
+    <testcase name="TOOL-005 two processes recovering the same old record end with exactly one owner" classname="" time="0.18106" file="tests/integration/tooling/development.test.ts" line="996" assertions="7" />
+    <testcase name="TOOL-005 an old record of another checkout or user is refused and never moved" classname="" time="0.076637" file="tests/integration/tooling/development.test.ts" line="1051" assertions="4" />
+    <testcase name="TOOL-005 recovery fails safely when the old record changes before the guard is taken" classname="" time="0.074526" file="tests/integration/tooling/development.test.ts" line="1060" assertions="2" />
+    <testcase name="TOOL-005 recovery fails safely when the old supervisor proves alive at the second look" classname="" time="0.110421" file="tests/integration/tooling/development.test.ts" line="1073" assertions="3" />
+    <testcase name="TOOL-005 recovery fails safely when the lock directory is replaced during the review" classname="" time="0.075175" file="tests/integration/tooling/development.test.ts" line="1085" assertions="3" />
+    <testcase name="TOOL-004 Ctrl+C or termination during preflight stops serve, releases its lock, and puts back an old record" classname="" time="0.439616" file="tests/integration/tooling/development.test.ts" line="1103" assertions="15" />
   </testsuite>
 </testsuites>

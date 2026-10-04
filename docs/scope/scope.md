@@ -24,7 +24,7 @@ Versi dependency, kebijakan akses endpoint diagnostik, target layar dan aksesibi
 | # | Fitur | Fase | Status |
 | --- | --- | --- | --- |
 | 1 | Panduan dan aturan proyek | Konteks tersedia | existing |
-| 2 | Doctor dan serve pada aplikasi nyata | Fondasi | in-progress |
+| 2 | Doctor dan serve pada aplikasi nyata | Fondasi | done |
 | 3 | Infrastruktur PostgreSQL development | Fondasi | done |
 | 4 | Struktur aplikasi dan dependency yang kompatibel | Fondasi | done |
 | 5 | Model data dan batas akses database | Fondasi | done |
@@ -52,7 +52,7 @@ Kode dan dokumen: `AGENTS.md`, `README.md`, `docs/rules/`, dan `docs/testing/rel
 
 ## Fondasi
 
-### 2. Doctor dan serve pada aplikasi nyata · in-progress
+### 2. Doctor dan serve pada aplikasi nyata · done
 
 Lengkapi pembuktian tooling yang sudah ada ketika frontend, backend, dan database nyata tersedia. Pekerjaan ini dimulai dari alur awal fitur 10, tanpa membuat ulang supervisor yang sudah ada.
 
@@ -64,19 +64,19 @@ Data: membaca metadata `common`; tidak menambah entitas bisnis. Akses tulis meta
 
 Spec: [0003](../specs/0003-doctor-serve-aplikasi-nyata/index.md).
 
-- [ ] Bangun: `/develop doctor dan serve pada aplikasi nyata`
+- [x] Bangun: `/develop doctor dan serve pada aplikasi nyata`
   - [x] Selaraskan doctor dengan database, role runtime, dan migration nyata dari fitur 5 dan 6; buktikan preflight serta respons HTTP awal (AC-1 sampai AC-4).
   - [x] Lindungi invocation dan cleanup berdasarkan identitas proses, grup, serta checkout; buktikan pergantian listener dan race (AC-3, AC-6, AC-7).
   - [x] Lengkapi readiness 60 detik, worker terpilih, dan shutdown seluruh grup proses (AC-4, AC-5, AC-8).
-  - [ ] Selaraskan aturan dan registry, lalu kumpulkan bukti fixture serta aplikasi nyata melalui alur fitur 10 (AC-1 sampai AC-9).
+  - [x] Selaraskan aturan dan registry, lalu kumpulkan bukti fixture serta aplikasi nyata melalui alur fitur 10 (AC-1 sampai AC-9).
     - [x] Selaraskan aturan dan registry; buktikan fixture, PostgreSQL 18.6, HTTP nyata, shutdown, dan gate CI untuk AC-1 sampai AC-8 serta bagian CLI/HTTP TOOL-007.
-    - [ ] Jalankan alur browser melalui SDK, proxy, backend, dan database setelah permukaan Feature 10 tersedia (AC-9).
-- [ ] Verifikasi: `/check verify doctor dan serve pada aplikasi nyata`
-- [ ] Uji: `/test doctor dan serve pada aplikasi nyata`
-- [ ] Review mandiri: `/check review doctor dan serve pada aplikasi nyata`
-- [ ] Dokumentasikan perubahan: `/document doctor dan serve pada aplikasi nyata`
+    - [x] Jalankan alur browser melalui SDK, proxy, backend, dan database setelah permukaan Feature 10 tersedia (AC-9).
+- [x] Verifikasi: `/check verify doctor dan serve pada aplikasi nyata`
+- [x] Uji: `/test doctor dan serve pada aplikasi nyata`
+- [x] Review mandiri: `/check review doctor dan serve pada aplikasi nyata` ([review awal](../reviews/2026-10-04-main-doctor-serve.md) dan [review ulang Sonnet 5.5](../reviews/2026-10-04-main-doctor-serve-followup.md), Approve with nits; tidak ada blocker atau major pada kedua putaran; ketujuh temuan minor, kedua temuan major reviewer tambahan, dan nit jalur SIGKILL diperbaiki pada 2026-10-04 dan terbukti pada review ulang; tersisa satu temuan minor (sinyal pada fase lock dan cleanup belum terkunci test) dan sembilan nit sebagai tindak lanjut)
+- [x] Dokumentasikan perubahan: `/document doctor dan serve pada aplikasi nyata`
 
-Kode tersedia: `scripts/doctor.ts`, `scripts/serve.ts`, `scripts/lib/`, `config/development.json`, dan `tests/integration/tooling/development.test.ts`. Registry mencakup TOOL-001 sampai TOOL-008; TOOL-007 saat ini memetakan bukti parsial AC-1, AC-2, dan AC-4. Suite tooling lulus 29 test dengan 79 assertion, 0 gagal, dan 0 dilewati. `test:ci` lulus dengan 31 ID skenario, 81 integration test/172 assertion, 29 tooling test/79 assertion, 4 Playwright E2E, dan 1 frontend test. [Smoke test PostgreSQL dan aplikasi nyata](../testing/0005-doctor-serve-real-smoke.md) mencatat 11 run nyata berturut-turut setelah perbaikan race kepemilikan port dan smoke terbaru setelah batas waktu readiness diperketat; kegagalan awal tetap tercatat. TOOL-007 tetap parsial sampai alur browser fitur 10 tersedia.
+Kode tersedia: `scripts/doctor.ts`, `scripts/serve.ts`, `scripts/lib/` (termasuk `development.ts`, `invocation.ts`, `process-group.ts`, `process-identity.ts`, `readiness.ts`, dan `ports.ts`), `config/development.json` dengan `database.expectedName`, test fixture `tests/integration/tooling/development.test.ts` (`bun run test:tooling`), smoke nyata `tests/integration/tooling-real/doctor-smoke.ts` (`bun run test:tooling:real`), `tsconfig.tooling.json` (`typecheck:tooling` di `test:ci`), helper `tests/e2e/readiness/response-body.ts`, dan registry `tests/scenarios/development-tooling.json`. TOOL-001 sampai TOOL-008 lulus: 4 test fixture TOOL-001, 7 TOOL-002, 10 TOOL-003, 4 TOOL-004, 16 TOOL-005, 10 TOOL-006, dan 3 TOOL-008; TOOL-001, TOOL-002, TOOL-004, dan TOOL-005 juga dibuktikan smoke nyata, dan TOOL-007 memetakan AC-1 sampai AC-4 serta AC-9 lewat smoke dan READY-009 yang dijalankan terhadap `serve`. Gate akhir 2026-10-04: `bun run test:ci` exit 0 dalam 129 detik dengan 58 ID skenario, `api:check` identik pada dua run, initial bundle 684,40 kB (warning anggaran 500 kB tetap ada), 79 test frontend, 630 integration test dengan 2.734 assertion, 54 tooling test dengan 209 assertion, dan 12 E2E pass; `test:tooling:real` lulus dalam 24 detik pada PostgreSQL 18.6 terisolasi: doctor menerima role backend minimum dan menolak setiap kasus role, privilege, schema, serta migration yang salah, `serve` menjalankan frontend 8889 dan backend 8888, READY-009 berjalan melalui browser, SDK, proxy, backend, dan database, SIGTERM keluar 143 dan Ctrl+C keluar 130 dengan pool backend tertutup, preflight yang gagal tidak mengganggu listener, dan pemindaian credential tidak menemukan apa pun pada 36 output dan 7 file. `test:readiness:real`, `test:database:real` (29 test, 1.413 assertion), `test:database:migration`, dan `test:infrastructure` juga lulus sebagai regresi. Langkah verifikasi dan verdict PASS untuk AC-1 sampai AC-9 ada di [verify.md](../specs/0003-doctor-serve-aplikasi-nyata/verify.md). [Laporan bukti](../testing/0005-doctor-serve-real-smoke.md) memuat JUnit gerbang akhir, checksum artefak, kontrol mutasi, profil k6 `not_applicable`, riwayat kegagalan awal, dan batas bukti. [Review awal](../reviews/2026-10-04-main-doctor-serve.md) dan [review ulang](../reviews/2026-10-04-main-doctor-serve-followup.md) menyetujui dengan nits tanpa blocker atau major; satu minor (sinyal pada fase lock dan cleanup port baru dikunci test pada fase doctor) tetap terbuka, dan dari sembilan nit dua diselesaikan pada gerbang akhir sementara tujuh menjadi tindak lanjut. Perubahan tercatat pada [CHANGELOG](../../CHANGELOG.md). Status done berlaku untuk AC-1 sampai AC-9 spec 0003; AC-5 baru terbukti lewat fixture sampai worker nyata pertama tersedia, bukti aplikasi nyata hanya dari macOS dengan Chromium, dan smoke nyata berjalan di luar `test:ci` sampai fitur 11 menambah jalur CI dengan Docker.
 
 ### 3. Infrastruktur PostgreSQL development · done
 

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="79" failures="0" errors="0" time="0.294109583">
+    <testsuite name="src/app/app.spec.ts" timestamp="2026-10-04T04:22:48.090Z" tests="1" failures="0" errors="0" skipped="0" time="0.029843292">
+        <testcase classname="src/app/app.spec.ts" name="APP-002 framework page &gt; renders the static home page through the root route" time="0.029098291">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/sdk-contract.integration.spec.ts" timestamp="2026-10-04T04:22:48.091Z" tests="6" failures="0" errors="0" skipped="0" time="0.041670083">
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 request shape with the application config &gt; uses the same origin root URL and sends one GET /api/status without credentials" time="0.014238459">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; returns the development status through DevelopmentService" time="0.01319275">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; returns the development status through FoundationApi.invoke$Response" time="0.004237666">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; returns only the DevelopmentStatus body through getDevelopmentStatus and FoundationApi.invoke" time="0.003237875">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; fails with HttpErrorResponse 404 and the backend error body for an unknown path" time="0.002950584">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; fails with HttpErrorResponse status 0 when nothing listens on the port" time="0.002969083">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/features/readiness/readiness-api.integration.spec.ts" timestamp="2026-10-04T04:22:48.091Z" tests="49" failures="0" errors="0" skipped="0" time="0.068522458">
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 request shape with the application config &gt; is cold, then sends exactly one GET /api/readiness without query, body, Authorization, or credentials" time="0.014422583">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with a valid body to available and completes without error" time="0.001962666">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with zero migrations to available and completes without error" time="0.001342333">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with another status to failed and completes without error" time="0.001090917">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with appliedMigrations -1 to failed and completes without error" time="0.001301542">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with appliedMigrations 1.5 to failed and completes without error" time="0.00104975">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with appliedMigrations &quot;3&quot; to failed and completes without error" time="0.000954708">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 without appliedMigrations to failed and completes without error" time="0.000930959">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with checkedAt not-a-date to failed and completes without error" time="0.000915625">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with a body that is not an object to failed and completes without error" time="0.000948875">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 503 with a valid body to unavailable and completes without error" time="0.0009575">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 503 with another body to failed and completes without error" time="0.000705">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 503 with checkedAt not-a-date to failed and completes without error" time="0.000668708">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 429 with a valid body to busy and completes without error" time="0.000730792">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 429 with another body to failed and completes without error" time="0.00075925">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 400 to failed and completes without error" time="0.000709292">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 404 to failed and completes without error" time="0.000631959">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 500 to failed and completes without error" time="0.00057825">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 502 with an empty text/plain body to network and completes without error" time="0.000610625">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 504 to network and completes without error" time="0.000617042">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; drops fields outside the model from a 200 body" time="0.000667375">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps a network error with status 0 to network and completes without error" time="0.000713375">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with a null body to failed and completes without error" time="0.000658334">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with an array body to failed and completes without error" time="0.000496708">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with appliedMigrations above the safe integer range to failed and completes without error" time="0.000511583">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with appliedMigrations null to failed and completes without error" time="0.000513791">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with checkedAt as a number to failed and completes without error" time="0.0005115">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with an empty checkedAt to failed and completes without error" time="0.000521583">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 without checkedAt to failed and completes without error" time="0.000572375">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with the unavailable body to failed and completes without error" time="0.000585375">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 503 with a null body to failed and completes without error" time="0.000642541">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 503 with checkedAt as a number to failed and completes without error" time="0.000563667">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 503 without checkedAt to failed and completes without error" time="0.00127175">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 503 with the busy body to failed and completes without error" time="0.000768875">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 429 with a text body to failed and completes without error" time="0.000771167">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 429 with a null body to failed and completes without error" time="0.00070125">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 401 to failed and completes without error" time="0.000734875">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 403 to failed and completes without error" time="0.00061775">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 502 with a body that looks like unavailable to network and completes without error" time="0.00061">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 504 with a body that looks like busy to network and completes without error" time="0.00065525">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; builds a new unavailable result with only status and checkedAt from a 503 body with extra fields" time="0.00077525">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; builds a new busy result with only status from a 429 body with extra fields" time="0.00068225">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; keeps checkedAt as the exact server string, without converting it" time="0.000645667">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 the check observable is cold and cancellable &gt; sends one new GET for every subscription to the same observable" time="0.000856208">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 the check observable is cold and cancellable &gt; cancels the running request when the subscriber unsubscribes, and emits nothing" time="0.000685708">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 the check observable is cold and cancellable &gt; holds no state between checks: a failure does not change the next result" time="0.000701791">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping for an error that is not HttpErrorResponse &gt; maps it to failed and completes without error" time="0.000835458">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 results from the real backend &gt; returns unavailable with an ISO checkedAt from the backend that runs without a database" time="0.013982875">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 results from the real backend &gt; returns network when nothing listens on the port" time="0.003151292">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/features/readiness/readiness-page.spec.ts" timestamp="2026-10-04T04:22:48.094Z" tests="23" failures="0" errors="0" skipped="0" time="0.15407375">
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; sends exactly one check when created and shows the loading state inside the AC-8 composition" time="0.0446095">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; keeps the same status node through loading, available, then loading again, and hides the old result" time="0.012184542">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; ignores activation while loading: the button is aria-disabled and no second request starts" time="0.006168292">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the unavailable text after a successful check without the old migration count" time="0.007499417">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the busy text after a successful check without the old migration count" time="0.006846917">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the network text after a successful check without the old migration count" time="0.006623458">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the failed text after a successful check without the old migration count" time="0.006309625">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own after a available result while fake time advances 60 seconds" time="0.004589584">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own after a unavailable result while fake time advances 60 seconds" time="0.003651667">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own after a busy result while fake time advances 60 seconds" time="0.003375291">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own after a network result while fake time advances 60 seconds" time="0.002669958">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own after a failed result while fake time advances 60 seconds" time="0.002480041">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own while a check stays pending for 60 seconds of fake time" time="0.00247025">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; cancels the running check when the page is destroyed" time="0.002094833">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the failed text without the old count or time when a check errors instead of answering" time="0.00700875">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the count exactly as String() gives it, with no thousands separator, for a large count" time="0.003998791">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; keeps the button focused and its accessible name while the state changes" time="0.006392">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not report a finished check as cancelled when the page is destroyed later" time="0.00349375">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 development route and navigation &gt; runs in development mode, where the page and its navigation item exist" time="0.0000795">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 development route and navigation &gt; registers kesiapan as a lazy route between the home route and the fallback" time="0.002192833">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 development route and navigation &gt; App.navItems holds exactly Beranda then Kesiapan in the AC-7 shape" time="0.00021">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 development route and navigation &gt; leaving /kesiapan through the router cancels the running check, and coming back sends exactly one new check" time="0.0142395">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 development route and navigation &gt; opening /kesiapan loads the page through the router with the h1 Kesiapan and one check" time="0.003887792">
+        </testcase>
+    </testsuite>
+</testsuites>
