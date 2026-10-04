@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "ESNext", "module": "Preserve", "moduleResolution": "bundler",
+    "types": ["bun"], "strict": true, "noEmit": true, "skipLibCheck": true,
+    "allowImportingTsExtensions": true
+  },
+  "files": ["tests/integration/tooling/development.test.ts", "tests/integration/tooling-real/doctor-smoke.ts"]
+}

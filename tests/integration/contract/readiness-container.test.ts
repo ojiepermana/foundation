@@ -182,8 +182,8 @@ test('READY-010 readinessContainerMissing accepts only the daemon answer No such
   for (const [name, code, stderr] of refused) expect(readinessContainerMissing(code, stderr), name).toBe(false);
 });
 
-// Every file that runs Docker on a readiness container (build plan steps 1 and 4, and the cleanup of
-// test:database:real). A missing file fails the test. A file that removes a container may skip it only when Docker
+// Every file that runs Docker on a readiness container (build plan steps 1 and 4, the cleanup of
+// test:database:real, and the test:tooling:real smoke of feature 2). A missing file fails the test. A file that removes a container may skip it only when Docker
 // reports it missing, so it must call readinessContainerMissing.
 const guardUsers: { file: string; usesRunLabelArgs: boolean; removes: boolean }[] = [
   { file: 'tests/integration/database/readiness.test.ts', usesRunLabelArgs: true, removes: true },
@@ -192,6 +192,8 @@ const guardUsers: { file: string; usesRunLabelArgs: boolean; removes: boolean }[
   { file: 'tests/orchestration/database-real.ts', usesRunLabelArgs: false, removes: true },
   // The Playwright spec only stops and starts the container the orchestration created, so it never runs docker run.
   { file: 'tests/e2e/readiness/readiness.real.e2e.spec.ts', usesRunLabelArgs: false, removes: false },
+  // test:tooling:real of feature 2 (spec 0003) creates the browser owner container and removes it after the run.
+  { file: 'tests/integration/tooling-real/doctor-smoke.ts', usesRunLabelArgs: true, removes: true },
 ];
 const guardModulePath = 'tests/orchestration/readiness-container.ts';
 const guardModule = join(root, guardModulePath);

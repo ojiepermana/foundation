@@ -164,6 +164,7 @@ Nama script root yang digunakan saat suite diimplementasikan:
 | `test:e2e` | E2E melalui Playwright. |
 | `test:e2e:ui` | Playwright dalam mode UI untuk debugging. |
 | `test:readiness:real` | Alur browser nyata kesiapan (READY-009) melalui Playwright terhadap PostgreSQL 18 terisolasi di Docker serta backend dan frontend yang dijalankan orkestrasi Bun `tests/orchestration/readiness-real.ts`, beserta pemindaian credential pada output dan artefak; berjalan di luar `test:ci` sampai jalur CI dengan Docker tersedia. |
+| `test:tooling:real` | Smoke doctor dan serve (TOOL-001 dan TOOL-007) pada PostgreSQL 18 terisolasi di Docker yang mengikuti penjaga READY-009: doctor dengan role backend minimum, `serve` untuk frontend dan backend nyata, alur browser READY-009 dengan `playwright.real.config.ts` terhadap `serve`, shutdown, kegagalan preflight, serta pemindaian credential pada output dan artefak di `.local/feature-2/`; berjalan di luar `test:ci` sampai jalur CI dengan Docker tersedia. |
 | `test:performance:smoke` | Smoke k6. |
 | `test:performance:load` | Load k6. |
 | `test:performance:stress` | Stress k6. |
