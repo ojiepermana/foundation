@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ESNext", "module": "Preserve", "moduleResolution": "bundler",
+    "types": ["node"], "strict": true, "noEmit": true, "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "files": ["playwright.config.ts", "playwright.real.config.ts"],
+  "include": ["tests/e2e/readiness/*.ts"]
+}

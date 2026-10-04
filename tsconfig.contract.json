@@ -8,6 +8,8 @@
     "scripts/export-openapi.ts", "scripts/validate-openapi.ts", "scripts/lib/canonical-json.ts",
     "scripts/check-frontend-bundle.ts", "scripts/lib/frontend-bundle.ts",
     "scripts/check-api.ts", "scripts/lib/api-check.ts", "scripts/lib/api-artifacts.ts", "scripts/lib/process-group.ts",
+    "tests/orchestration/readiness-real.ts", "tests/orchestration/database-real.ts",
+    "tests/integration/backend/readiness.test.ts", "tests/integration/database/readiness.test.ts",
     "apps/frontend/vitest-base.config.ts", "apps/frontend/vitest-backend.setup.ts", "apps/frontend/vitest-provided-context.d.ts"
   ],
   "include": ["tests/integration/contract/*.ts"]

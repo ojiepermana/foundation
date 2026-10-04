@@ -43,6 +43,8 @@ foundation/
 │   │   ├── fixtures.ts
 │   │   └── <fitur>/
 │   │       └── <alur>.e2e.spec.ts
+│   ├── orchestration/
+│   │   └── <suite>-real.ts
 │   └── performance/
 │       ├── journeys/
 │       ├── profiles/
@@ -64,6 +66,8 @@ Unit test berada dekat kode yang diuji. Integration komponen Angular juga berada
 Setiap runner mempunyai cakupan file eksplisit. Jangan menjalankan `bun test` tanpa filter dari root sehingga file Angular dan Playwright ikut ditemukan. Konfigurasi Playwright hanya menemukan suite E2E; konfigurasi Angular hanya menemukan suite frontend.
 
 `tests/fixtures/` berisi data atau factory yang tidak bergantung pada runner. Setup khusus Bun, Angular, Playwright, atau k6 tetap berada di area masing-masing.
+
+Orkestrasi test yang memanggil Docker, misalnya untuk menyalakan, menghentikan, atau menghapus PostgreSQL terisolasi, berada di `tests/`, tidak pernah di `scripts/`. Folder `scripts/` hanya berisi tooling development, build, dan pemeriksaan repository, dan INFRA-001 spec 0002 gagal bila ada file `.ts` di bawahnya yang memuat kata `docker`. Orkestrasi Bun yang dijalankan root script, seperti `test:database:real` dan `test:readiness:real`, berada di `tests/orchestration/` bersama modul penjaga container `readiness-container.ts`; smoke `test:tooling:real` berada di `tests/integration/tooling-real/`. Orkestrasi di `tests/` boleh mengimpor modul `scripts/lib/` yang tidak memanggil Docker, seperti `process-group.ts` dan `ports.ts`. File di `tests/orchestration/` tidak memakai akhiran `.test.ts` atau `.e2e.spec.ts`, sehingga tidak ditemukan `bun test` maupun Playwright.
 
 ## Pemetaan skenario
 
@@ -159,6 +163,7 @@ Nama script root yang digunakan saat suite diimplementasikan:
 | `test:integration` | Integration server dan database melalui Bun. |
 | `test:e2e` | E2E melalui Playwright. |
 | `test:e2e:ui` | Playwright dalam mode UI untuk debugging. |
+| `test:readiness:real` | Alur browser nyata kesiapan (READY-009) melalui Playwright terhadap PostgreSQL 18 terisolasi di Docker serta backend dan frontend yang dijalankan orkestrasi Bun `tests/orchestration/readiness-real.ts`, beserta pemindaian credential pada output dan artefak; berjalan di luar `test:ci` sampai jalur CI dengan Docker tersedia. |
 | `test:performance:smoke` | Smoke k6. |
 | `test:performance:load` | Load k6. |
 | `test:performance:stress` | Stress k6. |

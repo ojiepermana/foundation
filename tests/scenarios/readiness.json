@@ -1,0 +1,38 @@
+{
+  "source": "docs/specs/0006-alur-pemeriksaan-kesiapan/index.md",
+  "scenarios": [
+    { "id": "READY-001", "criteria": ["AC-1", "AC-3", "AC-4"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/backend/readiness.test.ts", "testTag": "READY-001", "script": "test:integration" }
+    ] },
+    { "id": "READY-002", "criteria": ["AC-3", "AC-4"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/backend/readiness.test.ts", "testTag": "READY-002", "script": "test:integration" }
+    ] },
+    { "id": "READY-003", "criteria": ["AC-5"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/readiness-contract.test.ts", "testTag": "READY-003", "script": "test:integration" },
+      { "runner": "command", "file": "scripts/check-api.ts", "script": "api:check" }
+    ] },
+    { "id": "READY-004", "criteria": ["AC-6"], "checks": [
+      { "runner": "vitest", "file": "apps/frontend/src/app/features/readiness/readiness-api.integration.spec.ts", "testTag": "READY-004", "script": "test:frontend" }
+    ] },
+    { "id": "READY-005", "criteria": ["AC-7", "AC-8"], "checks": [
+      { "runner": "vitest", "file": "apps/frontend/src/app/features/readiness/readiness-page.spec.ts", "testTag": "READY-005", "script": "test:frontend" },
+      { "runner": "bun:test", "file": "tests/integration/contract/readiness-contract.test.ts", "testTag": "READY-005", "script": "test:integration" }
+    ] },
+    { "id": "READY-006", "criteria": ["AC-3", "AC-7", "AC-8"], "checks": [
+      { "runner": "playwright", "file": "tests/e2e/readiness/readiness.e2e.spec.ts", "testTag": "READY-006", "script": "test:e2e" }
+    ] },
+    { "id": "READY-007", "criteria": ["AC-9"], "checks": [
+      { "runner": "playwright", "file": "tests/e2e/readiness/readiness-production.e2e.spec.ts", "testTag": "READY-007", "script": "test:e2e" },
+      { "runner": "command", "file": "scripts/check-frontend-bundle.ts", "script": "check:frontend:bundle" }
+    ] },
+    { "id": "READY-008", "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-10"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/readiness.test.ts", "testTag": "READY-008", "script": "test:database:real" }
+    ] },
+    { "id": "READY-009", "criteria": ["AC-2", "AC-7", "AC-8", "AC-10"], "checks": [
+      { "runner": "playwright", "file": "tests/e2e/readiness/readiness.real.e2e.spec.ts", "testTag": "READY-009", "script": "test:readiness:real" }
+    ] },
+    { "id": "READY-010", "criteria": ["AC-10"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/readiness-container.test.ts", "testTag": "READY-010", "script": "test:integration" }
+    ] }
+  ]
+}
