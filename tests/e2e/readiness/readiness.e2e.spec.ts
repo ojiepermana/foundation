@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page, type Response } from '@playwright/test';
 import { expectNothingClipped as expectLayout } from './layout';
+import { readinessBodyAt, recordReadinessBodies } from './response-body';
 
 // READY-006 (spec 0006, AC-3, AC-7, and AC-8): the backend webServer of playwright.config.ts runs with an empty
 // DATABASE_URL, so every check goes browser → SDK → proxy /api → backend without a pool and ends in 503. The state
@@ -17,7 +18,9 @@ interface Traffic {
   pageErrors: string[];
 }
 
-function watch(page: Page): Traffic {
+/** Starts recording before the first navigation; the page also records every readiness body (see response-body.ts). */
+async function watch(page: Page): Promise<Traffic> {
+  await recordReadinessBodies(page);
   const traffic: Traffic = { apiRequests: [], readinessResponses: [], pageErrors: [] };
   page.on('pageerror', (error) => traffic.pageErrors.push(error.message));
   page.on('request', (request) => {
@@ -39,25 +42,31 @@ async function expectCurrentItem(navigation: Locator, current: 'Beranda' | 'Kesi
   await expect(navigation.locator('[aria-current]')).toHaveCount(1);
 }
 
-/** The 503 went through the same origin proxy with `no-store`, and the page shows it without a migration count. */
-async function expectUnavailable(page: Page, response: Response): Promise<void> {
+/**
+ * The 503 went through the same origin proxy with `no-store`, and the page shows it without a migration count. The
+ * body is the one the page received, read inside the page, because Chromium can drop it from DevTools (response-body.ts).
+ */
+async function expectUnavailable(page: Page, traffic: Traffic, response: Response): Promise<void> {
   expect(response.url()).toBe(readinessUrl);
   expect(response.request().method()).toBe('GET');
   expect(response.status()).toBe(503);
   expect(response.headers()['cache-control']).toBe('no-store');
-  const body = await response.json();
+  const index = traffic.readinessResponses.indexOf(response);
+  expect(index, 'watch() saw this readiness response').toBeGreaterThanOrEqual(0);
+  const body = (await readinessBodyAt(page, index)) as Record<string, unknown>;
   expect(Object.keys(body).sort()).toEqual(['checkedAt', 'status']);
-  expect(body.status).toBe('unavailable');
+  expect(body['status']).toBe('unavailable');
+  const checkedAt = body['checkedAt'] as string;
 
   const main = page.getByRole('main');
   await expect(main.getByRole('status')).toHaveText(unavailableText);
   await expect(main.getByRole('button', { name: 'Periksa ulang' })).not.toHaveAttribute('aria-disabled');
   const time = main.locator('time');
   await expect(time).toHaveCount(1);
-  await expect(time).toHaveAttribute('datetime', body.checkedAt);
+  await expect(time).toHaveAttribute('datetime', checkedAt);
   const expectedText = await page.evaluate(
     (value) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value)),
-    body.checkedAt as string,
+    checkedAt,
   );
   await expect(time).toHaveText(expectedText);
   await expect(main.locator('dt')).toHaveText(['Waktu pemeriksaan']);
@@ -95,14 +104,14 @@ async function expectKeyboardRecheck(page: Page, traffic: Traffic): Promise<void
     const answer = page.waitForResponse(isReadinessResponse);
     await page.keyboard.press(key);
     const response = await answer;
-    await expectUnavailable(page, response);
+    await expectUnavailable(page, traffic, response);
     await expect(button).toBeFocused();
     expect(traffic.apiRequests.slice(requestsBefore), `${key} sends exactly one check`).toEqual([readinessUrl]);
   }
 }
 
 test('READY-006 desktop 1280×812: Kesiapan from the navigation, 503 through the proxy, layout, and keyboard', async ({ page }, testInfo) => {
-  const traffic = watch(page);
+  const traffic = await watch(page);
   await page.setViewportSize({ width: 1280, height: 812 });
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Foundation', exact: true })).toBeVisible();
@@ -115,7 +124,7 @@ test('READY-006 desktop 1280×812: Kesiapan from the navigation, 503 through the
   await expect(page.getByRole('heading', { level: 1, name: 'Kesiapan', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2, name: 'Database', exact: true })).toBeVisible();
   await expectCurrentItem(navigation, 'Kesiapan');
-  await expectUnavailable(page, await firstCheck);
+  await expectUnavailable(page, traffic, await firstCheck);
   expect(traffic.apiRequests).toEqual([readinessUrl]);
   expect(traffic.readinessResponses).toHaveLength(1);
 
@@ -135,7 +144,7 @@ test('READY-006 desktop 1280×812: Kesiapan from the navigation, 503 through the
 });
 
 test('READY-006 mobile 375×812: Kesiapan through the navigation drawer, 503 through the proxy, layout, and keyboard', async ({ page }, testInfo) => {
-  const traffic = watch(page);
+  const traffic = await watch(page);
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Foundation', exact: true })).toBeVisible();
@@ -152,7 +161,7 @@ test('READY-006 mobile 375×812: Kesiapan through the navigation drawer, 503 thr
   await expect(drawer).toBeHidden();
   await expect(page).toHaveURL('/kesiapan');
   await expect(page.getByRole('heading', { level: 1, name: 'Kesiapan', exact: true })).toBeVisible();
-  await expectUnavailable(page, await firstCheck);
+  await expectUnavailable(page, traffic, await firstCheck);
   expect(traffic.apiRequests).toEqual([readinessUrl]);
 
   await openNavigation.click();
@@ -189,12 +198,12 @@ test('READY-006 mobile 375×812: Kesiapan through the navigation drawer, 503 thr
 // is current, and never Beranda".
 for (const viewport of [{ width: 1280, height: 812 }, { width: 375, height: 812 }]) {
   test(`READY-006 opening /kesiapan directly at ${viewport.width}×${viewport.height}: one check through the proxy, and Beranda never carries aria-current`, async ({ page }) => {
-    const traffic = watch(page);
+    const traffic = await watch(page);
     await page.setViewportSize(viewport);
     const firstCheck = page.waitForResponse(isReadinessResponse);
     await page.goto('/kesiapan');
     await expect(page.getByRole('heading', { level: 1, name: 'Kesiapan', exact: true })).toBeVisible();
-    await expectUnavailable(page, await firstCheck);
+    await expectUnavailable(page, traffic, await firstCheck);
     await expect(page.getByRole('progressbar', { name: 'Loading page' })).toBeHidden();
 
     let navigation = page.getByRole('navigation', { name: 'Primary navigation' });
@@ -237,7 +246,7 @@ for (const viewport of [{ width: 1280, height: 812 }, { width: 375, height: 812 
 // restore the first load sentence of AC-7 as spec 0006 Follow-up describes.
 for (const viewport of [{ width: 1280, height: 812 }, { width: 375, height: 812 }]) {
   test(`READY-006 opening / directly at ${viewport.width}×${viewport.height}: no other item is current, and Beranda lacks aria-current (known library defect)`, async ({ page }) => {
-    const traffic = watch(page);
+    const traffic = await watch(page);
     await page.setViewportSize(viewport);
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'Foundation', exact: true })).toBeVisible();

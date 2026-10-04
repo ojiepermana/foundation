@@ -4,6 +4,7 @@ import { readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { readinessContainerLabelsAccepted, readinessNameAccepted } from '../../orchestration/readiness-container';
 import { expectNothingClipped } from './layout';
+import { readinessBodyAt, recordReadinessBodies } from './response-body';
 
 // READY-009 (spec 0006, AC-2, AC-7, AC-8, and AC-10): the real browser flow browser → SDK → proxy /api → backend →
 // isolated PostgreSQL 18, with no database mock. Run by `bun run test:readiness:real` with playwright.real.config.ts,
@@ -68,27 +69,38 @@ async function guardedDocker(action: 'stop' | 'start'): Promise<void> {
 interface Traffic {
   /** Every request whose path starts with /api, in order. */
   apiRequests: string[];
+  readinessResponses: Response[];
   pageErrors: string[];
 }
 
-function watch(page: Page): Traffic {
-  const traffic: Traffic = { apiRequests: [], pageErrors: [] };
+/** Starts recording before the first navigation; the page also records every readiness body (see response-body.ts). */
+async function watch(page: Page): Promise<Traffic> {
+  await recordReadinessBodies(page);
+  const traffic: Traffic = { apiRequests: [], readinessResponses: [], pageErrors: [] };
   page.on('pageerror', (error) => traffic.pageErrors.push(error.message));
   page.on('request', (request) => {
     if (new URL(request.url()).pathname.startsWith('/api')) traffic.apiRequests.push(request.url());
+  });
+  page.on('response', (response) => {
+    if (new URL(response.url()).pathname === '/api/readiness') traffic.readinessResponses.push(response);
   });
   return traffic;
 }
 
 const isReadinessResponse = (response: Response) => new URL(response.url()).pathname === '/api/readiness';
 
-/** The answer came through the same origin proxy as a GET with `no-store`; returns its parsed body. */
-async function readinessBody(response: Response, status: number, keys: string[]): Promise<Record<string, unknown>> {
+/**
+ * The answer came through the same origin proxy as a GET with `no-store`; returns its parsed body. The body is the one
+ * the page received, read inside the page, because Chromium can drop it from DevTools (response-body.ts).
+ */
+async function readinessBody(page: Page, traffic: Traffic, response: Response, status: number, keys: string[]): Promise<Record<string, unknown>> {
   expect(response.url()).toBe(readinessUrl);
   expect(response.request().method()).toBe('GET');
   expect(response.status()).toBe(status);
   expect(response.headers()['cache-control']).toBe('no-store');
-  const body = (await response.json()) as Record<string, unknown>;
+  const index = traffic.readinessResponses.indexOf(response);
+  expect(index, 'watch() saw this readiness response').toBeGreaterThanOrEqual(0);
+  const body = (await readinessBodyAt(page, index)) as Record<string, unknown>;
   expect(Object.keys(body).sort()).toEqual(keys);
   return body;
 }
@@ -109,8 +121,8 @@ async function expectCheckedAt(page: Page, checkedAt: unknown): Promise<void> {
 }
 
 /** A 200 with exactly the expected count, and the page shows it as the `available` state. */
-async function expectAvailable(page: Page, response: Response, migrationCount: number): Promise<void> {
-  const body = await readinessBody(response, 200, ['appliedMigrations', 'checkedAt', 'status']);
+async function expectAvailable(page: Page, traffic: Traffic, response: Response, migrationCount: number): Promise<void> {
+  const body = await readinessBody(page, traffic, response, 200, ['appliedMigrations', 'checkedAt', 'status']);
   expect(body['status']).toBe('available');
   expect(body['appliedMigrations']).toBe(migrationCount);
   const main = page.getByRole('main');
@@ -123,8 +135,8 @@ async function expectAvailable(page: Page, response: Response, migrationCount: n
 }
 
 /** A 503 from the stopped database, and the page shows `unavailable` with its time and without the old count. */
-async function expectUnavailable(page: Page, response: Response): Promise<void> {
-  const body = await readinessBody(response, 503, ['checkedAt', 'status']);
+async function expectUnavailable(page: Page, traffic: Traffic, response: Response): Promise<void> {
+  const body = await readinessBody(page, traffic, response, 503, ['checkedAt', 'status']);
   expect(body['status']).toBe('unavailable');
   const main = page.getByRole('main');
   await expect(main.getByRole('status')).toHaveText(unavailableText);
@@ -148,7 +160,7 @@ test('READY-009 real database: available with the exact count at 1280×812 and 3
   await guardedContainer();
   const migrationCount = (await readdir(migrationsDirectory)).filter((name) => name.endsWith('.sql')).length;
   expect(migrationCount).toBeGreaterThan(0);
-  const traffic = watch(page);
+  const traffic = await watch(page);
   let checks = 0;
 
   // Opening /kesiapan sends exactly one check, answered from the real database with the number of migration files.
@@ -157,7 +169,7 @@ test('READY-009 real database: available with the exact count at 1280×812 and 3
   await page.goto('/kesiapan');
   checks += 1;
   await expect(page.getByRole('heading', { level: 1, name: 'Kesiapan', exact: true })).toBeVisible();
-  await expectAvailable(page, await firstCheck, migrationCount);
+  await expectAvailable(page, traffic, await firstCheck, migrationCount);
   await expectNothingClipped(page, ['status', 'dt 0', 'dt 1', 'dd 0', 'dd 1', 'time', 'button']);
   await page.screenshot({ path: testInfo.outputPath('readiness-available-desktop.png'), fullPage: true });
 
@@ -169,14 +181,14 @@ test('READY-009 real database: available with the exact count at 1280×812 and 3
   await page.setViewportSize({ width: 1280, height: 812 });
 
   // Periksa ulang reads the count again.
-  await expectAvailable(page, await recheck(page), migrationCount);
+  await expectAvailable(page, traffic, await recheck(page), migrationCount);
   checks += 1;
 
   await guardedDocker('stop');
   let stopped = true;
   try {
     // The stopped database gives the safe unavailable result, and the old count is gone.
-    await expectUnavailable(page, await recheck(page));
+    await expectUnavailable(page, traffic, await recheck(page));
     checks += 1;
     await page.screenshot({ path: testInfo.outputPath('readiness-unavailable-stopped.png'), fullPage: true });
 
@@ -195,12 +207,12 @@ test('READY-009 real database: available with the exact count at 1280×812 and 3
         break;
       }
       // Every answer on the way is a well formed busy or unavailable result.
-      if (answer.status() === 429) expect(await readinessBody(answer, 429, ['status'])).toEqual({ status: 'busy' });
-      else await expectUnavailable(page, answer);
+      if (answer.status() === 429) expect(await readinessBody(page, traffic, answer, 429, ['status'])).toEqual({ status: 'busy' });
+      else await expectUnavailable(page, traffic, answer);
       if (Date.now() >= deadline) throw new Error('Readiness did not recover within 30 seconds after docker start');
       await page.waitForTimeout(Math.max(0, pressedAt + recheckIntervalMs - Date.now()));
     }
-    await expectAvailable(page, recovered, migrationCount);
+    await expectAvailable(page, traffic, recovered, migrationCount);
     await page.screenshot({ path: testInfo.outputPath('readiness-recovered.png'), fullPage: true });
   } finally {
     if (stopped) await guardedDocker('start').catch(() => undefined);
