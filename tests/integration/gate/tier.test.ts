@@ -231,9 +231,15 @@ test('GATE-004 a skipped testcase marks the step skipped, stops the tier, and fa
 });
 
 test('GATE-004 on timeout the group gets the tier grace, so a step that needs more than 5 seconds to clean up finishes before SIGKILL', async () => {
-  // `sleep 60 &` plus `wait` lets the trap run as soon as SIGTERM arrives; the trap then needs six seconds.
-  const dir = await tierWorkspace({ slow: "trap 'sleep 6; echo cleaned > cleaned.txt; exit 0' TERM\nsleep 60 &\nwait" });
+  // `sleep 60 &` plus `wait` lets the trap run as soon as SIGTERM arrives; the trap then needs six seconds. The shell
+  // gets SIGTERM twice: from the gate, which signals the whole group, and from `bun run`, which forwards it to its
+  // child. A second SIGTERM that comes after the trap started makes dash and bash 5 (Linux) run the trap again once
+  // `sleep 6` ends (12 seconds, past the grace), so the trap first ignores TERM, as the cleanup of a real step ignores a
+  // later signal. The test sends that late SIGTERM itself one second into the trap, so the worst case runs every time.
+  const dir = await tierWorkspace({ slow: "echo $$ > shell.pid\ntrap 'trap \"\" TERM; sleep 6; echo cleaned > cleaned.txt; exit 0' TERM\nsleep 60 &\nwait" });
+  const late = Bun.sleep(2_500).then(async () => process.kill(Number(await readFile(join(dir, 'shell.pid'), 'utf8')), 'SIGTERM'));
   const { code, manifest } = await run(dir, tier([step('slow')], { stepTimeoutMs: 1_500, stopGraceMs: TIERS.fast!.stopGraceMs }));
+  await late;
   expect(code).toBe(1);
   const [record] = manifest.steps;
   expect(record).toMatchObject({ status: 'failed', timedOut: true, signal: null, reasons: [{ code: 'timeout', path: null }] });

@@ -324,8 +324,11 @@ test('GATE-009 test:database:real gives its bun test group 75000 ms after SIGTER
 /**
  * Fake `docker` for the real suites. It answers the availability probes of the infrastructure suite and the label checks
  * of the readiness guard, and waits on `docker run` and on `compose ... build postgres` (its trap is set before it logs
- * `waiting`). Each call is logged as `<arguments>|<foundation-* entries of the fixture TMPDIR>`, so the log shows whether
- * a folder still existed at that moment. It finds its log and that TMPDIR next to itself, because readiness.test.ts gives
+ * `waiting`). After the signal that wait lingers one more second, as in the fake above: Bun may resume test code when
+ * a child it awaits exits before Bun runs the signal handler, and the normal path of the suite (`finally`, `afterAll`,
+ * or the `beforeAll` catch) would then add its own removal call to the log, so the log would not show the handler
+ * alone. Each call is logged as `<arguments>|<foundation-* entries of the fixture TMPDIR>`, so the log shows whether a
+ * folder still existed at that moment. It finds its log and that TMPDIR next to itself, because readiness.test.ts gives
  * Docker an environment of its own.
  */
 const suiteFakeDocker = `#!/bin/sh
@@ -342,7 +345,7 @@ case "$*" in
   run\\ *|*" build postgres")
     sleep 60 &
     pid=$!
-    trap 'kill "$pid" 2>/dev/null; exit 143' TERM INT HUP
+    trap 'kill "$pid" 2>/dev/null; sleep 1; exit 143' TERM INT HUP
     printf 'waiting\\n' >> "$log"
     wait "$pid"
     exit 0
