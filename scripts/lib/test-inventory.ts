@@ -88,6 +88,7 @@ export const RUNNER_OWNERS: readonly RunnerOwner[] = [
   ),
   bunOwner('test:tooling', 'tests/integration/tooling', ['tests/integration/tooling/**/*.test.ts'], '.local/feature-4/tooling.xml'),
   bunOwner('test:gate', 'tests/integration/gate', ['tests/integration/gate/**/*.test.ts'], '.local/feature-11/gate.xml'),
+  bunOwner('test:performance:plan', 'tests/integration/performance', ['tests/integration/performance/**/*.test.ts'], '.local/feature-12/plan.xml'),
   bunOwner(
     'test:database:real',
     'tests/integration/database',

@@ -1,0 +1,5 @@
+{
+  "source": "k6 2.3.0 nyata, langkah 1 Build plan spec 0011 (probe e dan f), 2026-10-04",
+  "thresholdsFailed": { "exitCode": 99, "summary": "summary-thresholds-failed.json" },
+  "setupError": { "exitCode": 107 }
+}

@@ -27,6 +27,14 @@ export type ProcessGroupOptions = {
    * with a 50 MB limit). No limit when absent.
    */
   outputLimitBytes?: number;
+  /**
+   * Only with `output: 'pipe'` (spec 0011, *Perubahan gate yang dinamai*): every chunk of stdout and stderr goes to this
+   * callback in arrival order, with `Date.now()` when it arrived, and nothing is collected, so `stdout` and `stderr` of
+   * the result stay empty. Used for long running output such as a resource sample stream. Combined with
+   * `outputLimitBytes`, or without `output: 'pipe'`, the call throws before the process starts. The callback must not
+   * throw. Stopping the group, `timeoutMs`, `signal`, and `graceMs` work exactly as without it.
+   */
+  onOutput?: (stream: 'stdout' | 'stderr', chunk: Buffer, receivedAtMs: number) => void;
 };
 
 export type ProcessGroupResult = {
@@ -98,6 +106,9 @@ async function stopGroup(pgid: number, graceMs: number): Promise<void> {
 export async function runProcessGroup(argv: readonly string[], options: ProcessGroupOptions): Promise<ProcessGroupResult> {
   const [command, ...args] = argv;
   if (command === undefined) throw new Error('Empty command');
+  const onOutput = options.onOutput;
+  if (onOutput !== undefined && options.output !== 'pipe') throw new Error('onOutput needs output: pipe');
+  if (onOutput !== undefined && options.outputLimitBytes !== undefined) throw new Error('onOutput cannot be combined with outputLimitBytes');
   if (options.signal?.aborted) return { code: null, timedOut: false, aborted: true, stdout: '', stderr: '' };
 
   const child = spawn(command, args, {
@@ -123,8 +134,10 @@ export async function runProcessGroup(argv: readonly string[], options: ProcessG
     collected += chunk.length;
     target.push(chunk);
   };
-  child.stdout?.on('data', collect(stdout));
-  child.stderr?.on('data', collect(stderr));
+  // With `onOutput` every chunk is handed over as it arrives and never collected.
+  const forward = (stream: 'stdout' | 'stderr') => (chunk: Buffer) => onOutput?.(stream, chunk, Date.now());
+  child.stdout?.on('data', onOutput === undefined ? collect(stdout) : forward('stdout'));
+  child.stderr?.on('data', onOutput === undefined ? collect(stderr) : forward('stderr'));
   const streamsClosed = new Promise<void>((resolve) => child.once('close', () => resolve()));
   const exited = new Promise<number | null>((resolve) => child.once('exit', (code) => resolve(code)));
 

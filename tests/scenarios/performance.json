@@ -1,0 +1,33 @@
+{
+  "source": "docs/specs/0011-kapasitas-pemulihan-beban-meningkat/index.md",
+  "scenarios": [
+    { "id": "PERF-001", "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-10"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/performance/plan.test.ts", "testTag": "PERF-001", "script": "test:performance:plan" }
+    ] },
+    { "id": "PERF-002", "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-10"], "checks": [
+      { "runner": "command", "file": "tests/performance/profiles/smoke.ts", "script": "test:performance:smoke" }
+    ] },
+    { "id": "PERF-003", "criteria": ["AC-4", "AC-5", "AC-6"], "checks": [
+      { "runner": "command", "file": "tests/performance/profiles/load.ts", "script": "test:performance:load" }
+    ] },
+    { "id": "PERF-004", "criteria": ["AC-4", "AC-5", "AC-6", "AC-8"], "checks": [
+      { "runner": "command", "file": "tests/performance/profiles/stress.ts", "script": "test:performance:stress" }
+    ] },
+    { "id": "PERF-005", "criteria": ["AC-4", "AC-5", "AC-6", "AC-8"], "checks": [
+      { "runner": "command", "file": "tests/performance/profiles/spike.ts", "script": "test:performance:spike" }
+    ] },
+    { "id": "PERF-006", "criteria": ["AC-4", "AC-5", "AC-6", "AC-7"], "checks": [
+      { "runner": "command", "file": "tests/performance/profiles/outage.ts", "script": "test:performance:outage" }
+    ] },
+    { "id": "PERF-007", "criteria": ["AC-4", "AC-5", "AC-6"], "checks": [
+      { "runner": "command", "file": "tests/performance/profiles/soak.ts", "script": "test:performance:soak" }
+    ] },
+    { "id": "PERF-008", "criteria": ["AC-9", "AC-10"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/gate/capacity.test.ts", "testTag": "PERF-008", "script": "test:gate" },
+      { "runner": "command", "file": "scripts/check-workflow.ts", "script": "check:workflow" }
+    ] },
+    { "id": "PERF-009", "criteria": ["AC-2", "AC-4", "AC-5", "AC-6", "AC-10"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/performance/signal.test.ts", "testTag": "PERF-009", "script": "test:performance:plan" }
+    ] }
+  ]
+}

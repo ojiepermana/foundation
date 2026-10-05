@@ -106,6 +106,23 @@ const IMAGE = {
   packages: [{ name: 'postgresql18-server', version: '18.6' }],
 };
 
+/** A short `result.json` of the k6 smoke step (spec 0011, *Isi result.json*), enough for the report. */
+const SMOKE_RESULT = {
+  schema: 1,
+  profile: 'smoke',
+  status: 'passed',
+  reasons: [],
+  model: { iterationIsOneRequest: true, phases: [] },
+  actual: null,
+  latency: null,
+  readiness: null,
+  thresholds: null,
+  observation: null,
+  outage: null,
+  environment: null,
+  limits: ['Batas bukti fixture.'],
+};
+
 function scanner(name: string, coverage: object, status = 'passed') {
   return {
     name,
@@ -283,6 +300,9 @@ async function bundles(fixture: Fixture, options: Options = {}): Promise<void> {
           counts = junit.counts;
         } else if (spec.kind === 'image') text = options.image === null ? null : JSON.stringify(options.image ?? IMAGE);
         else if (spec.kind === 'scan') text = '{ "findings": [] }';
+        // Spec 0011: the result.json of the k6 smoke step and its other JSON files.
+        else if (spec.kind === 'performance') text = JSON.stringify(SMOKE_RESULT);
+        else if (spec.kind === 'data') text = '{ "metrics": {} }';
         else text = JSON.stringify(options.security ?? security());
         const record: EvidenceRecord = { path: spec.path, kind: spec.kind, required: spec.required, present: text !== null, sha256: text === null ? null : sha256(text) };
         if (spec.runner !== null) Object.assign(record, { runner: spec.runner, ...counts });
@@ -373,6 +393,7 @@ test('GATE-005 a complete fixture run passes every check, discovery, and the sca
   const found = JSON.parse(await readFile(join(fixture.dir, REPORT_JSON), 'utf8')) as GateReport;
   expect(Object.keys(found)).toEqual([
     'schema', 'generatedAt', 'candidate', 'binding', 'tiers', 'postgres', 'discovery', 'scenarios', 'critical', 'scanners', 'gate', 'releaseCandidate', 'outOfScope',
+    'performance',
   ]);
   expect(found.gate).toBe('passed');
   expect(found.binding).toEqual({ valid: true, problems: [] });
@@ -390,7 +411,11 @@ test('GATE-005 a complete fixture run passes every check, discovery, and the sca
     ['actionlint', 'passed'],
   ]);
   expect(found.scanners?.scanners[0]).not.toHaveProperty('findings');
-  expect(found.outOfScope).toEqual([{ area: 'performance', feature: 12 }, { area: 'deployment_image', feature: 13 }]);
+  expect(found.outOfScope).toEqual([{ area: 'capacity_profiles', feature: 12 }, { area: 'deployment_image', feature: 13 }]);
+  // Spec 0011 (*Laporan per push*): the bound result.json of the k6 smoke step.
+  expect(found.performance.map((item) => [item.tier, item.script, item.profile, item.status, item.evidence])).toEqual([
+    ['real', 'test:performance:smoke', 'smoke', 'passed', '.local/feature-11/evidence/real/.local/feature-12/smoke/result.json'],
+  ]);
   expect(output.out[0]).toBe('Gate passed');
   expect(await readFile(join(fixture.dir, REPORT_MD), 'utf8')).toContain('## Di luar cakupan');
 });
@@ -574,7 +599,7 @@ test('GATE-005 report.md holds the release template columns, and a runner title 
   expect(critical).toContain('playwright test:e2e tests/e2e/a.e2e.spec.ts FIX-003; profil k6 tidak ada');
   const command = rows.find((line) => line.startsWith('| FIX-004 |'))!;
   expect(command).toContain('exit code 0, passed');
-  for (const heading of ['## Kandidat', '## Pengikatan', '## Tier', '### Checksum input per tier', '### Checksum output per tier', '## Identitas PostgreSQL', '## Pemindai', '## Discovery', '## Alur kritis', '## Hasil per skenario', '## Kandidat release', '## Di luar cakupan']) {
+  for (const heading of ['## Kandidat', '## Pengikatan', '## Tier', '### Checksum input per tier', '### Checksum output per tier', '## Identitas PostgreSQL', '## Pemindai', '## Discovery', '## Alur kritis', '## Hasil per skenario', '## Performance k6', '## Kandidat release', '## Di luar cakupan']) {
     expect(markdown).toContain(`\n${heading}\n`);
   }
 });

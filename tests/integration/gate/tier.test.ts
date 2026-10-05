@@ -318,7 +318,7 @@ test('GATE-004 a JUnit that holds a sensitive value of the gate process fails as
   expect(await bundleFiles(dir)).toEqual(['manifest.json']);
 });
 
-test('GATE-008 the real tier runs the five real suites in order with their evidence, limit, and grace', () => {
+test('GATE-008 the real tier runs the five real suites and then the k6 smoke in order with their evidence, limit, and grace', () => {
   const real = TIERS.real!;
   expect(real.script).toBe('test:ci:real');
   expect(real.stepTimeoutMs).toBe(1_500_000);
@@ -329,6 +329,16 @@ test('GATE-008 the real tier runs the five real suites in order with their evide
     ['test:database:migration', ['junit .local/feature-6/migration.xml']],
     ['test:tooling:real', ['junit .local/feature-2/playwright-real.xml', 'scan .local/feature-2/artifact-scan.json', 'screenshots .local/feature-2/test-results/ opsional']],
     ['test:readiness:real', ['junit .local/feature-10/playwright-real.xml', 'scan .local/feature-10/artifact-scan.json', 'screenshots .local/feature-10/test-results/ opsional']],
+    // Spec 0011 (*Tier kapasitas dan gate*): the k6 smoke is the last step, with four required files.
+    [
+      'test:performance:smoke',
+      [
+        'performance .local/feature-12/smoke/result.json',
+        'data .local/feature-12/smoke/k6/summary.json',
+        'data .local/feature-12/smoke/observation.json',
+        'scan .local/feature-12/smoke/artifact-scan.json',
+      ],
+    ],
   ]);
 });
 
@@ -356,6 +366,7 @@ test('GATE-008 the real tier fails, never passes, when its suites skip testcases
     ['test:database:migration', 'not_run'],
     ['test:tooling:real', 'not_run'],
     ['test:readiness:real', 'not_run'],
+    ['test:performance:smoke', 'not_run'],
   ]);
   expect(manifest.steps[0]?.reasons).toEqual([{ code: 'testcase_skipped', path: '.local/feature-3/infrastructure.xml' }]);
   expect(manifest.steps[0]?.leftoverPorts).toEqual([]);
@@ -390,6 +401,7 @@ test('GATE-004 the fast and security tiers hold the steps, evidence, limit, and 
     ['test:integration', ['junit .local/feature-4/server.xml bun:test']],
     ['test:tooling', ['junit .local/feature-4/tooling.xml bun:test']],
     ['test:gate', ['junit .local/feature-11/gate.xml bun:test']],
+    ['test:performance:plan', ['junit .local/feature-12/plan.xml bun:test']],
     ['test:e2e', ['junit .local/feature-4/playwright.xml playwright', 'screenshots test-results/ opsional']],
   ]);
   const security = TIERS.security!;
@@ -429,7 +441,8 @@ test('GATE-004 scripts/gate.ts without a tier, with an unknown tier, or with an 
     const label = args.join(' ') || '(tanpa argumen)';
     expect(code, label).toBe(1);
     expect(stdout, label).toBe('');
-    expect(stderr, label).toBe('Pemakaian: bun --no-env-file scripts/gate.ts <fast|real|security>\n');
+    // Spec 0011 (*Tier kapasitas dan gate*): scripts/gate.ts also accepts the manual capacity tier.
+    expect(stderr, label).toBe('Pemakaian: bun --no-env-file scripts/gate.ts <fast|real|security|capacity>\n');
   }
   expect(await exists(join(dir, '.local'))).toBe(false);
 }, 30_000);

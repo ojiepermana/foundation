@@ -331,6 +331,7 @@ test('GATE-001 the owner table is Tabel pemilik runner, and every owner JUnit is
     ['test:integration', 'bun:test', null, ['tests/integration/backend/**/*.test.ts', 'tests/integration/contract/**/*.test.ts'], [], '.local/feature-4/server.xml', { from: 'file-attribute' }],
     ['test:tooling', 'bun:test', null, ['tests/integration/tooling/**/*.test.ts'], [], '.local/feature-4/tooling.xml', { from: 'file-attribute' }],
     ['test:gate', 'bun:test', null, ['tests/integration/gate/**/*.test.ts'], [], '.local/feature-11/gate.xml', { from: 'file-attribute' }],
+    ['test:performance:plan', 'bun:test', null, ['tests/integration/performance/**/*.test.ts'], [], '.local/feature-12/plan.xml', { from: 'file-attribute' }],
     ['test:database:real', 'bun:test', null, ['tests/integration/database/**/*.test.ts'], [], '.local/feature-5/database.xml', { from: 'file-attribute' }],
     ['test:database:migration', 'bun:test', null, ['tests/integration/database/migration.test.ts'], [], '.local/feature-6/migration.xml', { from: 'file-attribute' }],
     ['test:infrastructure', 'bun:test', null, ['tests/integration/infrastructure/**/*.test.ts'], [], '.local/feature-3/infrastructure.xml', { from: 'file-attribute' }],

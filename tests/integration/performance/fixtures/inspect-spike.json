@@ -1,0 +1,446 @@
+{
+  "paused": null,
+  "vus": null,
+  "duration": null,
+  "iterations": null,
+  "stages": null,
+  "scenarios": {
+    "readiness_after": {
+      "executor": "constant-arrival-rate",
+      "startTime": "4m20s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "readiness",
+      "tags": null,
+      "rate": 50,
+      "timeUnit": "1s",
+      "duration": "3m0s",
+      "preAllocatedVUs": 10,
+      "maxVUs": 10
+    },
+    "readiness_before": {
+      "executor": "constant-arrival-rate",
+      "startTime": "1m0s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "readiness",
+      "tags": null,
+      "rate": 50,
+      "timeUnit": "1s",
+      "duration": "2m0s",
+      "preAllocatedVUs": 10,
+      "maxVUs": 10
+    },
+    "readiness_fall": {
+      "executor": "ramping-arrival-rate",
+      "startTime": "4m5s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "readiness",
+      "tags": null,
+      "startRate": 1000,
+      "timeUnit": "1s",
+      "stages": [
+        {
+          "duration": "5s",
+          "target": 50
+        }
+      ],
+      "preAllocatedVUs": 100,
+      "maxVUs": 100
+    },
+    "readiness_rise": {
+      "executor": "ramping-arrival-rate",
+      "startTime": "3m0s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "readiness",
+      "tags": null,
+      "startRate": 50,
+      "timeUnit": "1s",
+      "stages": [
+        {
+          "duration": "5s",
+          "target": 1000
+        }
+      ],
+      "preAllocatedVUs": 100,
+      "maxVUs": 100
+    },
+    "readiness_settle": {
+      "executor": "constant-arrival-rate",
+      "startTime": "4m10s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "readiness",
+      "tags": null,
+      "rate": 50,
+      "timeUnit": "1s",
+      "duration": "10s",
+      "preAllocatedVUs": 10,
+      "maxVUs": 10
+    },
+    "readiness_spike": {
+      "executor": "constant-arrival-rate",
+      "startTime": "3m5s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "readiness",
+      "tags": null,
+      "rate": 1000,
+      "timeUnit": "1s",
+      "duration": "1m0s",
+      "preAllocatedVUs": 100,
+      "maxVUs": 100
+    },
+    "readiness_warmup": {
+      "executor": "ramping-arrival-rate",
+      "startTime": null,
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "readiness",
+      "tags": null,
+      "startRate": 0,
+      "timeUnit": "1s",
+      "stages": [
+        {
+          "duration": "1m0s",
+          "target": 50
+        }
+      ],
+      "preAllocatedVUs": 10,
+      "maxVUs": 10
+    },
+    "status_after": {
+      "executor": "constant-arrival-rate",
+      "startTime": "4m20s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "status",
+      "tags": null,
+      "rate": 1000,
+      "timeUnit": "1s",
+      "duration": "3m0s",
+      "preAllocatedVUs": 100,
+      "maxVUs": 100
+    },
+    "status_before": {
+      "executor": "constant-arrival-rate",
+      "startTime": "1m0s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "status",
+      "tags": null,
+      "rate": 1000,
+      "timeUnit": "1s",
+      "duration": "2m0s",
+      "preAllocatedVUs": 100,
+      "maxVUs": 100
+    },
+    "status_fall": {
+      "executor": "ramping-arrival-rate",
+      "startTime": "4m5s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "status",
+      "tags": null,
+      "startRate": 4000,
+      "timeUnit": "1s",
+      "stages": [
+        {
+          "duration": "5s",
+          "target": 1000
+        }
+      ],
+      "preAllocatedVUs": 400,
+      "maxVUs": 400
+    },
+    "status_rise": {
+      "executor": "ramping-arrival-rate",
+      "startTime": "3m0s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "status",
+      "tags": null,
+      "startRate": 1000,
+      "timeUnit": "1s",
+      "stages": [
+        {
+          "duration": "5s",
+          "target": 4000
+        }
+      ],
+      "preAllocatedVUs": 400,
+      "maxVUs": 400
+    },
+    "status_settle": {
+      "executor": "constant-arrival-rate",
+      "startTime": "4m10s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "status",
+      "tags": null,
+      "rate": 1000,
+      "timeUnit": "1s",
+      "duration": "10s",
+      "preAllocatedVUs": 100,
+      "maxVUs": 100
+    },
+    "status_spike": {
+      "executor": "constant-arrival-rate",
+      "startTime": "3m5s",
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "status",
+      "tags": null,
+      "rate": 4000,
+      "timeUnit": "1s",
+      "duration": "1m0s",
+      "preAllocatedVUs": 400,
+      "maxVUs": 400
+    },
+    "status_warmup": {
+      "executor": "ramping-arrival-rate",
+      "startTime": null,
+      "gracefulStop": "6s",
+      "env": null,
+      "exec": "status",
+      "tags": null,
+      "startRate": 0,
+      "timeUnit": "1s",
+      "stages": [
+        {
+          "duration": "1m0s",
+          "target": 1000
+        }
+      ],
+      "preAllocatedVUs": 100,
+      "maxVUs": 100
+    }
+  },
+  "executionSegment": null,
+  "executionSegmentSequence": null,
+  "noSetup": null,
+  "setupTimeout": "1m0s",
+  "noTeardown": null,
+  "teardownTimeout": null,
+  "handleSummaryTimeout": null,
+  "rps": null,
+  "dns": {
+    "ttl": null,
+    "select": null,
+    "policy": null
+  },
+  "maxRedirects": null,
+  "userAgent": null,
+  "batch": null,
+  "batchPerHost": null,
+  "httpDebug": null,
+  "insecureSkipTLSVerify": null,
+  "tlsCipherSuites": null,
+  "tlsVersion": null,
+  "tlsAuth": null,
+  "tlsAIAFetch": null,
+  "throw": null,
+  "thresholds": {
+    "checks": [
+      "rate==1"
+    ],
+    "dropped_iterations": [
+      {
+        "threshold": "count==0",
+        "abortOnFail": true,
+        "delayAbortEval": "5s"
+      }
+    ],
+    "http_req_duration{endpoint:status,phase:after}": [
+      "p(95)\u003c10",
+      "p(99)\u003c25"
+    ],
+    "http_req_duration{endpoint:status,phase:before}": [
+      "p(95)\u003c10",
+      "p(99)\u003c25"
+    ],
+    "http_req_duration{endpoint:status,phase:fall}": [
+      "max\u003e=0"
+    ],
+    "http_req_duration{endpoint:status,phase:rise}": [
+      "max\u003e=0"
+    ],
+    "http_req_duration{endpoint:status,phase:settle}": [
+      "max\u003e=0"
+    ],
+    "http_req_duration{endpoint:status,phase:spike}": [
+      "p(95)\u003c10",
+      "p(99)\u003c25"
+    ],
+    "http_req_duration{endpoint:status,phase:warmup}": [
+      "max\u003e=0"
+    ],
+    "iterations{scenario:readiness_after}": [
+      "count\u003e=8990"
+    ],
+    "iterations{scenario:readiness_before}": [
+      "count\u003e=5990"
+    ],
+    "iterations{scenario:readiness_fall}": [
+      "count\u003e=0"
+    ],
+    "iterations{scenario:readiness_rise}": [
+      "count\u003e=0"
+    ],
+    "iterations{scenario:readiness_settle}": [
+      "count\u003e=490"
+    ],
+    "iterations{scenario:readiness_spike}": [
+      "count\u003e=59900"
+    ],
+    "iterations{scenario:readiness_warmup}": [
+      "count\u003e=0"
+    ],
+    "iterations{scenario:status_after}": [
+      "count\u003e=179820"
+    ],
+    "iterations{scenario:status_before}": [
+      "count\u003e=119880"
+    ],
+    "iterations{scenario:status_fall}": [
+      "count\u003e=0"
+    ],
+    "iterations{scenario:status_rise}": [
+      "count\u003e=0"
+    ],
+    "iterations{scenario:status_settle}": [
+      "count\u003e=9900"
+    ],
+    "iterations{scenario:status_spike}": [
+      "count\u003e=239600"
+    ],
+    "iterations{scenario:status_warmup}": [
+      "count\u003e=0"
+    ],
+    "readiness_available_duration{phase:after}": [
+      "p(95)\u003c25",
+      "p(99)\u003c50"
+    ],
+    "readiness_available_duration{phase:before}": [
+      "p(95)\u003c25",
+      "p(99)\u003c50"
+    ],
+    "readiness_available_duration{phase:fall}": [
+      "max\u003e=0"
+    ],
+    "readiness_available_duration{phase:rise}": [
+      "max\u003e=0"
+    ],
+    "readiness_available_duration{phase:settle}": [
+      "max\u003e=0"
+    ],
+    "readiness_available_duration{phase:spike}": [
+      "p(95)\u003c25",
+      "p(99)\u003c50"
+    ],
+    "readiness_available_duration{phase:warmup}": [
+      "max\u003e=0"
+    ],
+    "readiness_available{phase:after}": [
+      "rate\u003e=0.98"
+    ],
+    "readiness_available{phase:before}": [
+      "rate\u003e=0.98"
+    ],
+    "readiness_available{phase:spike}": [
+      "rate\u003e=0.20"
+    ],
+    "readiness_busy_duration{phase:after}": [
+      "max\u003e=0"
+    ],
+    "readiness_busy_duration{phase:before}": [
+      "max\u003e=0"
+    ],
+    "readiness_busy_duration{phase:fall}": [
+      "max\u003e=0"
+    ],
+    "readiness_busy_duration{phase:rise}": [
+      "max\u003e=0"
+    ],
+    "readiness_busy_duration{phase:settle}": [
+      "max\u003e=0"
+    ],
+    "readiness_busy_duration{phase:spike}": [
+      "p(95)\u003c10"
+    ],
+    "readiness_busy_duration{phase:warmup}": [
+      "max\u003e=0"
+    ],
+    "readiness_unavailable_duration{phase:after}": [
+      "max\u003e=0"
+    ],
+    "readiness_unavailable_duration{phase:before}": [
+      "max\u003e=0"
+    ],
+    "readiness_unavailable_duration{phase:fall}": [
+      "max\u003e=0"
+    ],
+    "readiness_unavailable_duration{phase:rise}": [
+      "max\u003e=0"
+    ],
+    "readiness_unavailable_duration{phase:settle}": [
+      "max\u003e=0"
+    ],
+    "readiness_unavailable_duration{phase:spike}": [
+      "max\u003e=0"
+    ],
+    "readiness_unavailable_duration{phase:warmup}": [
+      "max\u003e=0"
+    ],
+    "unexpected_responses": [
+      {
+        "threshold": "count==0",
+        "abortOnFail": true,
+        "delayAbortEval": "5s"
+      }
+    ]
+  },
+  "blacklistIPs": null,
+  "blockHostnames": null,
+  "hosts": null,
+  "noConnectionReuse": null,
+  "noVUConnectionReuse": null,
+  "minIterationDuration": null,
+  "ext": null,
+  "summaryTrendStats": [
+    "avg",
+    "min",
+    "med",
+    "max",
+    "p(50)",
+    "p(95)",
+    "p(99)",
+    "count"
+  ],
+  "summaryTimeUnit": null,
+  "systemTags": [
+    "check",
+    "error",
+    "error_code",
+    "expected_response",
+    "group",
+    "method",
+    "name",
+    "proto",
+    "scenario",
+    "service",
+    "status",
+    "subproto",
+    "tls_version",
+    "url"
+  ],
+  "tags": null,
+  "metricSamplesBufferSize": null,
+  "noCookiesReset": null,
+  "discardResponseBodies": false,
+  "features": null,
+  "totalDuration": "7m26s",
+  "maxVUs": 1110
+}

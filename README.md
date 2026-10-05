@@ -84,3 +84,15 @@ bun run test:report       # laporan gate dari ketiga bundle bukti
 ```
 
 Setiap tier menulis bundle bukti beserta manifest di `.local/feature-11/evidence/<tier>/`. `test:report` menulis `.local/feature-11/report.json` dan `.local/feature-11/report.md` dalam bahasa Indonesia, lalu keluar 0 hanya bila gate `passed`: seluruh skenario lulus, ketiga tier lulus, discovery sesuai, ketiga pemindai lulus, dan ketiga tier terikat pada commit serta pohon sumber yang sama. Run lokal pada working tree yang belum masuk commit dapat lulus gate tetapi bukan kandidat release. Aturan lengkapnya ada di [aturan testing](docs/rules/testing.md) dan [aturan keamanan](docs/rules/security.md).
+
+## Kapasitas k6 (spec 0011)
+
+Pengujian kapasitas k6 mengukur `GET /api/status` dan `GET /api/readiness` dengan model beban dan target dari [spec 0011](docs/specs/0011-kapasitas-pemulihan-beban-meningkat/index.md). Setiap profil berjalan di environment Docker sendiri (PostgreSQL 18, backend, dan k6 dalam container berbatas resource) dengan image k6 dan Bun yang dipin di `tests/performance/images.json`. Mesin container membutuhkan paling sedikit 4 CPU dan 4 GiB memory, dan tidak boleh ada suite lain yang sedang berjalan.
+
+```sh
+bun run test:performance:smoke   # smoke, juga langkah terakhir test:ci:real pada setiap push
+bun run test:ci:capacity         # tier kapasitas manual: load, stress, spike, outage, dan soak (sekitar 110 menit)
+bun run test:report:capacity     # laporan kapasitas dari bundle tier kapasitas
+```
+
+Tier kapasitas tidak termasuk gate per push. Bundle buktinya ada di `.local/feature-11/evidence/capacity/`, dan `test:report:capacity` menulis `.local/feature-12/report.json` serta `.local/feature-12/report.md`, lalu keluar 0 hanya bila tier lulus, seluruh skenario kapasitas lulus, dan bundle terikat pada checkout. Di GitHub, workflow `.github/workflows/capacity.yml` hanya dijalankan manual (`gh workflow run capacity.yml --ref main`) dan mengunggah artifact `capacity-evidence`. Angka yang dihasilkan berlaku untuk satu backend development dengan satu CPU, bukan perkiraan kapasitas produk; batas buktinya tertulis di setiap hasil. Aturan lengkap dan langkah pembersihan manual ada di [aturan testing](docs/rules/testing.md).

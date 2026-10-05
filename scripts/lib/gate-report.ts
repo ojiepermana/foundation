@@ -2,19 +2,26 @@ import { appendFile, lstat, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path';
 import {
   bundlePath,
+  CAPACITY_TIER,
+  CAPACITY_TIER_NAME,
   ciIdentity,
   fileChecksum,
   gitCommit,
+  performanceProfile,
+  performanceResult,
   sourceTree,
   TIER_NAMES,
-  TIERS,
+  tierByName,
+  tierSteps,
   type BindingReasonCode,
+  type CapacityReleaseReasonCode,
   type CheckReasonCode,
   type CiIdentity,
   type DiscoveryReasonCode,
   type EvidenceRecord,
   type Reason,
   type ReleaseReasonCode,
+  type RunTierName,
   type StepReasonCode,
   type StepRecord,
   type StepStatus,
@@ -23,7 +30,7 @@ import {
   type TierName,
 } from './gate.ts';
 import { EVIDENCE_TEXT_LIMIT, JUnitError, junitResults, parseJUnit, type JUnitDocument, type JUnitResult } from './junit.ts';
-import { readRegistries, type RegistryCheck } from './registry-reader.ts';
+import { readRegistries, type RegistryCheck, type RegistryScenario } from './registry-reader.ts';
 import { SCANNER_NAMES, SECURITY_JSON, type Coverage, type Policy, type ScannerName, type ScannerReasonCode, type ScannerStatus } from './security-policy.ts';
 import { inventory, junitDiscovery, junitSuitePath, ownedBy, RUNNER_OWNERS, runnerOwner } from './test-inventory.ts';
 
@@ -31,7 +38,8 @@ import { inventory, junitDiscovery, junitSuitePath, ownedBy, RUNNER_OWNERS, runn
 // computes the status of every registry check from the manifest and the JUnit in the bundle, proves discovery from the
 // JUnit of every runner, summarizes the scanners and the PostgreSQL image of the real tier, flags the release
 // candidate, and writes `report.json`, `report.md`, and the job summary. Nothing is stored between runs: every run
-// computes the gate again from the bundles and the checkout.
+// computes the gate again from the bundles and the checkout. Spec 0011 adds `test:report:capacity`: the same reading of
+// the one bundle of the capacity tier, bound to the checkout, for the scenarios whose checks all name its scripts.
 
 export type CheckStatus = 'passed' | 'failed' | 'skipped' | 'not_run' | 'missing_test';
 export type GateStatus = 'passed' | 'failed' | 'incomplete';
@@ -92,7 +100,7 @@ export type ScenarioResult = {
   checks: CheckResult[];
 };
 
-export type BindingProblem = { code: BindingReasonCode; tier: TierName | null; path: string | null };
+export type BindingProblem = { code: BindingReasonCode; tier: RunTierName | null; path: string | null };
 
 export type TierSummary = {
   status: 'passed' | 'failed' | 'not_run';
@@ -129,12 +137,41 @@ export type ScannersSummary = {
 export type ReleaseReason = { code: ReleaseReasonCode; tier: TierName | null };
 export type ReleaseCandidate = { value: boolean; reasons: ReleaseReason[] };
 
-/** What the gate does not prove yet (*Isi laporan*, `outOfScope`): k6 performance and the deployment image. */
-export type OutOfScope = { area: 'performance' | 'deployment_image'; feature: number };
+/**
+ * What the per push gate does not prove (*Isi laporan*, `outOfScope`, as changed by spec 0011): the capacity profiles,
+ * proven by `test:report:capacity` from the capacity tier, and the deployment image.
+ */
+export type OutOfScope = { area: 'capacity_profiles' | 'deployment_image'; feature: number };
 export const OUT_OF_SCOPE: readonly OutOfScope[] = [
-  { area: 'performance', feature: 12 },
+  { area: 'capacity_profiles', feature: 12 },
   { area: 'deployment_image', feature: 13 },
 ];
+
+/** The `result.json` fields one `performance` entry copies as is (spec 0011, *Laporan per push*). */
+export const PERFORMANCE_FIELDS = [
+  'model',
+  'actual',
+  'latency',
+  'readiness',
+  'thresholds',
+  'observation',
+  'outage',
+  'environment',
+  'limits',
+] as const;
+
+/**
+ * One entry of `performance` (spec 0011, *Laporan per push*): the tier step that has `performance` evidence bound to
+ * its manifest, the profile and status of that `result.json`, the bundle path it was read from, and the fields of
+ * `PERFORMANCE_FIELDS` copied as is (`null` when the file has none).
+ */
+export type PerformanceEntry = {
+  tier: RunTierName;
+  script: string;
+  profile: string;
+  status: 'passed' | 'failed';
+  evidence: string;
+} & Record<(typeof PERFORMANCE_FIELDS)[number], unknown>;
 
 export type GateReport = {
   schema: 1;
@@ -150,6 +187,8 @@ export type GateReport = {
   gate: GateStatus;
   releaseCandidate: ReleaseCandidate;
   outOfScope: OutOfScope[];
+  /** Spec 0011: after `outOfScope`, empty when no `performance` evidence matches its manifest. */
+  performance: PerformanceEntry[];
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -177,7 +216,7 @@ function safePath(path: unknown): path is string {
 // Manifests and evidence hashes.
 
 const stepStatuses = new Set<string>(['passed', 'failed', 'skipped', 'not_run']);
-const evidenceKinds = new Set<string>(['junit', 'screenshots', 'image', 'scan', 'scanner']);
+const evidenceKinds = new Set<string>(['junit', 'screenshots', 'image', 'scan', 'scanner', 'performance', 'data']);
 const ciFields = ['runId', 'runAttempt', 'job', 'sha', 'ref', 'event'] as const;
 
 function validEvidence(value: unknown): value is EvidenceRecord {
@@ -239,7 +278,7 @@ function validChecksums(value: unknown, nullable: boolean): boolean {
   return isRecord(value) && Object.values(value).every((item) => typeof item === 'string' || (nullable && item === null));
 }
 
-function validManifest(value: unknown, tier: TierName): value is TierManifest {
+function validManifest(value: unknown, tier: RunTierName): value is TierManifest {
   return (
     isRecord(value) &&
     value['schema'] === 1 &&
@@ -255,13 +294,13 @@ function validManifest(value: unknown, tier: TierName): value is TierManifest {
 }
 
 type LoadedTier = {
-  name: TierName;
+  name: RunTierName;
   manifest: TierManifest | null;
   /** Evidence paths whose bundle copy matches the SHA 256 in the manifest. */
   verified: Set<string>;
 };
 
-async function loadTier(root: string, name: TierName, problems: BindingProblem[]): Promise<LoadedTier> {
+async function loadTier(root: string, name: RunTierName, problems: BindingProblem[]): Promise<LoadedTier> {
   const loaded: LoadedTier = { name, manifest: null, verified: new Set() };
   let text: string;
   try {
@@ -414,7 +453,7 @@ function result(check: RegistryCheck, status: CheckStatus, fields: Partial<Check
 
 async function evaluateCheck(check: RegistryCheck, tiers: LoadedTier[], documents: JUnitDocuments): Promise<CheckResult> {
   // A check that names the root script of a tier takes the tier status.
-  const tierScript = tiers.find((tier) => TIERS[tier.name]?.script === check.script);
+  const tierScript = tiers.find((tier) => tierByName(tier.name)?.script === check.script);
   if (tierScript !== undefined) {
     if (tierScript.manifest === null) return result(check, 'not_run', { reasons: [{ code: 'tier_not_run', path: null }] });
     return result(check, tierScript.manifest.status === 'passed' ? 'passed' : 'failed');
@@ -462,6 +501,44 @@ async function evaluateCheck(check: RegistryCheck, tiers: LoadedTier[], document
 export function worstStatus(statuses: readonly CheckStatus[]): CheckStatus {
   for (const status of STATUS_ORDER) if (statuses.includes(status)) return status;
   return 'missing_test';
+}
+
+/**
+ * Spec 0011 (*Tier kapasitas dan gate*, Registry): a scenario whose checks all name a script of the capacity tier, one of
+ * its steps or its root script, is counted only by `test:report:capacity`, and `test:report` leaves it out. A scenario
+ * without checks, or one that also names a script of another tier, stays with the per push report; `test:scenarios`
+ * rejects that mix, and the per push report then finds no capacity step and reads the check as `not_run`.
+ */
+export function capacityScenario(checks: readonly Pick<RegistryCheck, 'script'>[]): boolean {
+  const steps = tierSteps();
+  return checks.length > 0 && checks.every((check) => check.script === CAPACITY_TIER.script || steps.get(check.script) === CAPACITY_TIER_NAME);
+}
+
+/** The status of every check of every registry scenario that `include` keeps, in registry order. */
+async function evaluateScenarios(
+  root: string,
+  tiers: LoadedTier[],
+  documents: JUnitDocuments,
+  include: (scenario: RegistryScenario) => boolean,
+): Promise<ScenarioResult[]> {
+  const scenarios: ScenarioResult[] = [];
+  for (const registry of await readRegistries(root)) {
+    for (const scenario of registry.scenarios) {
+      if (!include(scenario)) continue;
+      const checks: CheckResult[] = [];
+      for (const check of scenario.checks) checks.push(await evaluateCheck(check, tiers, documents));
+      scenarios.push({
+        id: scenario.id,
+        registry: registry.path,
+        source: registry.source,
+        criteria: scenario.criteria,
+        critical: scenario.critical === true,
+        status: worstStatus(checks.map((check) => check.status)),
+        checks,
+      });
+    }
+  }
+  return scenarios;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -581,6 +658,45 @@ async function readPostgres(root: string, tiers: readonly LoadedTier[]): Promise
   return { ...(identity as PostgresIdentity), evidence: `${bundlePath('real')}/${POSTGRES_EVIDENCE}` };
 }
 
+/**
+ * *Laporan per push*: one entry per `performance` evidence file of a per push tier step whose bundle copy matches the
+ * SHA 256 of its manifest, in tier and step order. A file that is not a JSON object with `schema` 1, the profile of its
+ * step script, and `status` `passed` or `failed` gives no entry, so the report never renders a shape it did not check;
+ * the gate already failed that step with `evidence_invalid`.
+ */
+async function readPerformance(root: string, tiers: readonly LoadedTier[]): Promise<PerformanceEntry[]> {
+  const entries: PerformanceEntry[] = [];
+  for (const tier of tiers) {
+    for (const step of tier.manifest?.steps ?? []) {
+      for (const evidence of step.evidence) {
+        if (evidence.kind !== 'performance' || !evidence.present || typeof evidence.sha256 !== 'string') continue;
+        const object = jsonObject(await readVerified(root, tier, evidence.path));
+        const result = object === null ? null : performanceResult(object, step.script);
+        if (object === null || result === null) continue;
+        const entry: PerformanceEntry = {
+          tier: tier.name,
+          script: step.script,
+          profile: result.profile,
+          status: result.status,
+          evidence: `${bundlePath(tier.name)}/${evidence.path}`,
+          model: null,
+          actual: null,
+          latency: null,
+          readiness: null,
+          thresholds: null,
+          observation: null,
+          outage: null,
+          environment: null,
+          limits: null,
+        };
+        for (const field of PERFORMANCE_FIELDS) entry[field] = object[field] ?? null;
+        entries.push(entry);
+      }
+    }
+  }
+  return entries;
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Gate and release candidate.
 
@@ -617,11 +733,11 @@ export function gateStatus(input: {
  * `not_clean` nor `not_ci`; `event` and `ref` are judged only on the CI identity of the report job.
  */
 export function releaseCandidate(gate: GateStatus, manifests: ReadonlyArray<TierManifest | null>, reportCi: CiIdentity | null): ReleaseCandidate {
-  const valid = TIER_NAMES.map((name) => manifests.find((manifest) => manifest?.tier === name) ?? null);
+  const valid = TIER_NAMES.map((name) => ({ name, manifest: manifests.find((manifest) => manifest?.tier === name) ?? null }));
   const reasons: ReleaseReason[] = [];
   if (gate !== 'passed') reasons.push({ code: 'gate_not_passed', tier: null });
-  for (const manifest of valid) if (manifest !== null && !manifest.candidate.clean) reasons.push({ code: 'not_clean', tier: manifest.tier });
-  for (const manifest of valid) if (manifest !== null && manifest.candidate.ci === null) reasons.push({ code: 'not_ci', tier: manifest.tier });
+  for (const { name, manifest } of valid) if (manifest !== null && !manifest.candidate.clean) reasons.push({ code: 'not_clean', tier: name });
+  for (const { name, manifest } of valid) if (manifest !== null && manifest.candidate.ci === null) reasons.push({ code: 'not_ci', tier: name });
   if (reportCi === null) reasons.push({ code: 'not_ci', tier: null });
   else {
     if (reportCi.event !== RELEASE_EVENT) reasons.push({ code: 'event_not_push', tier: null });
@@ -667,22 +783,8 @@ export async function buildReport(root: string, env: Environment = process.env):
   problems.push(...crossBinding(candidate, manifests));
 
   const documents = new JUnitDocuments(root);
-  const scenarios: ScenarioResult[] = [];
-  for (const registry of await readRegistries(root)) {
-    for (const scenario of registry.scenarios) {
-      const checks: CheckResult[] = [];
-      for (const check of scenario.checks) checks.push(await evaluateCheck(check, tiers, documents));
-      scenarios.push({
-        id: scenario.id,
-        registry: registry.path,
-        source: registry.source,
-        criteria: scenario.criteria,
-        critical: scenario.critical === true,
-        status: worstStatus(checks.map((check) => check.status)),
-        checks,
-      });
-    }
-  }
+  // Spec 0011: the capacity scenarios belong to the capacity report only, so the per push gate never waits for them.
+  const scenarios = await evaluateScenarios(root, tiers, documents, (scenario) => !capacityScenario(scenario.checks));
 
   const binding = { valid: problems.length === 0, problems };
   const discovery = await discover(root, tiers, documents);
@@ -703,6 +805,7 @@ export async function buildReport(root: string, env: Environment = process.env):
     gate,
     releaseCandidate: releaseCandidate(gate, manifests, candidate.ci),
     outOfScope: OUT_OF_SCOPE.map((item) => ({ ...item })),
+    performance: await readPerformance(root, tiers),
   };
 }
 
@@ -731,6 +834,15 @@ function describeCheck(check: CheckResult): string {
   return parts.join(' ');
 }
 
+/**
+ * Kolom *Test dan profil* (spec 0011): the k6 profile of every check whose script is exactly
+ * `test:performance:<profile>`, without duplicates, in check order, or `tidak ada`.
+ */
+export function profileSuffix(checks: readonly Pick<CheckResult, 'script'>[]): string {
+  const profiles = [...new Set(checks.map((check) => performanceProfile(check.script)).filter((profile) => profile !== null))];
+  return `profil k6 ${profiles.length === 0 ? 'tidak ada' : profiles.join(', ')}`;
+}
+
 function describeOutcome(check: CheckResult): string {
   const parts: string[] = [];
   if (check.counts !== null) {
@@ -743,7 +855,7 @@ function describeOutcome(check: CheckResult): string {
 }
 
 /** `Kandidat release: ya`, or `bukan` followed by every code with its tier when it has one, in the row order. */
-export function releaseLine(release: ReleaseCandidate): string {
+export function releaseLine(release: { value: boolean; reasons: ReadonlyArray<{ code: string; tier: string | null }> }): string {
   if (release.value) return 'Kandidat release: ya';
   const reasons = release.reasons.map((reason) => (reason.tier === null ? `\`${reason.code}\`` : `\`${reason.code}\` ${reason.tier}`));
   return `Kandidat release: bukan (${reasons.join(', ')})`;
@@ -788,6 +900,336 @@ function coverageText(scanner: ScannerSummary): string {
   if (Array.isArray(coverage['files'])) return `file: ${coverage['files'].map(String).join(', ') || 'tidak ada'}`;
   if ('packages' in coverage) return `paket bun.lock: ${String(coverage['packages'])}`;
   return `head ${String(coverage['head'])}, commit terjangkau ${String(coverage['commitsReachable'])}, dangkal ${String(coverage['shallow'])}`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// *Performance k6* (spec 0011, *Laporan per push*), rendered only from the `performance` entries. Every value comes
+// from a bundle file, so each one passes a type guard and is printed inside an escaped table cell, or only as a number;
+// a field with another shape prints `-`. The engine that runs the containers is labelled "mesin container", from the
+// key `containerEngine`, and its values are printed as they are.
+
+/** The expressions that only make k6 record a submetric (Thresholds, Pencatatan and Beban aktual): never a target. */
+const RECORDING_EXPRESSIONS = new Set(['max>=0', 'min>=0', 'count>=0']);
+
+type ThresholdItem = { metric: string; expression: string; ok: boolean };
+
+function records(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? value.filter(isRecord) : [];
+}
+
+/** A whole number as is, any other number with `digits` decimals, and `-` for anything that is not a finite number. */
+function numberText(value: unknown, digits = 2): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '-';
+  return Number.isInteger(value) ? String(value) : value.toFixed(digits);
+}
+
+/** Text without control characters cut to 200 characters, a number, `ya` or `tidak`, `-` for null, or compact JSON. */
+function valueText(value: unknown): string {
+  if (value === null || value === undefined) return '-';
+  if (typeof value === 'string') return runnerText(value);
+  if (typeof value === 'number') return numberText(value);
+  if (typeof value === 'boolean') return value ? 'ya' : 'tidak';
+  return runnerText(JSON.stringify(value) ?? '-');
+}
+
+function thresholdItems(value: unknown): ThresholdItem[] {
+  return records(value).flatMap((item) => {
+    const { metric, expression, ok } = item;
+    return typeof metric === 'string' && typeof expression === 'string' && typeof ok === 'boolean' ? [{ metric, expression, ok }] : [];
+  });
+}
+
+/**
+ * The target expressions of one metric, without the recording expressions, and whether they all held. A metric with
+ * only recording expressions, or with no threshold at all (a phase without a target), reads `tanpa target`.
+ */
+function target(thresholds: readonly ThresholdItem[], metric: string): [string, string] {
+  const targets = thresholds.filter((item) => item.metric === metric && !RECORDING_EXPRESSIONS.has(item.expression));
+  if (targets.length === 0) return ['tanpa target', '-'];
+  return [targets.map((item) => item.expression).join(', '), targets.every((item) => item.ok) ? 'lulus' : 'gagal'];
+}
+
+function modelText(model: unknown): string {
+  const phases = records(isRecord(model) ? model['phases'] : undefined).map(
+    (phase) => `${valueText(phase['phase'])} ${valueText(phase['shape'])} ${numberText(phase['seconds'])} detik ${valueText(phase['load'])}`,
+  );
+  if (phases.length === 0) return '-';
+  const one = isRecord(model) && model['iterationIsOneRequest'] === true ? '; satu iterasi satu request' : '';
+  return `${phases.join(', ')}${one}`;
+}
+
+function loadSection(entry: PerformanceEntry, thresholds: readonly ThresholdItem[]): string[] {
+  const lines = ['#### Beban target dan aktual', ''];
+  const actual = entry.actual;
+  if (!isRecord(actual)) {
+    lines.push('Ringkasan k6 tidak tersedia, sehingga beban aktual, latency, readiness, dan thresholds tidak tercatat.', '');
+    return lines;
+  }
+  lines.push(
+    ...header(['Scenario', 'Endpoint', 'Fase', 'Laju rencana per detik', 'Detik', 'Iterasi rencana', 'Iterasi aktual', 'Laju aktual per detik', 'Ambang iterasi', 'Status ambang']),
+  );
+  for (const scenario of records(actual['scenarios'])) {
+    const name = scenario['name'];
+    const start = scenario['startRate'];
+    const end = scenario['endRate'];
+    const rate = start === end ? numberText(start) : `${numberText(start)} ke ${numberText(end)}`;
+    const [expression, status] = typeof name === 'string' ? target(thresholds, `iterations{scenario:${name}}`) : ['-', '-'];
+    lines.push(
+      row([
+        valueText(name),
+        valueText(scenario['endpoint']),
+        valueText(scenario['phase']),
+        rate,
+        numberText(scenario['seconds']),
+        numberText(scenario['plannedIterations']),
+        numberText(scenario['iterations']),
+        numberText(scenario['rate']),
+        expression,
+        status,
+      ]),
+    );
+  }
+  lines.push('');
+  lines.push(...header(['Total', 'Nilai']));
+  lines.push(row(['Iterasi', numberText(actual['iterations'])]));
+  lines.push(row(['Request HTTP', numberText(actual['httpReqs'])]));
+  lines.push(row(['Dropped iterations', numberText(actual['droppedIterations'])]));
+  lines.push(row(['VU maksimum', numberText(actual['vusMax'])]));
+  lines.push(row(['Scenario mulai sesudah T0 (ms)', numberText(actual['scenarioStartLateMs'])]));
+  lines.push('');
+  return lines;
+}
+
+function latencySection(entry: PerformanceEntry, thresholds: readonly ThresholdItem[]): string[] {
+  if (!Array.isArray(entry.latency)) return [];
+  const lines = ['#### Latency terhadap target', ''];
+  lines.push(...header(['Endpoint', 'Fase', 'Hasil', 'Jumlah', 'p50', 'p95', 'p99', 'max', 'Target', 'Status target']));
+  for (const item of records(entry.latency)) {
+    const { endpoint, phase, outcome } = item;
+    let metric: string | null = null;
+    if (typeof phase === 'string' && endpoint === 'status') metric = `http_req_duration{endpoint:status,phase:${phase}}`;
+    else if (typeof phase === 'string' && endpoint === 'readiness' && typeof outcome === 'string') metric = `readiness_${outcome}_duration{phase:${phase}}`;
+    const [expression, status] = metric === null ? ['-', '-'] : target(thresholds, metric);
+    lines.push(
+      row([
+        valueText(endpoint),
+        valueText(phase),
+        valueText(outcome),
+        numberText(item['count']),
+        numberText(item['p50']),
+        numberText(item['p95']),
+        numberText(item['p99']),
+        numberText(item['max']),
+        expression,
+        status,
+      ]),
+    );
+  }
+  lines.push('');
+  return lines;
+}
+
+function readinessSection(entry: PerformanceEntry, thresholds: readonly ThresholdItem[]): string[] {
+  const readiness = entry.readiness;
+  if (!isRecord(readiness)) return [];
+  const lines = ['#### Rasio readiness', ''];
+  lines.push(...header(['Fase', '200 tersedia', '429 sibuk', '503 tidak tersedia', 'Rasio tersedia', 'Target rasio', 'Status target']));
+  for (const item of records(readiness['phases'])) {
+    const phase = item['phase'];
+    const [expression, status] = typeof phase === 'string' ? target(thresholds, `readiness_available{phase:${phase}}`) : ['-', '-'];
+    lines.push(
+      row([
+        valueText(phase),
+        numberText(item['available']),
+        numberText(item['busy']),
+        numberText(item['unavailable']),
+        numberText(item['availableRatio'], 3),
+        expression,
+        status,
+      ]),
+    );
+  }
+  lines.push('');
+  const recovery = readiness['recoveryMs'];
+  if (typeof recovery === 'number') lines.push(`Waktu pemulihan readiness: ${numberText(recovery)} ms.`, '');
+  return lines;
+}
+
+function thresholdSection(entry: PerformanceEntry, thresholds: readonly ThresholdItem[]): string[] {
+  if (!Array.isArray(entry.thresholds)) return [];
+  const failed = thresholds.filter((item) => !item.ok);
+  const lines = ['#### Thresholds', '', `${thresholds.length - failed.length} dari ${thresholds.length} threshold lulus.`, ''];
+  if (failed.length > 0) {
+    lines.push(...header(['Metrik yang gagal', 'Ekspresi']));
+    for (const item of failed) lines.push(row([item.metric, item.expression]));
+    lines.push('');
+  }
+  return lines;
+}
+
+function observationSection(entry: PerformanceEntry): string[] {
+  const lines = ['#### Resource, pool, dan check pengamatan', ''];
+  const observation = entry.observation;
+  if (!isRecord(observation)) {
+    lines.push('Pengamatan tidak dinilai pada run ini.', '');
+    return lines;
+  }
+  const containers = observation['containers'];
+  if (isRecord(containers)) {
+    lines.push(
+      ...header([
+        'Container',
+        'CPU rata rata (persen satu CPU)',
+        'CPU maksimum',
+        'Memory rata rata (MiB)',
+        'Memory maksimum (MiB)',
+        'Pertumbuhan memory (MiB)',
+        'Restart',
+        'OOM',
+        'Byte stderr',
+      ]),
+    );
+    for (const [name, value] of Object.entries(containers)) {
+      const item = isRecord(value) ? value : {};
+      lines.push(
+        row([
+          name,
+          numberText(item['cpuMean']),
+          numberText(item['cpuMax']),
+          numberText(item['memoryMeanMiB']),
+          numberText(item['memoryMaxMiB']),
+          numberText(item['memoryGrowthMiB']),
+          valueText(item['restarts']),
+          valueText(item['oomKilled']),
+          valueText(item['stderrBytes']),
+        ]),
+      );
+    }
+    lines.push('');
+  }
+  const pool = observation['pool'];
+  if (isRecord(pool)) {
+    lines.push(...header(['Pool', 'Nilai']));
+    lines.push(row(['Sesi foundation_backend maksimum', numberText(pool['sessions'])]));
+    lines.push(row(['Sesi foundation_backend aktif maksimum', numberText(pool['nonIdle'])]));
+    lines.push(row(['Sesi client maksimum', numberText(pool['total'])]));
+    lines.push(row(['Sampel berhasil', numberText(pool['samples'])]));
+    lines.push(row(['Sampel gagal', numberText(pool['failedSamples'])]));
+    lines.push('');
+  }
+  const checks = records(observation['checks']);
+  lines.push(...header(['Check', 'Aturan', 'Aktual', 'Lulus']));
+  for (const check of checks) {
+    lines.push(row([valueText(check['name']), valueText(check['rule']), valueText(check['actual']), check['ok'] === true ? 'ya' : 'tidak']));
+  }
+  if (checks.length === 0) lines.push(row(['-', 'tidak ada check pengamatan', '-', '-']));
+  lines.push('');
+  return lines;
+}
+
+function outageSection(entry: PerformanceEntry): string[] {
+  if (!isRecord(entry.outage)) return [];
+  const lines = ['#### Kontrol outage', '', ...header(['Waktu', 'ms sesudah T0'])];
+  for (const [name, value] of Object.entries(entry.outage)) lines.push(row([name, numberText(value)]));
+  lines.push('');
+  return lines;
+}
+
+function environmentSection(entry: PerformanceEntry): string[] {
+  const lines = ['#### Environment', ''];
+  const environment = entry.environment;
+  if (!isRecord(environment)) {
+    lines.push('Environment tidak tercatat.', '');
+    return lines;
+  }
+  const engine = isRecord(environment['containerEngine']) ? environment['containerEngine'] : null;
+  const images = isRecord(environment['images']) ? environment['images'] : {};
+  const postgres = isRecord(images['postgres']) ? images['postgres'] : null;
+  const pool = isRecord(environment['pool']) ? environment['pool'] : {};
+  const data = isRecord(environment['data']) ? environment['data'] : {};
+  const clock = isRecord(environment['clockOffsetMs']) ? environment['clockOffsetMs'] : {};
+  lines.push(...header(['Aspek', 'Nilai']));
+  lines.push(row(['Host', `${valueText(environment['os'])} ${valueText(environment['arch'])}`]));
+  lines.push(row(['CPU host', `${valueText(environment['cpuModel'])}, ${numberText(environment['cpuCount'])} CPU`]));
+  lines.push(row(['Memory host (byte)', numberText(environment['memoryBytes'])]));
+  lines.push(
+    row([
+      'Mesin container',
+      engine === null
+        ? '-'
+        : `versi server ${valueText(engine['serverVersion'])}, ${valueText(engine['os'])}, ${numberText(engine['ncpu'])} CPU, memory ${numberText(engine['memTotal'])} byte`,
+    ]),
+  );
+  lines.push(row(['Container lain yang berjalan', numberText(environment['otherContainersRunning'])]));
+  lines.push(row(['CI', valueText(environment['ci'])]));
+  lines.push(row(['Image k6', valueText(images['k6'])]));
+  lines.push(row(['Image Bun', valueText(images['bun'])]));
+  lines.push(
+    row([
+      'PostgreSQL',
+      postgres === null
+        ? '-'
+        : `${valueText(postgres['image'])}, image id ${valueText(postgres['imageId'])}, base ${valueText(postgres['baseImage'])}, versi ${valueText(postgres['serverVersion'])}`,
+    ]),
+  );
+  const limits = isRecord(environment['limits']) ? environment['limits'] : {};
+  for (const [name, value] of Object.entries(limits)) {
+    const parts = isRecord(value) ? Object.entries(value).map(([key, item]) => `${key} ${valueText(item)}`) : [valueText(value)];
+    lines.push(row([`Batas resource ${name}`, parts.join(', ')]));
+  }
+  lines.push(row(['Pool', `max ${numberText(pool['max'])}, connectionTimeout ${numberText(pool['connectionTimeoutSeconds'])} detik`]));
+  lines.push(row(['Data', `${numberText(data['appliedMigrations'])} migration`]));
+  lines.push(row(['Selisih jam (ms)', `sebelum T0 ${numberText(clock['before'])}, sesudah k6 ${numberText(clock['after'])}`]));
+  lines.push('');
+  return lines;
+}
+
+function limitsSection(entry: PerformanceEntry): string[] {
+  const lines = ['#### Batas bukti', ''];
+  const limits = Array.isArray(entry.limits) ? entry.limits.filter((item): item is string => typeof item === 'string') : [];
+  if (limits.length === 0) {
+    lines.push('Batas bukti tidak tercatat.', '');
+    return lines;
+  }
+  lines.push(...header(['No', 'Batas bukti']));
+  // Written as is (only control characters go), never cut: the sentences are fixed by the spec.
+  limits.forEach((item, index) => lines.push(row([String(index + 1), item.replace(/[\u0000-\u001f\u007f-\u009f]/g, '')])));
+  lines.push('');
+  return lines;
+}
+
+/** `source` names the tiers the entries come from: `tier per push` for `test:report`, `tier kapasitas` for the other. */
+function performanceSection(entries: readonly PerformanceEntry[], source = 'tier per push'): string[] {
+  const lines = ['## Performance k6', ''];
+  if (entries.length === 0) {
+    lines.push(`Tidak ada bukti \`performance\` dari ${source} yang cocok dengan manifest nya.`, '');
+    return lines;
+  }
+  lines.push(
+    `Disalin dari \`result.json\` setiap profil k6 di bundle ${source} yang SHA 256 nya cocok dengan manifest. Angka ini berlaku untuk environment dan batas bukti yang tercatat, bukan perkiraan kapasitas produk. Latency dalam milidetik.`,
+    '',
+  );
+  for (const entry of entries) {
+    const thresholds = thresholdItems(entry.thresholds);
+    lines.push(`### Profil ${entry.profile}`, '');
+    lines.push(...header(['Aspek', 'Nilai']));
+    lines.push(row(['Status', entry.status]));
+    lines.push(row(['Tier dan langkah', `${entry.tier}, ${entry.script}`]));
+    lines.push(row(['Bukti', entry.evidence]));
+    lines.push(row(['Model beban', modelText(entry.model)]));
+    lines.push('');
+    lines.push(
+      ...loadSection(entry, thresholds),
+      ...latencySection(entry, thresholds),
+      ...readinessSection(entry, thresholds),
+      ...thresholdSection(entry, thresholds),
+      ...observationSection(entry),
+      ...outageSection(entry),
+      ...environmentSection(entry),
+      ...limitsSection(entry),
+    );
+  }
+  return lines;
 }
 
 export function renderMarkdown(report: GateReport): string {
@@ -908,7 +1350,7 @@ export function renderMarkdown(report: GateReport): string {
       row([
         scenario.id,
         `${scenario.criteria.join(', ')}; ${scenario.source}`,
-        `${scenario.checks.map(describeCheck).join('; ')}; profil k6 tidak ada`,
+        `${scenario.checks.map(describeCheck).join('; ')}; ${profileSuffix(scenario.checks)}`,
         scenario.critical ? 'ya, alur kritis' : 'ya',
         scenario.status,
         scenario.checks.map(describeOutcome).join('; '),
@@ -916,6 +1358,8 @@ export function renderMarkdown(report: GateReport): string {
     );
   }
   lines.push('');
+
+  lines.push(...performanceSection(report.performance));
 
   lines.push('## Kandidat release', '');
   lines.push(releaseLine(report.releaseCandidate), '');
@@ -928,8 +1372,8 @@ export function renderMarkdown(report: GateReport): string {
   lines.push('## Di luar cakupan', '');
   for (const item of report.outOfScope) {
     lines.push(
-      item.area === 'performance'
-        ? `- Performance k6 belum masuk gate (fitur ${item.feature}).`
+      item.area === 'capacity_profiles'
+        ? `- Profil kapasitas load, stress, spike, outage, dan soak, dibuktikan \`test:report:capacity\` dari tier kapasitas (fitur ${item.feature}).`
         : `- Identitas image deployment belum diikat pada laporan (fitur ${item.feature}).`,
     );
   }
@@ -978,7 +1422,242 @@ export async function runReport(
     const problems = report.binding.problems.map((problem) => [problem.code, problem.tier, problem.path].filter(Boolean).join(' '));
     log(`  pengikatan tidak sah: ${problems.join(', ')}`);
   }
+  const performance = report.performance.map((item) => `${item.profile} ${item.status}`).join(', ');
+  log(`  performance k6: ${performance || 'tidak ada bukti'}`);
   log(`  ${releaseLine(report.releaseCandidate).replace(/`/g, '')}`);
   log(`Laporan: ${REPORT_JSON} dan ${REPORT_MD}`);
   return report.gate === 'passed' ? 0 : 1;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// `bun run test:report:capacity` (spec 0011, *Laporan kapasitas*): the same reading as `test:report`, for the one
+// bundle of the capacity tier. It counts only the capacity scenarios, binds the bundle to the checkout with the binding
+// vocabulary of spec 0010, and flags a release candidate only for a clean `workflow_dispatch` run on `refs/heads/main`.
+// The capacity tier never changes the per push gate, and the per push report never reads this bundle.
+
+export const CAPACITY_REPORT_DIR = '.local/feature-12';
+export const CAPACITY_REPORT_JSON = `${CAPACITY_REPORT_DIR}/report.json`;
+export const CAPACITY_REPORT_MD = `${CAPACITY_REPORT_DIR}/report.md`;
+/** The event of a capacity release candidate: the manual trigger of `.github/workflows/capacity.yml`. */
+export const CAPACITY_RELEASE_EVENT = 'workflow_dispatch';
+/** What the capacity report does not prove: the deployment image (feature 13). */
+export const CAPACITY_OUT_OF_SCOPE: readonly OutOfScope[] = [{ area: 'deployment_image', feature: 13 }];
+
+/** A capacity release reason has no tier: the report reads one tier only. */
+export type CapacityReleaseReason = { code: CapacityReleaseReasonCode; tier: null };
+export type CapacityReleaseCandidate = { value: boolean; reasons: CapacityReleaseReason[] };
+
+/** `.local/feature-12/report.json`: exactly these keys, in this order (*Perubahan gate yang dinamai*). */
+export type CapacityReport = {
+  schema: 1;
+  generatedAt: string;
+  candidate: ReportCandidate;
+  binding: { valid: boolean; problems: BindingProblem[] };
+  /** The capacity tier in the shape of `tiers.<name>` of the per push report. */
+  tier: TierSummary;
+  scenarios: ScenarioResult[];
+  status: GateStatus;
+  releaseCandidate: CapacityReleaseCandidate;
+  performance: PerformanceEntry[];
+  outOfScope: OutOfScope[];
+};
+
+/**
+ * `passed` when the capacity tier passed, every capacity scenario passed, and the binding is valid; `failed` when a step
+ * or a check failed; `incomplete` otherwise (no bundle, a step not run, a scenario without evidence, an invalid binding).
+ */
+export function capacityStatus(input: {
+  scenarios: readonly ScenarioResult[];
+  manifest: TierManifest | null;
+  bindingValid: boolean;
+}): GateStatus {
+  const failed =
+    input.scenarios.some((scenario) => scenario.checks.some((check) => check.status === 'failed')) ||
+    input.manifest?.steps.some((step) => step.status === 'failed') === true;
+  if (failed) return 'failed';
+  const passed = input.manifest?.status === 'passed' && input.scenarios.every((scenario) => scenario.status === 'passed') && input.bindingValid;
+  return passed ? 'passed' : 'incomplete';
+}
+
+/**
+ * The capacity release candidate: every unmet condition once, in the order of `REASON_CODES.capacityRelease`. A bundle
+ * without a valid manifest gets neither `not_clean` nor a `not_ci` of its own; `event` and `ref` are judged only on the
+ * CI identity of the report job.
+ */
+export function capacityReleaseCandidate(status: GateStatus, manifest: TierManifest | null, reportCi: CiIdentity | null): CapacityReleaseCandidate {
+  const reasons: CapacityReleaseReason[] = [];
+  if (status !== 'passed') reasons.push({ code: 'gate_not_passed', tier: null });
+  if (manifest !== null && !manifest.candidate.clean) reasons.push({ code: 'not_clean', tier: null });
+  if ((manifest !== null && manifest.candidate.ci === null) || reportCi === null) reasons.push({ code: 'not_ci', tier: null });
+  if (reportCi !== null) {
+    if (reportCi.event !== CAPACITY_RELEASE_EVENT) reasons.push({ code: 'event_not_dispatch', tier: null });
+    if (reportCi.ref !== RELEASE_REF) reasons.push({ code: 'ref_not_main', tier: null });
+  }
+  return { value: reasons.length === 0, reasons };
+}
+
+export async function buildCapacityReport(root: string, env: Environment = process.env): Promise<CapacityReport> {
+  const problems: BindingProblem[] = [];
+  const tier = await loadTier(root, CAPACITY_TIER_NAME, problems);
+  const candidate: ReportCandidate = {
+    commit: await gitCommit(root, env),
+    sourceTree: await sourceTree(root, undefined, env),
+    ci: ciIdentity(env),
+  };
+  if (candidate.commit === null) problems.push({ code: 'no_commit', tier: null, path: null });
+  problems.push(...crossBinding(candidate, [tier.manifest]));
+
+  const scenarios = await evaluateScenarios(root, [tier], new JUnitDocuments(root), (scenario) => capacityScenario(scenario.checks));
+  const binding = { valid: problems.length === 0, problems };
+  const status = capacityStatus({ scenarios, manifest: tier.manifest, bindingValid: binding.valid });
+  return {
+    schema: 1,
+    generatedAt: new Date().toISOString(),
+    candidate,
+    binding,
+    tier: summarizeTier(tier),
+    scenarios,
+    status,
+    releaseCandidate: capacityReleaseCandidate(status, tier.manifest, candidate.ci),
+    performance: await readPerformance(root, [tier]),
+    outOfScope: CAPACITY_OUT_OF_SCOPE.map((item) => ({ ...item })),
+  };
+}
+
+const capacityReleaseText: Record<CapacityReleaseReasonCode, string> = {
+  gate_not_passed: 'laporan kapasitas tidak berstatus passed',
+  not_clean: 'working tree tier kapasitas tidak bersih di awal atau di akhir tier',
+  not_ci: 'tidak berasal dari run CI',
+  event_not_dispatch: `event job laporan bukan ${CAPACITY_RELEASE_EVENT}`,
+  ref_not_main: `ref job laporan bukan ${RELEASE_REF}`,
+};
+
+function capacityChecksums(values: Record<string, string | null> | null): string[] {
+  if (values === null) return ['Manifest tier kapasitas tidak tersedia, sehingga checksum ini tidak tercatat.', ''];
+  const paths = Object.keys(values).sort();
+  if (paths.length === 0) return ['Manifest tier kapasitas tidak memuat checksum ini.', ''];
+  const lines = header(['Path', CAPACITY_TIER_NAME]);
+  for (const path of paths) lines.push(row([path, values[path] ?? 'tidak ada']));
+  lines.push('');
+  return lines;
+}
+
+/** `report.md` of the capacity report, in Indonesian, derived only from the fields of `CapacityReport`. */
+export function renderCapacityMarkdown(report: CapacityReport): string {
+  const lines: string[] = ['# Laporan kapasitas', ''];
+  lines.push(
+    'Laporan ini dihitung ulang oleh `bun run test:report:capacity` dari bundle bukti tier kapasitas. Hanya status `passed` dihitung lulus. Tier kapasitas dijalankan manual dan tidak mengubah status gate per push.',
+    '',
+  );
+
+  lines.push('## Kandidat', '');
+  lines.push(...header(['Aspek', 'Nilai']));
+  lines.push(row(['Status laporan kapasitas', report.status]));
+  lines.push(row(['Commit', report.candidate.commit ?? 'tidak ada']));
+  lines.push(row(['Pohon sumber', report.candidate.sourceTree ?? 'tidak ada']));
+  lines.push(row(['Run CI job laporan', ciText(report.candidate.ci)]));
+  lines.push(row(['Dibuat', report.generatedAt]));
+  lines.push('');
+  lines.push(releaseLine(report.releaseCandidate), '');
+
+  lines.push('## Pengikatan', '');
+  lines.push(report.binding.valid ? 'Pengikatan sah.' : 'Pengikatan tidak sah.', '');
+  if (report.binding.problems.length > 0) {
+    lines.push(...header(['Kode', 'Tier', 'Path']));
+    for (const problem of report.binding.problems) lines.push(row([problem.code, problem.tier ?? 'laporan', problem.path ?? '-']));
+    lines.push('');
+  }
+
+  const tier = report.tier;
+  const passedSteps = tier.steps.filter((step) => step.status === 'passed').length;
+  lines.push('## Tier kapasitas', '');
+  lines.push(...header(['Tier', 'Status', 'Langkah passed', 'Run attempt', 'Environment']));
+  lines.push(row([CAPACITY_TIER_NAME, tier.status, `${passedSteps} dari ${tier.steps.length}`, tier.runAttempt ?? '-', environmentText(tier.environment)]));
+  lines.push('');
+  if (tier.steps.length > 0) {
+    lines.push(`### Langkah tier ${CAPACITY_TIER_NAME}`, '');
+    lines.push(...header(['Langkah', 'Status', 'Durasi', 'Alasan']));
+    for (const step of tier.steps) {
+      const reasons = step.reasons.map((reason) => (reason.path === null ? reason.code : `${reason.code} ${reason.path}`));
+      lines.push(row([step.script, step.status, `${(step.durationMs / 1000).toFixed(1)} detik`, reasons.join(', ') || '-']));
+    }
+    lines.push('');
+  }
+  lines.push('### Checksum input', '');
+  lines.push(...capacityChecksums(tier.inputs));
+  lines.push('### Checksum output', '');
+  lines.push(...capacityChecksums(tier.outputs));
+
+  lines.push('## Hasil per skenario', '');
+  const counts = STATUS_ORDER.map((status) => `${report.scenarios.filter((scenario) => scenario.status === status).length} ${status}`);
+  lines.push(`${report.scenarios.length} skenario tier kapasitas: ${counts.join(', ')}.`, '');
+  lines.push(...header(['ID', 'Kriteria dan rujukan specs', 'Test dan profil', 'Wajib untuk release', 'Status', 'Hasil aktual dan tautan bukti']));
+  for (const scenario of report.scenarios) {
+    lines.push(
+      row([
+        scenario.id,
+        `${scenario.criteria.join(', ')}; ${scenario.source}`,
+        `${scenario.checks.map(describeCheck).join('; ')}; ${profileSuffix(scenario.checks)}`,
+        scenario.critical ? 'ya, alur kritis' : 'ya',
+        scenario.status,
+        scenario.checks.map(describeOutcome).join('; '),
+      ]),
+    );
+  }
+  lines.push('');
+
+  lines.push(...performanceSection(report.performance, 'tier kapasitas'));
+
+  lines.push('## Kandidat release', '');
+  lines.push(releaseLine(report.releaseCandidate), '');
+  for (const reason of report.releaseCandidate.reasons) lines.push(`- \`${reason.code}\`: ${capacityReleaseText[reason.code]}.`);
+  if (report.releaseCandidate.reasons.length > 0) lines.push('');
+  lines.push('Tanda ini tidak mengubah status laporan kapasitas maupun exit code `test:report:capacity`.', '');
+
+  lines.push('## Di luar cakupan', '');
+  for (const item of report.outOfScope) {
+    lines.push(
+      item.area === 'capacity_profiles'
+        ? `- Profil kapasitas load, stress, spike, outage, dan soak (fitur ${item.feature}).`
+        : `- Identitas image deployment belum diikat pada laporan (fitur ${item.feature}).`,
+    );
+  }
+  lines.push('');
+  return lines.join('\n');
+}
+
+/**
+ * Builds the capacity report, writes `.local/feature-12/report.json` and `report.md`, appends the Markdown to the file
+ * named by `GITHUB_STEP_SUMMARY` when that variable exists, and resolves to 0 only for `passed`; `failed` and
+ * `incomplete` resolve to 1. The release candidate flag never changes the exit code.
+ */
+export async function runCapacityReport(
+  root: string,
+  write: (line: string) => void = (line) => process.stdout.write(`${line}\n`),
+  env: Environment = process.env,
+): Promise<number> {
+  const log = (line: string) => write(consoleLine(line));
+  const report = await buildCapacityReport(root, env);
+  const markdown = renderCapacityMarkdown(report);
+  await mkdir(join(root, CAPACITY_REPORT_DIR), { recursive: true });
+  await writeFile(join(root, CAPACITY_REPORT_JSON), `${JSON.stringify(report, null, 2)}\n`);
+  await writeFile(join(root, CAPACITY_REPORT_MD), markdown);
+  const summary = env['GITHUB_STEP_SUMMARY'];
+  if (summary !== undefined && summary !== '') await appendFile(summary, `${markdown}\n`);
+
+  const steps = report.tier.steps;
+  log(`Laporan kapasitas ${report.status}`);
+  log(`  tier ${CAPACITY_TIER_NAME}: ${report.tier.status} (${steps.filter((step) => step.status === 'passed').length} dari ${steps.length} langkah passed)`);
+  const counts = STATUS_ORDER.map((status) => `${report.scenarios.filter((scenario) => scenario.status === status).length} ${status}`);
+  log(`  skenario: ${report.scenarios.length} (${counts.join(', ')})`);
+  if (report.binding.valid) log('  pengikatan sah');
+  else {
+    const problems = report.binding.problems.map((problem) => [problem.code, problem.tier, problem.path].filter(Boolean).join(' '));
+    log(`  pengikatan tidak sah: ${problems.join(', ')}`);
+  }
+  const performance = report.performance.map((item) => `${item.profile} ${item.status}`).join(', ');
+  log(`  performance k6: ${performance || 'tidak ada bukti'}`);
+  log(`  ${releaseLine(report.releaseCandidate).replace(/`/g, '')}`);
+  log(`Laporan: ${CAPACITY_REPORT_JSON} dan ${CAPACITY_REPORT_MD}`);
+  return report.status === 'passed' ? 0 : 1;
 }

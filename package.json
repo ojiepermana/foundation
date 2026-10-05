@@ -35,12 +35,21 @@
     "test:ci:real": "bun --no-env-file scripts/gate.ts real",
     "test:ci:security": "bun --no-env-file scripts/gate.ts security",
     "test:report": "bun --no-env-file scripts/gate-report.ts",
+    "test:ci:capacity": "bun --no-env-file scripts/gate.ts capacity",
+    "test:report:capacity": "bun --no-env-file scripts/gate-report.ts capacity",
     "check:dependencies": "bun scripts/check-dependencies.ts",
     "test:scenarios": "bun --no-env-file scripts/validate-scenarios.ts",
     "check:test-discovery": "bun --no-env-file scripts/check-test-discovery.ts",
     "check:workflow": "bun --no-env-file scripts/check-workflow.ts",
     "check:security": "bun --no-env-file tests/orchestration/security-scan.ts",
-    "test:gate": "mkdir -p .local/feature-11 && bun --no-env-file test ./tests/integration/gate --reporter=junit --reporter-outfile=.local/feature-11/gate.xml"
+    "test:gate": "mkdir -p .local/feature-11 && bun --no-env-file test ./tests/integration/gate --reporter=junit --reporter-outfile=.local/feature-11/gate.xml",
+    "test:performance:plan": "mkdir -p .local/feature-12 && bun --no-env-file test ./tests/integration/performance --reporter=junit --reporter-outfile=.local/feature-12/plan.xml",
+    "test:performance:smoke": "bun --no-env-file tests/orchestration/performance-real.ts smoke",
+    "test:performance:load": "bun --no-env-file tests/orchestration/performance-real.ts load",
+    "test:performance:stress": "bun --no-env-file tests/orchestration/performance-real.ts stress",
+    "test:performance:spike": "bun --no-env-file tests/orchestration/performance-real.ts spike",
+    "test:performance:outage": "bun --no-env-file tests/orchestration/performance-real.ts outage",
+    "test:performance:soak": "bun --no-env-file tests/orchestration/performance-real.ts soak"
   },
   "dependencies": {
     "@angular/common": "22.2.0",

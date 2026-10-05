@@ -10,13 +10,60 @@ import { runProcessGroup, type ProcessGroupResult } from './process-group.ts';
 // text evidence, and the bundle with its manifest. Step output only goes to the console; the manifest holds structured
 // fields only, never an environment value or step output.
 
+/** The per push gate: `test:report` expects exactly these tiers (spec 0011 keeps them unchanged). */
 export const TIER_NAMES = ['fast', 'real', 'security'] as const;
 export type TierName = (typeof TIER_NAMES)[number];
+
+/**
+ * Spec 0011 (*Perubahan gate yang dinamai*, Tipe tier): the capacity tier runs the long k6 profiles by hand, outside the
+ * per push gate. `scripts/gate.ts capacity` runs it and only `test:report:capacity` reads its bundle.
+ */
+export const CAPACITY_TIER_NAME = 'capacity';
+export type RunTierName = TierName | 'capacity';
 
 /** The root script of every tier (*Tabel tier*, column Perintah root). */
 export const TIER_SCRIPTS: Readonly<Record<TierName, string>> = { fast: 'test:ci', real: 'test:ci:real', security: 'test:ci:security' };
 
-export type EvidenceKind = 'junit' | 'screenshots' | 'image' | 'scan' | 'scanner';
+/**
+ * Spec 0011 (*Perubahan gate yang dinamai*, Jenis bukti) adds `performance`, the `result.json` of one k6 profile, and
+ * `data`, any other readable JSON object of a profile run (`summary.json`, `observation.json`).
+ */
+export type EvidenceKind = 'junit' | 'screenshots' | 'image' | 'scan' | 'scanner' | 'performance' | 'data';
+
+/**
+ * The six k6 profile names of spec 0011 (*Pemeriksaan sebelum run* (1)). A step runs a profile when its script is
+ * exactly `test:performance:<profile>` with one of these names; `test:performance:plan` is not a profile.
+ */
+export const PERFORMANCE_PROFILES = ['smoke', 'load', 'stress', 'spike', 'outage', 'soak'] as const;
+export type PerformanceProfile = (typeof PERFORMANCE_PROFILES)[number];
+const PERFORMANCE_SCRIPT_PREFIX = 'test:performance:';
+
+/** The profile a script runs, or `null` when the script is not exactly `test:performance:<one of the six names>`. */
+export function performanceProfile(script: string): PerformanceProfile | null {
+  if (!script.startsWith(PERFORMANCE_SCRIPT_PREFIX)) return null;
+  const name = script.slice(PERFORMANCE_SCRIPT_PREFIX.length);
+  return (PERFORMANCE_PROFILES as readonly string[]).includes(name) ? (name as PerformanceProfile) : null;
+}
+
+/**
+ * The shape of a `performance` evidence object (spec 0011, *Tier kapasitas dan gate*): `schema` 1, `profile` equal to
+ * the profile of the step script, and `status` `passed` or `failed`. `null` when one of them does not hold.
+ */
+export function performanceResult(
+  object: Readonly<Record<string, unknown>>,
+  script: string,
+): { profile: PerformanceProfile; status: 'passed' | 'failed' } | null {
+  const profile = performanceProfile(script);
+  if (profile === null || object['schema'] !== 1 || object['profile'] !== profile) return null;
+  const status = object['status'];
+  return status === 'passed' || status === 'failed' ? { profile, status } : null;
+}
+
+/** Jenis bukti `performance`: the shape of `performanceResult`, and a step that exited 0 needs `status` `passed`. */
+export function performanceEvidenceValid(object: Readonly<Record<string, unknown>>, script: string, exitCode: number | null): boolean {
+  const result = performanceResult(object, script);
+  return result !== null && (exitCode !== 0 || result.status === 'passed');
+}
 
 export type EvidenceSpec = {
   /** Repository path; a folder ends with `/`. */
@@ -30,7 +77,7 @@ export type EvidenceSpec = {
 export type TierStep = { script: string; evidence: readonly EvidenceSpec[] };
 
 export type Tier = {
-  name: TierName;
+  name: RunTierName;
   /** The root script that runs this tier, for example `test:ci`. */
   script: string;
   steps: readonly TierStep[];
@@ -39,9 +86,26 @@ export type Tier = {
 };
 
 const junit = (path: string, runner: JUnitRunner): EvidenceSpec => ({ path, kind: 'junit', runner, required: true });
-const json = (path: string, kind: 'image' | 'scan' | 'scanner'): EvidenceSpec => ({ path, kind, runner: null, required: true });
+const json = (path: string, kind: 'image' | 'scan' | 'scanner' | 'performance' | 'data'): EvidenceSpec => ({ path, kind, runner: null, required: true });
 const screenshots = (path: string): EvidenceSpec => ({ path, kind: 'screenshots', runner: null, required: false });
 const plain = (script: string): TierStep => ({ script, evidence: [] });
+
+/**
+ * One k6 profile step (spec 0011, *Tier kapasitas dan gate*): `test:performance:<profile>` with its four required files
+ * in `.local/feature-12/<profile>/`, the same for the smoke of the real tier and every profile of the capacity tier.
+ */
+function performanceStep(profile: PerformanceProfile): TierStep {
+  const dir = `.local/feature-12/${profile}`;
+  return {
+    script: `${PERFORMANCE_SCRIPT_PREFIX}${profile}`,
+    evidence: [
+      json(`${dir}/result.json`, 'performance'),
+      json(`${dir}/k6/summary.json`, 'data'),
+      json(`${dir}/observation.json`, 'data'),
+      json(`${dir}/artifact-scan.json`, 'scan'),
+    ],
+  };
+}
 
 /**
  * *Tabel tier*: steps in the order they run, with the evidence of *Bukti per langkah*. The `real` tier runs through
@@ -73,6 +137,8 @@ export const TIERS: Readonly<Partial<Record<TierName, Tier>>> = {
       { script: 'test:integration', evidence: [junit('.local/feature-4/server.xml', 'bun:test')] },
       { script: 'test:tooling', evidence: [junit('.local/feature-4/tooling.xml', 'bun:test')] },
       { script: 'test:gate', evidence: [junit('.local/feature-11/gate.xml', 'bun:test')] },
+      // Spec 0011 (*Tier kapasitas dan gate*): the pure plan and classification units of the k6 profiles.
+      { script: 'test:performance:plan', evidence: [junit('.local/feature-12/plan.xml', 'bun:test')] },
       {
         script: 'test:e2e',
         evidence: [junit('.local/feature-4/playwright.xml', 'playwright'), screenshots('test-results/')],
@@ -110,6 +176,8 @@ export const TIERS: Readonly<Partial<Record<TierName, Tier>>> = {
           screenshots('.local/feature-10/test-results/'),
         ],
       },
+      // Spec 0011 (*Tier kapasitas dan gate*): the k6 smoke profile, last, with its four required files.
+      performanceStep('smoke'),
     ],
   },
   security: {
@@ -121,9 +189,24 @@ export const TIERS: Readonly<Partial<Record<TierName, Tier>>> = {
   },
 };
 
-/** Every script that is a step of a tier, mapped to its tier. */
-export function tierSteps(tiers: Readonly<Partial<Record<TierName, Tier>>> = TIERS): Map<string, TierName> {
-  const steps = new Map<string, TierName>();
+/**
+ * Spec 0011 (*Tier kapasitas dan gate*, row `capacity`): the five capacity profiles in order, each with the four files of
+ * its profile folder, 5.400.000 ms per step and a 180.000 ms grace. It stays outside `TIERS`, so the per push gate,
+ * `TIER_NAMES`, and `test:report` never see it; it records no `leftoverPorts`.
+ */
+export const CAPACITY_TIER: Tier = {
+  name: CAPACITY_TIER_NAME,
+  script: 'test:ci:capacity',
+  stepTimeoutMs: 5_400_000,
+  stopGraceMs: 180_000,
+  steps: (['load', 'stress', 'spike', 'outage', 'soak'] as const).map(performanceStep),
+};
+
+/** Every script that is a step of a tier, mapped to its tier; by default the per push tiers and the capacity tier. */
+export function tierSteps(
+  tiers: Readonly<Partial<Record<RunTierName, Tier>>> = { ...TIERS, [CAPACITY_TIER_NAME]: CAPACITY_TIER },
+): Map<string, RunTierName> {
+  const steps = new Map<string, RunTierName>();
   for (const tier of Object.values(tiers)) {
     if (tier === undefined) continue;
     for (const step of tier.steps) steps.set(step.script, tier.name);
@@ -131,7 +214,9 @@ export function tierSteps(tiers: Readonly<Partial<Record<TierName, Tier>>> = TIE
   return steps;
 }
 
+/** The tier `scripts/gate.ts <name>` runs: one of `TIER_NAMES` or `capacity`, never another word. */
 export function tierByName(name: string): Tier | undefined {
+  if (name === CAPACITY_TIER_NAME) return CAPACITY_TIER;
   return (TIER_NAMES as readonly string[]).includes(name) ? TIERS[name as TierName] : undefined;
 }
 
@@ -141,7 +226,7 @@ export function tierByName(name: string): Tier | undefined {
  * suites start, and that `test:e2e` of the fast tier starts through the Playwright `webServer`, whose processes lead
  * their own process groups outside the step group. The security tier starts no server.
  */
-export const LEFTOVER_PORTS: Readonly<Partial<Record<TierName, readonly number[]>>> = { fast: [8888, 8889], real: [8888, 8889] };
+export const LEFTOVER_PORTS: Readonly<Partial<Record<RunTierName, readonly number[]>>> = { fast: [8888, 8889], real: [8888, 8889] };
 
 // ---------------------------------------------------------------------------------------------------------------
 // *Environment langkah* and *Nilai sensitif*.
@@ -236,6 +321,8 @@ export const REASON_CODES = {
   ],
   /** Scope *Kandidat release*: in the fixed order of the *Kandidat release* row. */
   release: ['gate_not_passed', 'not_clean', 'not_ci', 'event_not_push', 'ref_not_main'],
+  /** Spec 0011 (*Laporan kapasitas*): the release candidate of the capacity report, in this fixed order. */
+  capacityRelease: ['gate_not_passed', 'not_clean', 'not_ci', 'event_not_dispatch', 'ref_not_main'],
 } as const;
 
 export type StepReasonCode = (typeof REASON_CODES.step)[number];
@@ -243,6 +330,7 @@ export type CheckReasonCode = (typeof REASON_CODES.check)[number];
 export type BindingReasonCode = (typeof REASON_CODES.binding)[number];
 export type DiscoveryReasonCode = (typeof REASON_CODES.discovery)[number];
 export type ReleaseReasonCode = (typeof REASON_CODES.release)[number];
+export type CapacityReleaseReasonCode = (typeof REASON_CODES.capacityRelease)[number];
 
 /** Every reason in a manifest: a code plus a repository path or `null`. */
 export type Reason<Code extends string> = { code: Code; path: string | null };
@@ -306,7 +394,8 @@ export type TierEnvironment = { os: string; arch: string; bun: string; node: str
 
 export type TierManifest = {
   schema: 1;
-  tier: TierName;
+  /** `capacity` only in the bundle of the capacity tier, which only `test:report:capacity` reads. */
+  tier: RunTierName;
   candidate: Candidate;
   environment: TierEnvironment;
   inputs: Record<string, string | null>;
@@ -320,7 +409,7 @@ export type TierManifest = {
 /** Folder that holds one bundle per tier, relative to the repository root. */
 export const EVIDENCE_ROOT = '.local/feature-11/evidence';
 
-export function bundlePath(tier: TierName): string {
+export function bundlePath(tier: RunTierName): string {
   return `${EVIDENCE_ROOT}/${tier}`;
 }
 
@@ -503,6 +592,8 @@ async function tierOutputs(root: string): Promise<Record<string, string>> {
 // Evidence (*Bukti per langkah*): read once, checked, hashed, and copied byte for byte into the bundle.
 
 type Copy = { path: string; data: Uint8Array };
+/** The step an evidence file belongs to, for the rule of the `performance` kind. */
+type StepOutcome = { script: string; exitCode: number | null };
 type Collected = { record: EvidenceRecord; reasons: Reason<StepReasonCode>[]; skipped: number; copies: Copy[] };
 type Read = { state: 'absent' } | { state: 'not_regular' } | { state: 'too_large' } | { state: 'read'; data: Uint8Array };
 
@@ -564,6 +655,7 @@ async function collectFile(
   spec: EvidenceSpec,
   sensitive: readonly SensitiveValue[],
   log: (line: string) => void,
+  step: StepOutcome,
 ): Promise<Collected> {
   const record: EvidenceRecord = { path: spec.path, kind: spec.kind, required: spec.required, present: false, sha256: null };
   if (spec.kind === 'junit' && spec.runner !== null) {
@@ -608,7 +700,10 @@ async function collectFile(
     else if (spec.kind === 'scan') {
       const findings = object['findings'];
       if (!Array.isArray(findings) || findings.length !== 0) reasons.push({ code: 'artifact_scan_findings', path: spec.path });
+    } else if (spec.kind === 'performance' && !performanceEvidenceValid(object, step.script, step.exitCode)) {
+      reasons.push({ code: 'evidence_invalid', path: spec.path });
     }
+    // A `data` file only has to be a readable JSON object within the text size limit, checked above.
   }
   return collected;
 }
@@ -662,8 +757,9 @@ function collectEvidence(
   spec: EvidenceSpec,
   sensitive: readonly SensitiveValue[],
   log: (line: string) => void,
+  step: StepOutcome,
 ): Promise<Collected> {
-  return spec.kind === 'screenshots' ? collectFolder(root, spec, sensitive, log) : collectFile(root, spec, sensitive, log);
+  return spec.kind === 'screenshots' ? collectFolder(root, spec, sensitive, log) : collectFile(root, spec, sensitive, log, step);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -774,7 +870,8 @@ async function runStep(context: Context, step: TierStep): Promise<StepRecord> {
   const evidence: EvidenceRecord[] = [];
   const skippedIn: string[] = [];
   for (const spec of step.evidence) {
-    const collected = await collectEvidence(root, spec, context.sensitive, (line) => log(`${prefix}   ${line}`));
+    const outcome: StepOutcome = { script: step.script, exitCode: result?.code ?? null };
+    const collected = await collectEvidence(root, spec, context.sensitive, (line) => log(`${prefix}   ${line}`), outcome);
     evidence.push(collected.record);
     reasons.push(...collected.reasons);
     if (collected.skipped > 0) skippedIn.push(spec.path);
@@ -802,7 +899,7 @@ async function runStep(context: Context, step: TierStep): Promise<StepRecord> {
   };
 }
 
-async function removeStaleBundles(evidenceRoot: string, tier: TierName): Promise<void> {
+async function removeStaleBundles(evidenceRoot: string, tier: RunTierName): Promise<void> {
   await rm(join(evidenceRoot, tier), { recursive: true, force: true });
   for (const entry of await readdir(evidenceRoot)) {
     if (entry.startsWith(`.${tier}-`)) await rm(join(evidenceRoot, entry), { recursive: true, force: true });

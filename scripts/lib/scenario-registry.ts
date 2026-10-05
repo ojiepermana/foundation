@@ -1,7 +1,7 @@
 import { lstat, readFile } from 'node:fs/promises';
 import { extname, isAbsolute, join } from 'node:path';
 import ts from 'typescript';
-import { TIERS, tierSteps, type Tier, type TierName } from './gate.ts';
+import { CAPACITY_TIER, CAPACITY_TIER_NAME, TIERS, tierSteps, type RunTierName, type Tier } from './gate.ts';
 import { registryFiles } from './registry-reader.ts';
 import { ownersOf, RUNNER_OWNERS, type RunnerOwner } from './test-inventory.ts';
 
@@ -119,8 +119,8 @@ export type ValidationResult = { violations: Violation[]; ids: number; checks: n
 
 export type ValidationOptions = {
   root: string;
-  /** The tier table; the exported one by default. */
-  tiers?: Readonly<Partial<Record<TierName, Tier>>>;
+  /** The tier table; by default the per push tiers of `TIERS` and the capacity tier of spec 0011. */
+  tiers?: Readonly<Partial<Record<RunTierName, Tier>>>;
   /** The runner owner table; the exported one by default. */
   owners?: readonly RunnerOwner[];
 };
@@ -153,8 +153,10 @@ async function readSource(root: string, registry: string, source: unknown, repor
  */
 export async function validateRegistries(options: ValidationOptions): Promise<ValidationResult> {
   const { root } = options;
-  const steps = tierSteps(options.tiers ?? TIERS);
-  const tierRoots = new Set(Object.values(options.tiers ?? TIERS).map((tier) => tier?.script));
+  const tiers: Readonly<Partial<Record<RunTierName, Tier>>> = options.tiers ?? { ...TIERS, [CAPACITY_TIER_NAME]: CAPACITY_TIER };
+  const steps = tierSteps(tiers);
+  const rootTiers = new Map<string, RunTierName>();
+  for (const tier of Object.values(tiers)) if (tier !== undefined) rootTiers.set(tier.script, tier.name);
   const owners = options.owners ?? RUNNER_OWNERS;
   const violations: Violation[] = [];
 
@@ -239,6 +241,8 @@ export async function validateRegistries(options: ValidationOptions): Promise<Va
       continue;
     }
     let criticalPlaywright = false;
+    // Spec 0011: the tier of every check script, so a scenario never mixes the capacity tier with another tier.
+    const scenarioTiers = new Set<RunTierName>();
     for (const [index, check] of checks.entries()) {
       const label = `check ke-${index + 1}`;
       if (!isRecord(check)) {
@@ -258,8 +262,12 @@ export async function validateRegistries(options: ValidationOptions): Promise<Va
       let scriptValid = false;
       if (typeof script !== 'string' || script === '') report(`${label}: script wajib diisi`);
       else if (!Object.hasOwn(scripts, script)) report(`${label}: script ${shown(script)} tidak ada di package.json`);
-      else if (!steps.has(script) && !(command && tierRoots.has(script))) report(`${label}: script ${shown(script)} bukan langkah tier gate`);
-      else scriptValid = true;
+      else if (!steps.has(script) && !(command && rootTiers.has(script))) report(`${label}: script ${shown(script)} bukan langkah tier gate`);
+      else {
+        scriptValid = true;
+        const tier = steps.get(script) ?? rootTiers.get(script);
+        if (tier !== undefined) scenarioTiers.add(tier);
+      }
 
       let fileValid = false;
       if (!repositoryPath(file)) report(`${label}: file wajib path relatif di dalam repository tanpa ..`);
@@ -289,6 +297,10 @@ export async function validateRegistries(options: ValidationOptions): Promise<Va
       if (runner === 'playwright' && scriptValid && steps.has(script as string)) criticalPlaywright = true;
     }
     if (scenario['critical'] === true && !criticalPlaywright) report('skenario critical tanpa check playwright pada script tier');
+    if (scenarioTiers.has(CAPACITY_TIER_NAME) && scenarioTiers.size > 1) {
+      const others = [...scenarioTiers].filter((tier) => tier !== CAPACITY_TIER_NAME).sort();
+      report(`skenario mencampur script tier ${CAPACITY_TIER_NAME} dengan script tier ${others.join(', ')}`);
+    }
   }
 
   return { violations, ids: firstSeen.size, checks: checkCount };

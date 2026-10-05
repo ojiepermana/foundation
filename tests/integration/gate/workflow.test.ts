@@ -1,14 +1,17 @@
-import { expect, test } from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { checkWorkflow, runWorkflowCheck, workflowJobs, type WorkflowContext } from '../../../scripts/check-workflow.ts';
 import { TIER_NAMES, TIERS } from '../../../scripts/lib/gate.ts';
-import { lines } from './workspace.ts';
+import { lines, removeWorkspaces, workspace } from './workspace.ts';
 
 // GATE-003 (spec 0010, AC-3, AC-8, AC-9): `check:workflow` applies an allow list to `.github/workflows/application.yml`
 // and rejects every key, value, command, action, input, permission, trigger, or path outside it. The fixture is the
 // four job workflow of the *Workflow* row, written as YAML at runtime and changed one rule at a time.
 
 const repositoryRoot = join(import.meta.dir, '../../..');
+
+afterEach(removeWorkspaces);
 
 const sha = (digit: string) => digit.repeat(40);
 const checkoutUses = `actions/checkout@${sha('1')}`;
@@ -187,6 +190,32 @@ test('GATE-003 the workflow in the repository passes with all four jobs of the W
   expect(output.err).toEqual([]);
   expect(output.out).toHaveLength(1);
   for (const job of jobs) expect(output.out[0]).toContain(`${job} `);
+  // Spec 0011 (*Workflow kapasitas*): both workflow files of the folder pass, capacity.yml with its one job.
+  expect(output.out[0]).toContain('application.yml (');
+  expect(output.out[0]).toContain('capacity.yml (capacity 7 langkah)');
+});
+
+test('GATE-003 application.yml and capacity.yml are accepted, and a third workflow file is rejected with its path', async () => {
+  // covers: AC-3 (check:workflow), spec 0011 AC-9 (dua file workflow diterima, file ketiga ditolak)
+  const copy = async (path: string) => [path, await readFile(join(repositoryRoot, path), 'utf8')] as const;
+  const files = Object.fromEntries(
+    await Promise.all(['package.json', '.github/workflows/application.yml', '.github/workflows/capacity.yml'].map(copy)),
+  );
+  const two = await workspace(files);
+  const passed = lines();
+  expect(await runWorkflowCheck(two, passed.log, passed.error)).toBe(0);
+  expect(passed.err).toEqual([]);
+
+  for (const third of ['.github/workflows/deploy.yml', '.github/workflows/nightly.yaml']) {
+    const dir = await workspace({ ...files, [third]: 'name: x\non:\n  push:\n' });
+    const output = lines();
+    expect(await runWorkflowCheck(dir, output.log, output.error), third).toBe(1);
+    expect(output.out, third).toEqual([]);
+    expect(output.err, third).toEqual([
+      'Pemeriksaan workflow gagal dengan 1 masalah:',
+      `  file workflow ${third} tidak diizinkan; hanya .github/workflows/application.yml dan .github/workflows/capacity.yml`,
+    ]);
+  }
 });
 
 /** *Dokumen yang diperbarui* (spec 0010, AC-9): the strings each document must hold. */
@@ -305,21 +334,42 @@ test('GATE-003 the root scripts run the commands of Interface surface without .e
     'test:ci:real': scripts['test:ci:real'],
     'test:ci:security': scripts['test:ci:security'],
     'test:report': scripts['test:report'],
+    'test:ci:capacity': scripts['test:ci:capacity'],
+    'test:report:capacity': scripts['test:report:capacity'],
     'test:scenarios': scripts['test:scenarios'],
     'check:test-discovery': scripts['check:test-discovery'],
     'check:workflow': scripts['check:workflow'],
     'check:security': scripts['check:security'],
     'test:gate': scripts['test:gate'],
+    'test:performance:plan': scripts['test:performance:plan'],
+    'test:performance:smoke': scripts['test:performance:smoke'],
+    'test:performance:load': scripts['test:performance:load'],
+    'test:performance:stress': scripts['test:performance:stress'],
+    'test:performance:spike': scripts['test:performance:spike'],
+    'test:performance:outage': scripts['test:performance:outage'],
+    'test:performance:soak': scripts['test:performance:soak'],
   }).toEqual({
     'test:ci': 'bun --no-env-file scripts/gate.ts fast',
     'test:ci:real': 'bun --no-env-file scripts/gate.ts real',
     'test:ci:security': 'bun --no-env-file scripts/gate.ts security',
     'test:report': 'bun --no-env-file scripts/gate-report.ts',
+    // Spec 0011 (*Configuration required*): the manual capacity tier and its report.
+    'test:ci:capacity': 'bun --no-env-file scripts/gate.ts capacity',
+    'test:report:capacity': 'bun --no-env-file scripts/gate-report.ts capacity',
     'test:scenarios': 'bun --no-env-file scripts/validate-scenarios.ts',
     'check:test-discovery': 'bun --no-env-file scripts/check-test-discovery.ts',
     'check:workflow': 'bun --no-env-file scripts/check-workflow.ts',
     'check:security': 'bun --no-env-file tests/orchestration/security-scan.ts',
     'test:gate': 'mkdir -p .local/feature-11 && bun --no-env-file test ./tests/integration/gate --reporter=junit --reporter-outfile=.local/feature-11/gate.xml',
+    // Spec 0011 (*Interface surface*): the k6 plan units and the smoke profile.
+    'test:performance:plan': 'mkdir -p .local/feature-12 && bun --no-env-file test ./tests/integration/performance --reporter=junit --reporter-outfile=.local/feature-12/plan.xml',
+    'test:performance:smoke': 'bun --no-env-file tests/orchestration/performance-real.ts smoke',
+    // Spec 0011 (*Configuration required*): one root script per capacity profile.
+    'test:performance:load': 'bun --no-env-file tests/orchestration/performance-real.ts load',
+    'test:performance:stress': 'bun --no-env-file tests/orchestration/performance-real.ts stress',
+    'test:performance:spike': 'bun --no-env-file tests/orchestration/performance-real.ts spike',
+    'test:performance:outage': 'bun --no-env-file tests/orchestration/performance-real.ts outage',
+    'test:performance:soak': 'bun --no-env-file tests/orchestration/performance-real.ts soak',
   });
   for (const name of TIER_NAMES) {
     for (const step of TIERS[name]!.steps) expect(Object.hasOwn(scripts, step.script), `${name} ${step.script}`).toBe(true);

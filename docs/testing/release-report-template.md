@@ -4,6 +4,8 @@ Salin ke `docs/testing/releases/<identitas-release>.md` untuk kandidat release y
 
 Sumber utama bukti adalah `report.md` dan `report.json` yang ditulis `bun run test:report` untuk run CI kandidat (artifact `gate-report`), bersama bundle bukti ketiga tier (artifact `application-evidence`, `real-evidence`, dan `security-evidence`). Salin identitas kandidat, status pengikatan, tabel skenario, identitas PostgreSQL, ringkasan pemindai dari `security.json`, dan tanda kandidat release dari `report.md` run itu; generator tidak menulis ke `docs/`. Gunakan hanya run yang `report.md` nya menyatakan `Kandidat release: ya`, yaitu gate `passed`, ketiga tier bersih, dan push ke `refs/heads/main` dari satu run serta attempt CI.
 
+Bukti kapasitas k6 (spec 0011) berasal dari `.local/feature-12/report.md` dan `.local/feature-12/report.json` yang ditulis `bun run test:report:capacity` pada run workflow `capacity.yml` untuk commit yang sama (artifact `capacity-evidence`, berisi juga bundle `.local/feature-11/evidence/capacity/`). Gunakan hanya laporan kapasitas yang menyatakan `Kandidat release: ya`, yaitu status `passed`, tier bersih, dan run `workflow_dispatch` pada `refs/heads/main`. Smoke k6 per push ada di bagian *Performance k6* pada `report.md` per push.
+
 ## Identitas kandidat
 
 - Release:
@@ -62,7 +64,7 @@ Status skenario menggunakan `passed`, `failed`, `skipped`, `not_run`, `missing_t
 | Skenario dan profil | Model beban, durasi, dan beban aktual | Target dari specs | Hasil aktual | Status dan bukti |
 | --- | --- | --- | --- | --- |
 
-Catat latency, throughput, tingkat kegagalan, iterasi yang tidak berhasil dimulai, waktu penyelesaian job, dan resource yang relevan. Jika performance tidak termasuk cakupan release, jelaskan alasannya.
+Catat latency, throughput, tingkat kegagalan, iterasi yang tidak berhasil dimulai, waktu penyelesaian job, dan resource yang relevan. Salin profil smoke dari bagian *Performance k6* `report.md` per push, dan profil load, stress, spike, outage, serta soak dari bagian yang sama pada `.local/feature-12/report.md`, termasuk environment (mesin container) dan batas bukti setiap profil. Jika performance tidak termasuk cakupan release, jelaskan alasannya.
 
 ## Masalah dan batas bukti
 
