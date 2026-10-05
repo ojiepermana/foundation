@@ -5,6 +5,10 @@ import {
   CAPACITY_TIER,
   CAPACITY_TIER_NAME,
   ciIdentity,
+  REASON_CODES,
+  DEPLOYMENT_CHECKS,
+  DEPLOYMENT_EVIDENCE_DIR,
+  deploymentResult,
   fileChecksum,
   gitCommit,
   performanceProfile,
@@ -17,9 +21,11 @@ import {
   type CapacityReleaseReasonCode,
   type CheckReasonCode,
   type CiIdentity,
+  type DeploymentCheckName,
   type DiscoveryReasonCode,
   type EvidenceRecord,
   type Reason,
+  type ReleaseReadinessReasonCode,
   type ReleaseReasonCode,
   type RunTierName,
   type StepReasonCode,
@@ -39,7 +45,9 @@ import { inventory, junitDiscovery, junitSuitePath, ownedBy, RUNNER_OWNERS, runn
 // JUnit of every runner, summarizes the scanners and the PostgreSQL image of the real tier, flags the release
 // candidate, and writes `report.json`, `report.md`, and the job summary. Nothing is stored between runs: every run
 // computes the gate again from the bundles and the checkout. Spec 0011 adds `test:report:capacity`: the same reading of
-// the one bundle of the capacity tier, bound to the checkout, for the scenarios whose checks all name its scripts.
+// the one bundle of the capacity tier, bound to the checkout, for the scenarios whose checks all name its scripts. Spec
+// 0012 adds `test:report:release`: both reports computed again with the CI identity of their own manifests, and the
+// release status `ready`, `blocked`, or `incomplete`, which never grants a deployment.
 
 export type CheckStatus = 'passed' | 'failed' | 'skipped' | 'not_run' | 'missing_test';
 export type GateStatus = 'passed' | 'failed' | 'incomplete';
@@ -138,14 +146,12 @@ export type ReleaseReason = { code: ReleaseReasonCode; tier: TierName | null };
 export type ReleaseCandidate = { value: boolean; reasons: ReleaseReason[] };
 
 /**
- * What the per push gate does not prove (*Isi laporan*, `outOfScope`, as changed by spec 0011): the capacity profiles,
- * proven by `test:report:capacity` from the capacity tier, and the deployment image.
+ * What the per push gate does not prove (*Isi laporan*, `outOfScope`, as changed by specs 0011 and 0012): the capacity
+ * profiles, proven by `test:report:capacity` from the capacity tier. The deployment image is now bound to the report
+ * through the field `deployment` (spec 0012), so it is no longer out of scope here; the capacity report keeps it.
  */
 export type OutOfScope = { area: 'capacity_profiles' | 'deployment_image'; feature: number };
-export const OUT_OF_SCOPE: readonly OutOfScope[] = [
-  { area: 'capacity_profiles', feature: 12 },
-  { area: 'deployment_image', feature: 13 },
-];
+export const OUT_OF_SCOPE: readonly OutOfScope[] = [{ area: 'capacity_profiles', feature: 12 }];
 
 /** The `result.json` fields one `performance` entry copies as is (spec 0011, *Laporan per push*). */
 export const PERFORMANCE_FIELDS = [
@@ -173,6 +179,39 @@ export type PerformanceEntry = {
   evidence: string;
 } & Record<(typeof PERFORMANCE_FIELDS)[number], unknown>;
 
+/** The step of the real tier whose `result.json` and `images.json` fill `deployment` (spec 0012). */
+export const DEPLOYMENT_STEP = 'test:deployment:real';
+export const DEPLOYMENT_RESULT = `${DEPLOYMENT_EVIDENCE_DIR}/result.json`;
+export const DEPLOYMENT_IMAGES = `${DEPLOYMENT_EVIDENCE_DIR}/images.json`;
+/** The three images of the *Image* table of spec 0012, in the order `images.json` lists them. */
+export const DEPLOYMENT_IMAGE_NAMES = ['frontend', 'backend', 'migrate'] as const;
+
+/** One image of `deployment.images`: the fields of `images.json`, with the two build labels taken out of `labels`. */
+export type DeploymentImage = {
+  name: (typeof DEPLOYMENT_IMAGE_NAMES)[number];
+  tag: string;
+  imageId: string | null;
+  sizeBytes: number | null;
+  user: string | null;
+  bases: string[];
+  revision: string | null;
+  sourceTree: string | null;
+};
+
+/**
+ * `deployment` of the per push report (spec 0012, *Perubahan gate yang dinamai*, Laporan per push): the status of the
+ * deployment step, the bundle path of its `result.json`, the images, and every check with its status. `boundary` is the
+ * fixed text of `result.json`, copied so `report.md` can print it while it stays derived from `report.json` only
+ * (decision 53 of the spec rationale); `null` when the file has none.
+ */
+export type DeploymentReport = {
+  status: 'passed' | 'failed';
+  evidence: string;
+  images: DeploymentImage[];
+  checks: Array<{ name: DeploymentCheckName; status: 'passed' | 'failed' | 'not_run' }>;
+  boundary: string | null;
+};
+
 export type GateReport = {
   schema: 1;
   generatedAt: string;
@@ -189,6 +228,8 @@ export type GateReport = {
   outOfScope: OutOfScope[];
   /** Spec 0011: after `outOfScope`, empty when no `performance` evidence matches its manifest. */
   performance: PerformanceEntry[];
+  /** Spec 0012: after `performance`, `null` unless both deployment files are bound to the real manifest and valid. */
+  deployment: DeploymentReport | null;
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -216,7 +257,7 @@ function safePath(path: unknown): path is string {
 // Manifests and evidence hashes.
 
 const stepStatuses = new Set<string>(['passed', 'failed', 'skipped', 'not_run']);
-const evidenceKinds = new Set<string>(['junit', 'screenshots', 'image', 'scan', 'scanner', 'performance', 'data']);
+const evidenceKinds = new Set<string>(['junit', 'screenshots', 'image', 'scan', 'scanner', 'performance', 'data', 'deployment']);
 const ciFields = ['runId', 'runAttempt', 'job', 'sha', 'ref', 'event'] as const;
 
 function validEvidence(value: unknown): value is EvidenceRecord {
@@ -300,15 +341,17 @@ type LoadedTier = {
   verified: Set<string>;
 };
 
-async function loadTier(root: string, name: RunTierName, problems: BindingProblem[]): Promise<LoadedTier> {
-  const loaded: LoadedTier = { name, manifest: null, verified: new Set() };
+/** The manifest of one bundle when it exists and is valid, else the binding code that says why there is none. */
+async function readManifest(
+  root: string,
+  name: RunTierName,
+): Promise<{ manifest: TierManifest; problem: null } | { manifest: null; problem: 'manifest_missing' | 'manifest_invalid' }> {
   let text: string;
   try {
     text = await readFile(join(root, bundlePath(name), 'manifest.json'), 'utf8');
   } catch (error) {
     if (errorCode(error) !== 'ENOENT' && errorCode(error) !== 'ENOTDIR') throw error;
-    problems.push({ code: 'manifest_missing', tier: name, path: null });
-    return loaded;
+    return { manifest: null, problem: 'manifest_missing' };
   }
   let value: unknown;
   try {
@@ -316,10 +359,17 @@ async function loadTier(root: string, name: RunTierName, problems: BindingProble
   } catch {
     value = undefined;
   }
-  if (!validManifest(value, name)) {
-    problems.push({ code: 'manifest_invalid', tier: name, path: null });
+  return validManifest(value, name) ? { manifest: value, problem: null } : { manifest: null, problem: 'manifest_invalid' };
+}
+
+async function loadTier(root: string, name: RunTierName, problems: BindingProblem[]): Promise<LoadedTier> {
+  const loaded: LoadedTier = { name, manifest: null, verified: new Set() };
+  const read = await readManifest(root, name);
+  if (read.manifest === null) {
+    problems.push({ code: read.problem, tier: name, path: null });
     return loaded;
   }
+  const value = read.manifest;
   loaded.manifest = value;
   if (value.candidate.commit === null) problems.push({ code: 'no_commit', tier: name, path: null });
 
@@ -697,6 +747,57 @@ async function readPerformance(root: string, tiers: readonly LoadedTier[]): Prom
   return entries;
 }
 
+/** One image record of `images.json`, or `null` when a field has another type than the images.json paragraph names. */
+function deploymentImage(value: unknown, name: DeploymentImage['name']): DeploymentImage | null {
+  if (!isRecord(value) || value['name'] !== name || typeof value['tag'] !== 'string') return null;
+  const { imageId, sizeBytes, user, bases, labels } = value;
+  if (!stringOrNull(imageId) || !stringOrNull(user)) return null;
+  if (sizeBytes !== null && !(typeof sizeBytes === 'number' && Number.isInteger(sizeBytes) && sizeBytes >= 0)) return null;
+  if (!Array.isArray(bases) || !bases.every((base) => typeof base === 'string')) return null;
+  if (!isRecord(labels) || !stringOrNull(labels['revision']) || !stringOrNull(labels['sourceTree'])) return null;
+  return {
+    name,
+    tag: value['tag'],
+    imageId,
+    sizeBytes: sizeBytes as number | null,
+    user,
+    bases: [...(bases as string[])],
+    revision: labels['revision'],
+    sourceTree: labels['sourceTree'],
+  };
+}
+
+/**
+ * *Laporan per push* of spec 0012: `deployment` from `result.json` and `images.json` of `test:deployment:real` in the
+ * real bundle, only when the step recorded both with their SHA 256, both bundle copies match it, `result.json` has the
+ * shape of `deploymentResult`, and `images.json` has `schema` 1 and the three images of the *Image* table in order.
+ * Otherwise `null` as a whole, never a partial entry. The step status does not matter, and the gate never reads it.
+ */
+async function readDeployment(root: string, tiers: readonly LoadedTier[]): Promise<DeploymentReport | null> {
+  const real = tiers.filter((tier) => tier.name === 'real');
+  const result = jsonObject(await boundEvidence(root, real, DEPLOYMENT_STEP, DEPLOYMENT_RESULT));
+  const images = jsonObject(await boundEvidence(root, real, DEPLOYMENT_STEP, DEPLOYMENT_IMAGES));
+  if (result === null || images === null) return null;
+  const shape = deploymentResult(result);
+  if (shape === null || images['schema'] !== 1 || !Array.isArray(images['images'])) return null;
+  const list = images['images'];
+  if (list.length !== DEPLOYMENT_IMAGE_NAMES.length) return null;
+  const records: DeploymentImage[] = [];
+  for (const [index, name] of DEPLOYMENT_IMAGE_NAMES.entries()) {
+    const record = deploymentImage(list[index], name);
+    if (record === null) return null;
+    records.push(record);
+  }
+  const boundary = result['boundary'];
+  return {
+    status: shape.status,
+    evidence: `${bundlePath('real')}/${DEPLOYMENT_RESULT}`,
+    images: records,
+    checks: shape.checks,
+    boundary: typeof boundary === 'string' ? boundary : null,
+  };
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Gate and release candidate.
 
@@ -769,7 +870,16 @@ function summarizeTier(tier: LoadedTier): TierSummary {
   };
 }
 
-export async function buildReport(root: string, env: Environment = process.env): Promise<GateReport> {
+/**
+ * The per push report. `reportCi` is the CI identity the bundles are bound to and judged by (spec 0012, *Perhitungan
+ * laporan release* (1)): by default the identity of the report process, so `test:report` keeps its behavior, and the
+ * identity `bundleCi` read from the manifests when `test:report:release` builds it.
+ */
+export async function buildReport(
+  root: string,
+  env: Environment = process.env,
+  reportCi: CiIdentity | null = ciIdentity(env),
+): Promise<GateReport> {
   const problems: BindingProblem[] = [];
   const tiers: LoadedTier[] = [];
   for (const name of TIER_NAMES) tiers.push(await loadTier(root, name, problems));
@@ -777,7 +887,7 @@ export async function buildReport(root: string, env: Environment = process.env):
   const candidate: ReportCandidate = {
     commit: await gitCommit(root, env),
     sourceTree: await sourceTree(root, undefined, env),
-    ci: ciIdentity(env),
+    ci: reportCi,
   };
   if (candidate.commit === null) problems.push({ code: 'no_commit', tier: null, path: null });
   problems.push(...crossBinding(candidate, manifests));
@@ -806,6 +916,7 @@ export async function buildReport(root: string, env: Environment = process.env):
     releaseCandidate: releaseCandidate(gate, manifests, candidate.ci),
     outOfScope: OUT_OF_SCOPE.map((item) => ({ ...item })),
     performance: await readPerformance(root, tiers),
+    deployment: await readDeployment(root, tiers),
   };
 }
 
@@ -1232,6 +1343,73 @@ function performanceSection(entries: readonly PerformanceEntry[], source = 'tier
   return lines;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// *Deployment* (spec 0012, *Laporan per push*), rendered only from the `deployment` field: the image table, the check
+// table with the criteria of DEPLOYMENT_CHECKS, the boundary text, and the sentence that the images are local only.
+
+/** The fixed sentence of the *Deployment* section: printed with and without evidence. */
+export const DEPLOYMENT_LOCAL_ONLY =
+  'Image dibangun lokal dari root monorepo oleh `test:deployment:real`, tidak didorong ke registry, dan bukti ini bukan izin deploy.';
+
+/** The criteria column of the check table: the acceptance criteria DEPLOYMENT_CHECKS names for `name`. */
+export function deploymentCriteria(name: string): string {
+  return DEPLOYMENT_CHECKS.find((check) => check.name === name)?.criteria.join(', ') ?? '-';
+}
+
+function deploymentSection(deployment: DeploymentReport | null): string[] {
+  const lines = ['## Deployment', ''];
+  if (deployment === null) {
+    lines.push(
+      'Bukti deployment tidak tersedia karena `result.json` atau `images.json` tidak ada di bundle tier nyata, tidak cocok dengan manifest, atau bentuknya tidak sah. Penyebabnya terlihat pada alasan langkah dan pengikatan.',
+      '',
+      DEPLOYMENT_LOCAL_ONLY,
+      '',
+    );
+    return lines;
+  }
+  const passed = deployment.checks.filter((check) => check.status === 'passed').length;
+  lines.push(...header(['Aspek', 'Nilai']));
+  lines.push(row(['Status', deployment.status]));
+  lines.push(row(['Check passed', `${passed} dari ${deployment.checks.length}`]));
+  lines.push(row(['Bukti', deployment.evidence]));
+  lines.push('', DEPLOYMENT_LOCAL_ONLY, '');
+  lines.push('### Image deployment', '');
+  lines.push(...header(['Image', 'Tag', 'Image ID', 'Ukuran (byte)', 'User', 'Image dasar', 'Revision', 'Pohon sumber']));
+  for (const image of deployment.images) {
+    lines.push(
+      row([
+        image.name,
+        image.tag,
+        image.imageId ?? '-',
+        image.sizeBytes === null ? '-' : String(image.sizeBytes),
+        image.user ?? '-',
+        image.bases.join(', ') || '-',
+        image.revision ?? '-',
+        image.sourceTree ?? '-',
+      ]),
+    );
+  }
+  lines.push('');
+  lines.push('### Check deployment', '');
+  lines.push(...header(['Check', 'Kriteria', 'Status']));
+  for (const check of deployment.checks) lines.push(row([check.name, deploymentCriteria(check.name), check.status]));
+  lines.push('');
+  lines.push('### Batas bukti deployment', '');
+  // Written as is (only control characters go), never cut: the text is fixed by the spec.
+  lines.push(deployment.boundary === null ? 'Batas bukti tidak tercatat.' : deployment.boundary.replace(/[\u0000-\u001f\u007f-\u009f]/g, ''), '');
+  return lines;
+}
+
+/** One line of *Di luar cakupan*, for the per push and the capacity report alike. */
+function outOfScopeLine(item: OutOfScope, capacityReport: boolean): string {
+  if (item.area === 'deployment_image') {
+    return `- Profil kapasitas masih mengukur komposisi development, bukan image deployment (fitur ${item.feature}).`;
+  }
+  return capacityReport
+    ? `- Profil kapasitas load, stress, spike, outage, dan soak (fitur ${item.feature}).`
+    : `- Profil kapasitas load, stress, spike, outage, dan soak, dibuktikan \`test:report:capacity\` dari tier kapasitas (fitur ${item.feature}).`;
+}
+
 export function renderMarkdown(report: GateReport): string {
   const lines: string[] = ['# Laporan gate CI', ''];
   lines.push(
@@ -1360,6 +1538,7 @@ export function renderMarkdown(report: GateReport): string {
   lines.push('');
 
   lines.push(...performanceSection(report.performance));
+  lines.push(...deploymentSection(report.deployment));
 
   lines.push('## Kandidat release', '');
   lines.push(releaseLine(report.releaseCandidate), '');
@@ -1370,13 +1549,7 @@ export function renderMarkdown(report: GateReport): string {
   lines.push('Tanda ini tidak mengubah status gate maupun exit code `test:report`.', '');
 
   lines.push('## Di luar cakupan', '');
-  for (const item of report.outOfScope) {
-    lines.push(
-      item.area === 'capacity_profiles'
-        ? `- Profil kapasitas load, stress, spike, outage, dan soak, dibuktikan \`test:report:capacity\` dari tier kapasitas (fitur ${item.feature}).`
-        : `- Identitas image deployment belum diikat pada laporan (fitur ${item.feature}).`,
-    );
-  }
+  for (const item of report.outOfScope) lines.push(outOfScopeLine(item, false));
   lines.push('');
   return lines.join('\n');
 }
@@ -1424,6 +1597,10 @@ export async function runReport(
   }
   const performance = report.performance.map((item) => `${item.profile} ${item.status}`).join(', ');
   log(`  performance k6: ${performance || 'tidak ada bukti'}`);
+  const deployment = report.deployment;
+  log(
+    `  deployment: ${deployment === null ? 'tidak ada bukti' : `${deployment.status} (${deployment.checks.filter((check) => check.status === 'passed').length} dari ${deployment.checks.length} check passed)`}`,
+  );
   log(`  ${releaseLine(report.releaseCandidate).replace(/`/g, '')}`);
   log(`Laporan: ${REPORT_JSON} dan ${REPORT_MD}`);
   return report.gate === 'passed' ? 0 : 1;
@@ -1440,7 +1617,10 @@ export const CAPACITY_REPORT_JSON = `${CAPACITY_REPORT_DIR}/report.json`;
 export const CAPACITY_REPORT_MD = `${CAPACITY_REPORT_DIR}/report.md`;
 /** The event of a capacity release candidate: the manual trigger of `.github/workflows/capacity.yml`. */
 export const CAPACITY_RELEASE_EVENT = 'workflow_dispatch';
-/** What the capacity report does not prove: the deployment image (feature 13). */
+/**
+ * What the capacity report does not prove (spec 0012, *Perubahan gate yang dinamai*, outOfScope): the capacity profiles
+ * still measure the development composition, not the deployment image of feature 13.
+ */
 export const CAPACITY_OUT_OF_SCOPE: readonly OutOfScope[] = [{ area: 'deployment_image', feature: 13 }];
 
 /** A capacity release reason has no tier: the report reads one tier only. */
@@ -1496,13 +1676,18 @@ export function capacityReleaseCandidate(status: GateStatus, manifest: TierManif
   return { value: reasons.length === 0, reasons };
 }
 
-export async function buildCapacityReport(root: string, env: Environment = process.env): Promise<CapacityReport> {
+/** The capacity report; `reportCi` as in `buildReport`, by default the identity of the report process. */
+export async function buildCapacityReport(
+  root: string,
+  env: Environment = process.env,
+  reportCi: CiIdentity | null = ciIdentity(env),
+): Promise<CapacityReport> {
   const problems: BindingProblem[] = [];
   const tier = await loadTier(root, CAPACITY_TIER_NAME, problems);
   const candidate: ReportCandidate = {
     commit: await gitCommit(root, env),
     sourceTree: await sourceTree(root, undefined, env),
-    ci: ciIdentity(env),
+    ci: reportCi,
   };
   if (candidate.commit === null) problems.push({ code: 'no_commit', tier: null, path: null });
   problems.push(...crossBinding(candidate, [tier.manifest]));
@@ -1615,13 +1800,7 @@ export function renderCapacityMarkdown(report: CapacityReport): string {
   lines.push('Tanda ini tidak mengubah status laporan kapasitas maupun exit code `test:report:capacity`.', '');
 
   lines.push('## Di luar cakupan', '');
-  for (const item of report.outOfScope) {
-    lines.push(
-      item.area === 'capacity_profiles'
-        ? `- Profil kapasitas load, stress, spike, outage, dan soak (fitur ${item.feature}).`
-        : `- Identitas image deployment belum diikat pada laporan (fitur ${item.feature}).`,
-    );
-  }
+  for (const item of report.outOfScope) lines.push(outOfScopeLine(item, true));
   lines.push('');
   return lines.join('\n');
 }
@@ -1660,4 +1839,233 @@ export async function runCapacityReport(
   log(`  ${releaseLine(report.releaseCandidate).replace(/`/g, '')}`);
   log(`Laporan: ${CAPACITY_REPORT_JSON} dan ${CAPACITY_REPORT_MD}`);
   return report.status === 'passed' ? 0 : 1;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// `bun run test:report:release` (spec 0012, AC-12, *Perhitungan laporan release* and *Status kesiapan release*): the
+// release owner downloads the per push and capacity bundles of one commit into `.local/feature-11/evidence/` on a
+// checkout of that commit, and this command builds the per push and the capacity report again, each bound to the CI
+// identity its own manifests carry, then states `ready`, `blocked`, or `incomplete`. It writes only `release.json` and
+// `release.md`, never the two reports, never reads `GITHUB_*` of its own process, and never grants a deployment.
+
+export const RELEASE_READINESS_DIR = '.local/feature-13';
+export const RELEASE_JSON = `${RELEASE_READINESS_DIR}/release.json`;
+export const RELEASE_MD = `${RELEASE_READINESS_DIR}/release.md`;
+
+export type ReleaseReadinessStatus = 'ready' | 'blocked' | 'incomplete';
+
+/** The codes of class `blocked` (*Status kesiapan release*); every other code of the list is of class `incomplete`. */
+export const RELEASE_BLOCKED_CODES: readonly ReleaseReadinessReasonCode[] = ['gate_failed', 'capacity_failed'];
+
+/** The two fixed sentences of `release.md` (*Status kesiapan release*). */
+export const RELEASE_NOT_PERMISSION =
+  'Status `ready` berarti bukti wajib lengkap dan lulus untuk kandidat ini, dan tidak memberi izin deploy; keputusan deploy dicatat terpisah oleh pemilik release.';
+export const RELEASE_IDENTITY_UNVERIFIED =
+  'Identitas run dibaca dari manifest bundle yang ditulis run itu sendiri dan tidak diverifikasi ke GitHub, dan paket OS image tidak dipindai pemindai kerentanan.';
+
+/** `.local/feature-13/release.json`: exactly these keys, in this order. `grantsDeployment` is always `false`. */
+export type ReleaseReport = {
+  schema: 1;
+  generatedAt: string;
+  candidate: { commit: string | null; sourceTree: string | null };
+  perPush: { gate: GateStatus; releaseCandidate: ReleaseCandidate; ci: CiIdentity | null };
+  capacity: { status: GateStatus; releaseCandidate: CapacityReleaseCandidate; ci: CiIdentity | null };
+  deployment: DeploymentReport | null;
+  status: ReleaseReadinessStatus;
+  reasons: Array<{ code: ReleaseReadinessReasonCode }>;
+  grantsDeployment: false;
+};
+
+/**
+ * *Perhitungan laporan release* (2): `candidate.ci` of the first valid manifest that has a CI identity, in the order
+ * given (`fast`, `real`, `security` for the per push report, the capacity manifest alone for the capacity report), with
+ * `job` set to `null`, since each tier runs in its own job; `null` when no manifest has one.
+ */
+export function bundleCi(manifests: ReadonlyArray<TierManifest | null>): CiIdentity | null {
+  for (const manifest of manifests) {
+    const ci = manifest?.candidate.ci;
+    if (ci === undefined || ci === null) continue;
+    return { runId: ci.runId, runAttempt: ci.runAttempt, job: null, sha: ci.sha, ref: ci.ref, event: ci.event };
+  }
+  return null;
+}
+
+/**
+ * *Status kesiapan release*: every code that applies, in the fixed order of `REASON_CODES.releaseReadiness`, and the
+ * status they give: `blocked` with a code of class `blocked`, `incomplete` with codes of class `incomplete` only, and
+ * `ready` without a code. `manifests` are the valid manifests of the four bundles (`null` for a bundle without one).
+ * An image label of `null`, or a checkout without commit or source tree, never matches (decision 55 of the rationale).
+ */
+export function releaseReadiness(input: {
+  gate: GateStatus;
+  gateCandidate: boolean;
+  capacity: GateStatus;
+  capacityCandidate: boolean;
+  checkout: { commit: string | null; sourceTree: string | null };
+  manifests: ReadonlyArray<TierManifest | null>;
+  deployment: DeploymentReport | null;
+}): { status: ReleaseReadinessStatus; reasons: Array<{ code: ReleaseReadinessReasonCode }> } {
+  const { commit, sourceTree: tree } = input.checkout;
+  const applies: Record<ReleaseReadinessReasonCode, boolean> = {
+    gate_failed: input.gate === 'failed',
+    capacity_failed: input.capacity === 'failed',
+    gate_incomplete: input.gate === 'incomplete',
+    capacity_incomplete: input.capacity === 'incomplete',
+    gate_not_candidate: !input.gateCandidate,
+    capacity_not_candidate: !input.capacityCandidate,
+    candidate_differs:
+      commit === null ||
+      tree === null ||
+      input.manifests.some((manifest) => manifest !== null && (manifest.candidate.commit !== commit || manifest.candidate.sourceTree !== tree)),
+    image_differs:
+      input.deployment === null ||
+      commit === null ||
+      tree === null ||
+      input.deployment.images.some((image) => image.revision !== commit || image.sourceTree !== tree),
+  };
+  const reasons = REASON_CODES.releaseReadiness.filter((code) => applies[code]).map((code) => ({ code }));
+  const status: ReleaseReadinessStatus = reasons.some((reason) => RELEASE_BLOCKED_CODES.includes(reason.code))
+    ? 'blocked'
+    : reasons.length > 0
+      ? 'incomplete'
+      : 'ready';
+  return { status, reasons };
+}
+
+/**
+ * *Perhitungan laporan release*: reads the four manifests, takes the CI identity of each report from its own bundles
+ * with `bundleCi`, builds the per push report and the capacity report with it as `reportCi`, and states the release
+ * status against the commit and the source tree of the checkout. Nothing is written here.
+ */
+export async function buildReleaseReport(root: string, env: Environment = process.env): Promise<ReleaseReport> {
+  const perPushManifests: Array<TierManifest | null> = [];
+  for (const name of TIER_NAMES) perPushManifests.push((await readManifest(root, name)).manifest);
+  const capacityManifest = (await readManifest(root, CAPACITY_TIER_NAME)).manifest;
+  const perPushCi = bundleCi(perPushManifests);
+  const capacityCi = bundleCi([capacityManifest]);
+
+  const perPush = await buildReport(root, env, perPushCi);
+  const capacity = await buildCapacityReport(root, env, capacityCi);
+  const candidate = { commit: perPush.candidate.commit, sourceTree: perPush.candidate.sourceTree };
+  const { status, reasons } = releaseReadiness({
+    gate: perPush.gate,
+    gateCandidate: perPush.releaseCandidate.value,
+    capacity: capacity.status,
+    capacityCandidate: capacity.releaseCandidate.value,
+    checkout: candidate,
+    manifests: [...perPushManifests, capacityManifest],
+    deployment: perPush.deployment,
+  });
+  return {
+    schema: 1,
+    generatedAt: new Date().toISOString(),
+    candidate,
+    perPush: { gate: perPush.gate, releaseCandidate: perPush.releaseCandidate, ci: perPushCi },
+    capacity: { status: capacity.status, releaseCandidate: capacity.releaseCandidate, ci: capacityCi },
+    deployment: perPush.deployment,
+    status,
+    reasons,
+    grantsDeployment: false,
+  };
+}
+
+const releaseReadinessText: Record<ReleaseReadinessReasonCode, string> = {
+  gate_failed: 'gate per push berstatus failed',
+  capacity_failed: 'laporan kapasitas berstatus failed',
+  gate_incomplete: 'gate per push berstatus incomplete',
+  capacity_incomplete: 'laporan kapasitas berstatus incomplete',
+  gate_not_candidate: 'laporan per push bukan kandidat release',
+  capacity_not_candidate: 'laporan kapasitas bukan kandidat release',
+  candidate_differs: 'commit atau pohon sumber checkout tidak ada, atau salah satu manifest bundle berasal dari commit atau pohon sumber lain',
+  image_differs: 'bukti deployment tidak tersedia, atau salah satu image tidak berlabel commit dan pohon sumber checkout',
+};
+
+function readinessClass(code: ReleaseReadinessReasonCode): 'blocked' | 'incomplete' {
+  return RELEASE_BLOCKED_CODES.includes(code) ? 'blocked' : 'incomplete';
+}
+
+/** `release.md`, in Indonesian, derived only from the fields of `ReleaseReport`. */
+export function renderReleaseMarkdown(report: ReleaseReport): string {
+  const lines: string[] = ['# Status kesiapan release', ''];
+  lines.push(
+    'Status ini dihitung ulang oleh `bun run test:report:release` dari bundle `fast`, `real`, `security`, dan `capacity` di `.local/feature-11/evidence/` pada checkout commit kandidat. Laporan per push dan laporan kapasitas tidak ditulis ulang.',
+    '',
+  );
+
+  lines.push('## Status', '');
+  lines.push(`Status release: \`${report.status}\`.`, '');
+  lines.push(RELEASE_NOT_PERMISSION, '');
+  lines.push(RELEASE_IDENTITY_UNVERIFIED, '');
+
+  lines.push('## Alasan', '');
+  if (report.reasons.length === 0) lines.push('Tidak ada alasan.', '');
+  else {
+    for (const reason of report.reasons) lines.push(`- \`${reason.code}\` (${readinessClass(reason.code)}): ${releaseReadinessText[reason.code]}.`);
+    lines.push('');
+  }
+
+  lines.push('## Kandidat', '');
+  lines.push(...header(['Aspek', 'Nilai']));
+  lines.push(row(['Commit checkout', report.candidate.commit ?? 'tidak ada']));
+  lines.push(row(['Pohon sumber checkout', report.candidate.sourceTree ?? 'tidak ada']));
+  lines.push(row(['Memberi izin deploy (grantsDeployment)', String(report.grantsDeployment)]));
+  lines.push(row(['Dibuat', report.generatedAt]));
+  lines.push('');
+
+  lines.push('## Run per push', '');
+  lines.push(...header(['Aspek', 'Nilai']));
+  lines.push(row(['Status gate', report.perPush.gate]));
+  lines.push(row(['Kandidat release', releaseLine(report.perPush.releaseCandidate).replace(/`/g, '')]));
+  lines.push(row(['Identitas run dari manifest', ciText(report.perPush.ci)]));
+  lines.push('');
+
+  lines.push('## Run kapasitas', '');
+  lines.push(...header(['Aspek', 'Nilai']));
+  lines.push(row(['Status laporan kapasitas', report.capacity.status]));
+  lines.push(row(['Kandidat release', releaseLine(report.capacity.releaseCandidate).replace(/`/g, '')]));
+  lines.push(row(['Identitas run dari manifest', ciText(report.capacity.ci)]));
+  lines.push('');
+
+  lines.push('## Image', '');
+  if (report.deployment === null) {
+    lines.push(
+      'Bukti deployment tidak tersedia di laporan per push, sehingga label image tidak dapat dibandingkan dengan checkout.',
+      '',
+    );
+  } else {
+    lines.push(...header(['Image', 'Tag', 'Image ID', 'Revision', 'Pohon sumber', 'Sama dengan checkout']));
+    for (const image of report.deployment.images) {
+      const same = image.revision !== null && image.revision === report.candidate.commit && image.sourceTree !== null && image.sourceTree === report.candidate.sourceTree;
+      lines.push(row([image.name, image.tag, image.imageId ?? '-', image.revision ?? '-', image.sourceTree ?? '-', same ? 'ya' : 'tidak']));
+    }
+    lines.push('');
+  }
+  lines.push(DEPLOYMENT_LOCAL_ONLY, '');
+  return lines.join('\n');
+}
+
+/**
+ * Builds the release status, writes only `.local/feature-13/release.json` and `release.md`, and resolves to 0 only for
+ * `ready`; `blocked` and `incomplete` resolve to 1. It never writes the per push or the capacity report and never
+ * appends a job summary.
+ */
+export async function runReleaseReport(
+  root: string,
+  write: (line: string) => void = (line) => process.stdout.write(`${line}\n`),
+  env: Environment = process.env,
+): Promise<number> {
+  const log = (line: string) => write(consoleLine(line));
+  const report = await buildReleaseReport(root, env);
+  const markdown = renderReleaseMarkdown(report);
+  await mkdir(join(root, RELEASE_READINESS_DIR), { recursive: true });
+  await writeFile(join(root, RELEASE_JSON), `${JSON.stringify(report, null, 2)}\n`);
+  await writeFile(join(root, RELEASE_MD), markdown);
+
+  log(`Status release ${report.status}`);
+  log(`  gate per push: ${report.perPush.gate}, ${releaseLine(report.perPush.releaseCandidate).replace(/`/g, '')}, ${ciText(report.perPush.ci)}`);
+  log(`  laporan kapasitas: ${report.capacity.status}, ${releaseLine(report.capacity.releaseCandidate).replace(/`/g, '')}, ${ciText(report.capacity.ci)}`);
+  log(`  alasan: ${report.reasons.map((reason) => reason.code).join(', ') || 'tidak ada'}`);
+  log('  grantsDeployment: false (status ini bukan izin deploy)');
+  log(`Laporan: ${RELEASE_JSON} dan ${RELEASE_MD}`);
+  return report.status === 'ready' ? 0 : 1;
 }

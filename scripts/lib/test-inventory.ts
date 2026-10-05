@@ -34,6 +34,9 @@ const vitestPath: JUnitPathRule = { from: 'suite-name', prefix: 'apps/frontend/'
 const playwrightPath: JUnitPathRule = { from: 'suite-name', prefix: 'tests/e2e/' };
 const bunPath: JUnitPathRule = { from: 'file-attribute' };
 const realE2e = ['tests/e2e/**/*.real.e2e.spec.ts'];
+// DEP-006 of spec 0012 runs only through test:deployment:real (playwright.deployment.config.ts), against the edge that
+// the orchestration starts, so test:e2e leaves the file out.
+const deploymentE2e = ['tests/e2e/**/*.deployment.e2e.spec.ts'];
 
 function bunOwner(script: string, root: string, include: readonly string[], junit: string): RunnerOwner {
   return { script, runner: 'bun:test', root, include, exclude: [], config: null, junit, junitPath: bunPath };
@@ -55,7 +58,7 @@ export const RUNNER_OWNERS: readonly RunnerOwner[] = [
     runner: 'playwright',
     root: 'tests/e2e',
     include: ['tests/e2e/**/*.e2e.spec.ts'],
-    exclude: realE2e,
+    exclude: [...realE2e, ...deploymentE2e],
     config: 'playwright.config.ts',
     junit: '.local/feature-4/playwright.xml',
     junitPath: playwrightPath,
@@ -80,6 +83,16 @@ export const RUNNER_OWNERS: readonly RunnerOwner[] = [
     junit: '.local/feature-2/playwright-real.xml',
     junitPath: playwrightPath,
   },
+  {
+    script: 'test:deployment:real',
+    runner: 'playwright',
+    root: 'tests/e2e',
+    include: deploymentE2e,
+    exclude: [],
+    config: 'playwright.deployment.config.ts',
+    junit: '.local/feature-13/playwright-deployment.xml',
+    junitPath: playwrightPath,
+  },
   bunOwner(
     'test:integration',
     'tests/integration',
@@ -89,6 +102,7 @@ export const RUNNER_OWNERS: readonly RunnerOwner[] = [
   bunOwner('test:tooling', 'tests/integration/tooling', ['tests/integration/tooling/**/*.test.ts'], '.local/feature-4/tooling.xml'),
   bunOwner('test:gate', 'tests/integration/gate', ['tests/integration/gate/**/*.test.ts'], '.local/feature-11/gate.xml'),
   bunOwner('test:performance:plan', 'tests/integration/performance', ['tests/integration/performance/**/*.test.ts'], '.local/feature-12/plan.xml'),
+  bunOwner('test:deployment:plan', 'tests/integration/deployment', ['tests/integration/deployment/**/*.test.ts'], '.local/feature-13/plan.xml'),
   bunOwner(
     'test:database:real',
     'tests/integration/database',

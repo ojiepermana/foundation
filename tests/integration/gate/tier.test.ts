@@ -324,7 +324,7 @@ test('GATE-004 a JUnit that holds a sensitive value of the gate process fails as
   expect(await bundleFiles(dir)).toEqual(['manifest.json']);
 });
 
-test('GATE-008 the real tier runs the five real suites and then the k6 smoke in order with their evidence, limit, and grace', () => {
+test('GATE-008 the real tier runs the five real suites, the deployment step, and then the k6 smoke in order with their evidence, limit, and grace', () => {
   const real = TIERS.real!;
   expect(real.script).toBe('test:ci:real');
   expect(real.stepTimeoutMs).toBe(1_500_000);
@@ -335,6 +335,17 @@ test('GATE-008 the real tier runs the five real suites and then the k6 smoke in 
     ['test:database:migration', ['junit .local/feature-6/migration.xml']],
     ['test:tooling:real', ['junit .local/feature-2/playwright-real.xml', 'scan .local/feature-2/artifact-scan.json', 'screenshots .local/feature-2/test-results/ opsional']],
     ['test:readiness:real', ['junit .local/feature-10/playwright-real.xml', 'scan .local/feature-10/artifact-scan.json', 'screenshots .local/feature-10/test-results/ opsional']],
+    // Spec 0012 (*Bukti langkah deployment*): the deployment topology before the smoke, seven steps in all.
+    [
+      'test:deployment:real',
+      [
+        'deployment .local/feature-13/result.json',
+        'data .local/feature-13/images.json',
+        'junit .local/feature-13/playwright-deployment.xml',
+        'scan .local/feature-13/artifact-scan.json',
+        'screenshots .local/feature-13/test-results/ opsional',
+      ],
+    ],
     // Spec 0011 (*Tier kapasitas dan gate*): the k6 smoke is the last step, with four required files.
     [
       'test:performance:smoke',
@@ -372,6 +383,7 @@ test('GATE-008 the real tier fails, never passes, when its suites skip testcases
     ['test:database:migration', 'not_run'],
     ['test:tooling:real', 'not_run'],
     ['test:readiness:real', 'not_run'],
+    ['test:deployment:real', 'not_run'],
     ['test:performance:smoke', 'not_run'],
   ]);
   expect(manifest.steps[0]?.reasons).toEqual([{ code: 'testcase_skipped', path: '.local/feature-3/infrastructure.xml' }]);
@@ -408,6 +420,8 @@ test('GATE-004 the fast and security tiers hold the steps, evidence, limit, and 
     ['test:tooling', ['junit .local/feature-4/tooling.xml bun:test']],
     ['test:gate', ['junit .local/feature-11/gate.xml bun:test']],
     ['test:performance:plan', ['junit .local/feature-12/plan.xml bun:test']],
+    // Spec 0012 (*Perubahan gate yang dinamai*, Langkah tier): DEP-001 and DEP-008 after the k6 plan units.
+    ['test:deployment:plan', ['junit .local/feature-13/plan.xml bun:test']],
     ['test:e2e', ['junit .local/feature-4/playwright.xml playwright', 'screenshots test-results/ opsional']],
   ]);
   const security = TIERS.security!;

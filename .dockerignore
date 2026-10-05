@@ -1,0 +1,17 @@
+# Pengaman untuk build lain yang memakai root monorepo sebagai konteks (spec 0012). Ketiga Dockerfile aplikasi memakai
+# file ignore daftar izin sendiri (<Dockerfile>.dockerignore), sehingga file ini tidak berlaku untuk build itu.
+.env
+.env.*
+**/.env
+**/.env.*
+.git
+node_modules
+**/node_modules
+.local
+dist
+**/dist
+.angular
+**/.angular
+graphify-out
+test-results
+.claude

@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
-  testDir: './tests/e2e', testMatch: '**/*.e2e.spec.ts', testIgnore: '**/*.real.e2e.spec.ts', fullyParallel: false, retries: 0,
+  testDir: './tests/e2e', testMatch: '**/*.e2e.spec.ts', testIgnore: ['**/*.real.e2e.spec.ts', '**/*.deployment.e2e.spec.ts'], fullyParallel: false, retries: 0,
   reporter: [['list'], ['junit', { outputFile: '.local/feature-4/playwright.xml' }]],
   use: { baseURL: 'http://127.0.0.1:8889', trace: 'retain-on-failure', screenshot: 'on' },
   projects: [{name:'chromium',use:{...devices['Desktop Chrome']}}],

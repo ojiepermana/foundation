@@ -29,6 +29,7 @@ const ownedFiles: Record<string, string> = {
   'apps/frontend/src/app/home.test.ts': '',
   'tests/e2e/flow/home.e2e.spec.ts': '',
   'tests/e2e/flow/home.real.e2e.spec.ts': '',
+  'tests/e2e/flow/home.deployment.e2e.spec.ts': '',
   'tests/integration/backend/status.test.ts': '',
   'tests/integration/contract/sdk.test.ts': '',
   'tests/integration/tooling/serve.test.ts': '',
@@ -36,6 +37,7 @@ const ownedFiles: Record<string, string> = {
   'tests/integration/database/migration.test.ts': '',
   'tests/integration/database/provision.test.ts': '',
   'tests/integration/infrastructure/postgres.test.ts': '',
+  'tests/integration/deployment/static.test.ts': '',
 };
 
 /** Names that are not test files, or folders the inventory never enters. */
@@ -83,6 +85,9 @@ test('GATE-001 the inventory rejects unowned test files and ignores non test nam
   expect(owners('tests/integration/database/migration.test.ts')).toEqual(['test:database:real', 'test:database:migration']);
   expect(owners('tests/e2e/flow/home.real.e2e.spec.ts')).toEqual(['test:readiness:real', 'test:tooling:real']);
   expect(owners('tests/e2e/flow/home.e2e.spec.ts')).toEqual(['test:e2e']);
+  // Spec 0012: the deployment browser flow belongs to test:deployment:real only, its static suite to test:deployment:plan.
+  expect(owners('tests/e2e/flow/home.deployment.e2e.spec.ts')).toEqual(['test:deployment:real']);
+  expect(owners('tests/integration/deployment/static.test.ts')).toEqual(['test:deployment:plan']);
   expect(owners('apps/frontend/src/app/home.test.ts')).toEqual(['test:frontend']);
   expect(owners('tests/integration/gate/report.test.ts')).toEqual(['test:gate']);
 });
@@ -208,6 +213,7 @@ function fakePlaywright(lists: PlaywrightFixture): string {
 const consistentLists: PlaywrightFixture = {
   'playwright.config.ts': [{ file: 'flow/home.e2e.spec.ts', titles: ['GATE-801 home works'] }],
   'playwright.real.config.ts': [{ file: 'flow/home.real.e2e.spec.ts', titles: ['GATE-802 real home works'] }],
+  'playwright.deployment.config.ts': [{ file: 'flow/home.deployment.e2e.spec.ts', titles: ['GATE-803 edge home works'] }],
 };
 
 function registry(checks: Array<{ runner: string; script: string; file: string; testTag?: string }>): string {
@@ -217,6 +223,7 @@ function registry(checks: Array<{ runner: string; script: string; file: string; 
 const playwrightChecks = [
   { runner: 'playwright', script: 'test:e2e', file: 'tests/e2e/flow/home.e2e.spec.ts', testTag: 'GATE-801' },
   { runner: 'playwright', script: 'test:readiness:real', file: 'tests/e2e/flow/home.real.e2e.spec.ts', testTag: 'GATE-802' },
+  { runner: 'playwright', script: 'test:deployment:real', file: 'tests/e2e/flow/home.deployment.e2e.spec.ts', testTag: 'GATE-803' },
 ];
 
 async function commandWorkspace(files: Record<string, string>): Promise<string> {
@@ -237,9 +244,9 @@ test('GATE-001 check:test-discovery passes when every list matches its owners an
   expect(await runTestDiscovery({ root: dir, ...output })).toBe(0);
   expect(output.err).toEqual([]);
   expect(output.out).toEqual([
-    'Discovery test lulus: 11 file test, vitest apps/frontend/angular.json 2 file (test:frontend); ' +
+    'Discovery test lulus: 13 file test, vitest apps/frontend/angular.json 2 file (test:frontend); ' +
       'playwright playwright.config.ts 1 file (test:e2e); playwright playwright.real.config.ts 1 file (test:readiness:real, test:tooling:real); ' +
-      'bun:test 7 file (dibuktikan dari JUnit pada laporan).',
+      'playwright playwright.deployment.config.ts 1 file (test:deployment:real); bun:test 8 file (dibuktikan dari JUnit pada laporan).',
   ]);
 }, 60_000);
 
@@ -255,6 +262,7 @@ test('GATE-001 check:test-discovery fails with the path of every unowned file, l
         { file: 'flow/extra.spec.ts', titles: ['extra'] },
       ],
       'playwright.real.config.ts': [{ file: 'flow/home.real.e2e.spec.ts', titles: ['real home works, GATE-802 in the middle'] }],
+      'playwright.deployment.config.ts': consistentLists['playwright.deployment.config.ts']!,
     }),
   });
   const output = lines();
@@ -277,11 +285,12 @@ test('GATE-001 check:test-discovery fails with list_failed when a runner list ex
   const output = lines();
   expect(await runTestDiscovery({ root: dir, ...output })).toBe(1);
   expect(output.err).toEqual([
-    'Discovery test gagal dengan 4 masalah:',
+    'Discovery test gagal dengan 5 masalah:',
     '  list_failed test:frontend apps/frontend/angular.json: daftar runner tidak dapat dibaca',
     '  list_failed test:e2e playwright.config.ts: daftar runner tidak dapat dibaca',
     '  list_failed test:readiness:real playwright.real.config.ts: daftar runner tidak dapat dibaca',
     '  list_failed test:tooling:real playwright.real.config.ts: daftar runner tidak dapat dibaca',
+    '  list_failed test:deployment:real playwright.deployment.config.ts: daftar runner tidak dapat dibaca',
   ]);
 }, 60_000);
 
@@ -325,13 +334,16 @@ test('GATE-001 the owner table is Tabel pemilik runner, and every owner JUnit is
     RUNNER_OWNERS.map((owner) => [owner.script, owner.runner, owner.config, owner.include, owner.exclude, owner.junit, owner.junitPath]),
   ).toEqual([
     ['test:frontend', 'vitest', 'apps/frontend/angular.json', ['apps/frontend/src/**/*.spec.ts', 'apps/frontend/src/**/*.test.ts'], [], '.local/feature-4/frontend.xml', { from: 'suite-name', prefix: 'apps/frontend/' }],
-    ['test:e2e', 'playwright', 'playwright.config.ts', ['tests/e2e/**/*.e2e.spec.ts'], ['tests/e2e/**/*.real.e2e.spec.ts'], '.local/feature-4/playwright.xml', { from: 'suite-name', prefix: 'tests/e2e/' }],
+    ['test:e2e', 'playwright', 'playwright.config.ts', ['tests/e2e/**/*.e2e.spec.ts'], ['tests/e2e/**/*.real.e2e.spec.ts', 'tests/e2e/**/*.deployment.e2e.spec.ts'], '.local/feature-4/playwright.xml', { from: 'suite-name', prefix: 'tests/e2e/' }],
     ['test:readiness:real', 'playwright', 'playwright.real.config.ts', ['tests/e2e/**/*.real.e2e.spec.ts'], [], '.local/feature-10/playwright-real.xml', { from: 'suite-name', prefix: 'tests/e2e/' }],
     ['test:tooling:real', 'playwright', 'playwright.real.config.ts', ['tests/e2e/**/*.real.e2e.spec.ts'], [], '.local/feature-2/playwright-real.xml', { from: 'suite-name', prefix: 'tests/e2e/' }],
+    // Spec 0012 (*Perubahan gate yang dinamai*, Pemilik runner): the deployment browser flow and the deployment plan suites.
+    ['test:deployment:real', 'playwright', 'playwright.deployment.config.ts', ['tests/e2e/**/*.deployment.e2e.spec.ts'], [], '.local/feature-13/playwright-deployment.xml', { from: 'suite-name', prefix: 'tests/e2e/' }],
     ['test:integration', 'bun:test', null, ['tests/integration/backend/**/*.test.ts', 'tests/integration/contract/**/*.test.ts'], [], '.local/feature-4/server.xml', { from: 'file-attribute' }],
     ['test:tooling', 'bun:test', null, ['tests/integration/tooling/**/*.test.ts'], [], '.local/feature-4/tooling.xml', { from: 'file-attribute' }],
     ['test:gate', 'bun:test', null, ['tests/integration/gate/**/*.test.ts'], [], '.local/feature-11/gate.xml', { from: 'file-attribute' }],
     ['test:performance:plan', 'bun:test', null, ['tests/integration/performance/**/*.test.ts'], [], '.local/feature-12/plan.xml', { from: 'file-attribute' }],
+    ['test:deployment:plan', 'bun:test', null, ['tests/integration/deployment/**/*.test.ts'], [], '.local/feature-13/plan.xml', { from: 'file-attribute' }],
     ['test:database:real', 'bun:test', null, ['tests/integration/database/**/*.test.ts'], [], '.local/feature-5/database.xml', { from: 'file-attribute' }],
     ['test:database:migration', 'bun:test', null, ['tests/integration/database/migration.test.ts'], [], '.local/feature-6/migration.xml', { from: 'file-attribute' }],
     ['test:infrastructure', 'bun:test', null, ['tests/integration/infrastructure/**/*.test.ts'], [], '.local/feature-3/infrastructure.xml', { from: 'file-attribute' }],

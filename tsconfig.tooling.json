@@ -12,9 +12,10 @@
     "scripts/lib/security-policy.ts", "tests/orchestration/security-scan.ts", "tests/integration/gate/security-policy.test.ts",
     "tests/integration/gate/tier.test.ts", "tests/integration/gate/report.test.ts",
     "tests/integration/infrastructure/postgres.test.ts", "tests/integration/database/provision.test.ts",
-    "tests/integration/database/migration.test.ts", "tests/orchestration/performance-real.ts",
+    "tests/integration/database/migration.test.ts", "tests/orchestration/performance-real.ts", "tests/orchestration/deployment-real.ts",
     "tests/performance/helpers/plan.ts", "tests/performance/helpers/expectations.ts",
     "tests/integration/performance/plan.test.ts", "tests/integration/performance/signal.test.ts",
-    "tests/integration/gate/capacity.test.ts"
+    "tests/integration/gate/capacity.test.ts", "tests/integration/gate/release.test.ts",
+    "tests/integration/deployment/static.test.ts", "tests/integration/deployment/signal.test.ts"
   ]
 }

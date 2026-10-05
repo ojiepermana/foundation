@@ -200,13 +200,17 @@ test('PERF-008 the fast tier runs test:performance:plan after test:gate, the rea
   expect(TIER_NAMES).toEqual(['fast', 'real', 'security']);
   const fast = TIERS.fast!.steps.map((step) => step.script);
   expect(fast.indexOf('test:performance:plan')).toBe(fast.indexOf('test:gate') + 1);
-  expect(fast.indexOf('test:e2e')).toBe(fast.indexOf('test:performance:plan') + 1);
+  // Spec 0012 puts test:deployment:plan between the k6 plan units and test:e2e.
+  expect(fast.indexOf('test:deployment:plan')).toBe(fast.indexOf('test:performance:plan') + 1);
+  expect(fast.indexOf('test:e2e')).toBe(fast.indexOf('test:performance:plan') + 2);
   expect(TIERS.fast!.steps.find((step) => step.script === 'test:performance:plan')?.evidence).toEqual([
     { path: '.local/feature-12/plan.xml', kind: 'junit', runner: 'bun:test', required: true },
   ]);
   const real = TIERS.real!;
   expect([real.stepTimeoutMs, real.stopGraceMs]).toEqual([1_500_000, 180_000]);
-  expect(real.steps.at(-2)?.script).toBe('test:readiness:real');
+  // Spec 0012 puts test:deployment:real between test:readiness:real and the smoke, which stays last.
+  expect(real.steps.at(-3)?.script).toBe('test:readiness:real');
+  expect(real.steps.at(-2)?.script).toBe('test:deployment:real');
   expect(real.steps.at(-1)).toEqual({
     script: SMOKE,
     evidence: [spec(RESULT, 'performance'), spec(SUMMARY, 'data'), spec(OBSERVATION, 'data'), spec(SCAN, 'scan')],
@@ -515,10 +519,12 @@ test('PERF-008 the manifest validator accepts performance and data evidence, and
   // Without the fast and security bundles the gate is incomplete; the report is still written.
   expect(await runReport(fixture.dir, output.log, reportEnv())).toBe(1);
   const found = JSON.parse(await readFile(join(fixture.dir, '.local/feature-11/report.json'), 'utf8')) as GateReport;
-  expect(Object.keys(found).slice(-2)).toEqual(['outOfScope', 'performance']);
+  // Spec 0012 adds deployment after performance.
+  expect(Object.keys(found).slice(-3)).toEqual(['outOfScope', 'performance', 'deployment']);
   expect(realProblems(found)).toEqual([]);
   expect(found.tiers.real.status).toBe('passed');
-  expect(found.outOfScope).toEqual([{ area: 'capacity_profiles', feature: 12 }, { area: 'deployment_image', feature: 13 }]);
+  // Spec 0012 binds the deployment image to the report, so only the capacity profiles stay out of scope.
+  expect(found.outOfScope).toEqual([{ area: 'capacity_profiles', feature: 12 }]);
   expect(OUT_OF_SCOPE).toEqual(found.outOfScope);
   expect(found.performance).toEqual([
     {
@@ -642,10 +648,9 @@ test('PERF-008 report.md renders Performance k6 from a fixture result.json, the 
   expect(text).not.toMatch(/containerEngine/);
   for (const line of performance.filter((item) => item.startsWith('|'))) expect(line.includes('\n')).toBe(false);
 
-  // outOfScope names the capacity profiles; k6 performance is no longer out of scope.
+  // outOfScope names the capacity profiles only; k6 performance and, since spec 0012, the deployment image are bound.
   const outside = section(markdown, '## Di luar cakupan');
-  expect(outside).toContain('- Profil kapasitas load, stress, spike, outage, dan soak, dibuktikan `test:report:capacity` dari tier kapasitas (fitur 12).');
-  expect(outside).toContain('- Identitas image deployment belum diikat pada laporan (fitur 13).');
+  expect(outside).toEqual(['## Di luar cakupan', '', '- Profil kapasitas load, stress, spike, outage, dan soak, dibuktikan `test:report:capacity` dari tier kapasitas (fitur 12).', '']);
   expect(markdown).not.toContain('Performance k6 belum masuk gate');
 
   // The column Test dan profil, with the examples of the spec and a scenario with two profiles.
@@ -1056,7 +1061,8 @@ test('PERF-008 test:report:capacity writes report.json with its keys in order, f
   expect(performance).toContain('| 2 | Data hanya riwayat migration (1 baris); tidak ada tabel bisnis. |');
   expect(markdown).not.toMatch(/containerEngine/);
   expect(section(markdown, '## Kandidat release')).toContain('- `not_ci`: tidak berasal dari run CI.');
-  expect(section(markdown, '## Di luar cakupan')).toEqual(['## Di luar cakupan', '', '- Identitas image deployment belum diikat pada laporan (fitur 13).', '']);
+  // Spec 0012 (*Perubahan gate yang dinamai*, outOfScope): the capacity profiles still measure the development composition.
+  expect(section(markdown, '## Di luar cakupan')).toEqual(['## Di luar cakupan', '', '- Profil kapasitas masih mengukur komposisi development, bukan image deployment (fitur 13).', '']);
   expect(markdown).not.toContain('Profil kapasitas load, stress');
 
   // The per push report of the same checkout leaves the five capacity scenarios out and never reads this bundle.
@@ -1204,7 +1210,7 @@ test('PERF-008 scripts/gate-report.ts capacity writes the capacity report in a w
     return { stdout, stderr, code };
   };
   for (const args of [['capacity', 'extra'], ['fast'], ['Capacity']]) {
-    expect(await runCli(args), args.join(' ')).toEqual({ stdout: '', stderr: 'Pemakaian: bun --no-env-file scripts/gate-report.ts [capacity]\n', code: 1 });
+    expect(await runCli(args), args.join(' ')).toEqual({ stdout: '', stderr: 'Pemakaian: bun --no-env-file scripts/gate-report.ts [capacity|release]\n', code: 1 });
   }
   expect(await exists(join(dir, '.local'))).toBe(false);
 

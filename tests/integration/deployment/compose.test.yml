@@ -1,0 +1,27 @@
+# Override khusus uji deployment (spec 0012): tanpa restart otomatis, tanpa pull, dan berlabel run. Field deklaratif
+# lain dibuktikan dari deploy/compose.yaml tanpa override ini.
+services:
+  edge:
+    restart: "no"
+    pull_policy: never
+    labels:
+      foundation.test: deployment
+      foundation.run: ${FOUNDATION_DEPLOY_RUN:?}
+  backend:
+    restart: "no"
+    pull_policy: never
+    labels:
+      foundation.test: deployment
+      foundation.run: ${FOUNDATION_DEPLOY_RUN:?}
+  postgres:
+    restart: "no"
+    pull_policy: never
+    labels:
+      foundation.test: deployment
+      foundation.run: ${FOUNDATION_DEPLOY_RUN:?}
+  migrate:
+    restart: "no"
+    pull_policy: never
+    labels:
+      foundation.test: deployment
+      foundation.run: ${FOUNDATION_DEPLOY_RUN:?}

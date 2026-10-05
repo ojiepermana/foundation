@@ -6,6 +6,8 @@ Sumber utama bukti adalah `report.md` dan `report.json` yang ditulis `bun run te
 
 Bukti kapasitas k6 (spec 0011) berasal dari `.local/feature-12/report.md` dan `.local/feature-12/report.json` yang ditulis `bun run test:report:capacity` pada run workflow `capacity.yml` untuk commit yang sama (artifact `capacity-evidence`, berisi juga bundle `.local/feature-11/evidence/capacity/`). Gunakan hanya laporan kapasitas yang menyatakan `Kandidat release: ya`, yaitu status `passed`, tier bersih, dan run `workflow_dispatch` pada `refs/heads/main`. Smoke k6 per push ada di bagian *Performance k6* pada `report.md` per push.
 
+Status kesiapan (spec 0012) dihitung `bun run test:report:release` pada checkout bersih commit kandidat, sesudah keempat artifact (`application-evidence`, `real-evidence`, `security-evidence`, dan `capacity-evidence`) diunduh ke folder bundle menurut prosedur di [aturan deployment](../rules/deployment.md). Salin status, alasan, identitas run per push dan run kapasitas, serta tabel image dari `.local/feature-13/release.md`, dan simpan `.local/feature-13/release.json` sebagai bukti. `grantsDeployment` selalu `false`: status `ready` berarti bukti wajib lengkap dan lulus, tidak memberi izin deploy, dan identitas run berasal dari manifest yang ditulis run itu sendiri tanpa diverifikasi ke GitHub. Keputusan deploy dicatat terpisah oleh pemilik release.
+
 ## Identitas kandidat
 
 - Release:
@@ -16,7 +18,8 @@ Bukti kapasitas k6 (spec 0011) berasal dari `.local/feature-12/report.md` dan `.
 - Tautan artifact `gate-report` dan bundle bukti ketiga tier:
 - Penanggung jawab:
 - Cakupan perubahan dan rujukan specs:
-- Status kesiapan (`ready`, `blocked`, atau `incomplete`):
+- Status kesiapan (`ready`, `blocked`, atau `incomplete`) dan alasannya dari `.local/feature-13/release.md`, dengan `grantsDeployment` `false`:
+- Keputusan deploy pemilik release, dicatat terpisah dari status kesiapan:
 
 ## Environment dan data
 
@@ -76,6 +79,6 @@ Catat latency, throughput, tingkat kegagalan, iterasi yang tidak berhasil dimula
 
 ## Penilaian kesiapan
 
-Jelaskan status kesiapan dengan merujuk bukti di atas. Kesiapan belum lengkap jika ada skenario wajib tanpa bukti valid. Kegagalan wajib menghalangi status `ready`.
+Jelaskan status kesiapan dengan merujuk bukti di atas. Kesiapan belum lengkap jika ada skenario wajib tanpa bukti valid. Kegagalan wajib menghalangi status `ready`. Status yang ditulis di sini sama dengan `status` di `.local/feature-13/release.json`; jangan menaikkannya dengan tangan.
 
 Jika ada pengecualian yang diputuskan, catat ID skenario, alasan, dampak, penanggung jawab, dan keputusan pengguna atau pemilik release. Jangan mengubah status test menjadi lulus untuk menyamarkan pengecualian.

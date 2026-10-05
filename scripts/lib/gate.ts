@@ -26,9 +26,10 @@ export const TIER_SCRIPTS: Readonly<Record<TierName, string>> = { fast: 'test:ci
 
 /**
  * Spec 0011 (*Perubahan gate yang dinamai*, Jenis bukti) adds `performance`, the `result.json` of one k6 profile, and
- * `data`, any other readable JSON object of a profile run (`summary.json`, `observation.json`).
+ * `data`, any other readable JSON object of a profile run (`summary.json`, `observation.json`). Spec 0012 adds
+ * `deployment`, the `result.json` of `test:deployment:real` (`deploymentEvidenceValid`).
  */
-export type EvidenceKind = 'junit' | 'screenshots' | 'image' | 'scan' | 'scanner' | 'performance' | 'data';
+export type EvidenceKind = 'junit' | 'screenshots' | 'image' | 'scan' | 'scanner' | 'performance' | 'data' | 'deployment';
 
 /**
  * The six k6 profile names of spec 0011 (*Pemeriksaan sebelum run* (1)). A step runs a profile when its script is
@@ -65,6 +66,87 @@ export function performanceEvidenceValid(object: Readonly<Record<string, unknown
   return result !== null && (exitCode !== 0 || result.status === 'passed');
 }
 
+/**
+ * Spec 0012 (*Check deployment*): every check `test:deployment:real` writes to `.local/feature-13/result.json`, in this
+ * fixed order, with the acceptance criteria each one proves. The orchestration imports it, and the report shows the
+ * criteria column, so a reader sees which check proves which criterion.
+ */
+export const DEPLOYMENT_CHECKS = Object.freeze(
+  (
+    [
+      ['image_pins', ['AC-1']],
+      ['image_context_sentinels', ['AC-1', 'AC-2']],
+      ['image_filesystem', ['AC-2']],
+      ['image_config', ['AC-1', 'AC-2']],
+      ['provisioning_step', ['AC-3']],
+      ['readiness_before_migration', ['AC-3', 'AC-4']],
+      ['migration_step', ['AC-3']],
+      ['readiness_after_migration', ['AC-3', 'AC-4']],
+      ['tls_versions', ['AC-5']],
+      ['http_redirect', ['AC-5']],
+      ['document_headers', ['AC-5', 'AC-6']],
+      ['static_cache_fallback', ['AC-6']],
+      ['api_forwarding', ['AC-7']],
+      ['api_headers', ['AC-7']],
+      ['api_stub_forwarding', ['AC-7']],
+      ['cors_absent', ['AC-7']],
+      ['edge_errors', ['AC-7', 'AC-10']],
+      ['health_not_public', ['AC-4', 'AC-7']],
+      ['published_ports', ['AC-8']],
+      ['network_isolation', ['AC-8']],
+      ['egress_blocked', ['AC-8']],
+      ['compose_declaration', ['AC-8', 'AC-10']],
+      ['container_hardening', ['AC-8']],
+      ['container_environment', ['AC-8']],
+      ['browser_flow', ['AC-6']],
+      ['backend_shutdown_restart', ['AC-9']],
+      ['backend_recreate', ['AC-9']],
+      ['database_outage', ['AC-4', 'AC-9']],
+      ['edge_shutdown', ['AC-9']],
+      ['log_structure', ['AC-10']],
+      ['log_correlation', ['AC-10']],
+      ['log_no_data', ['AC-10']],
+      ['postgres_log_policy', ['AC-10']],
+      ['topology_shutdown', ['AC-9']],
+      ['artifact_scan', ['AC-2', 'AC-11']],
+      ['cleanup', ['AC-11']],
+    ] as const
+  ).map(([name, criteria]) => Object.freeze({ name, criteria: Object.freeze([...criteria]) })),
+);
+export type DeploymentCheckName = (typeof DEPLOYMENT_CHECKS)[number]['name'];
+
+const deploymentCheckStatuses = new Set<unknown>(['passed', 'failed', 'not_run']);
+
+/**
+ * The shape of a `deployment` evidence object (spec 0012, *Perubahan gate yang dinamai*, Jenis bukti): `schema` 1,
+ * `status` `passed` or `failed`, and `checks` holding exactly the names of DEPLOYMENT_CHECKS in their order, each with
+ * `status` `passed`, `failed`, or `not_run`; `passed` only when every check passed. `null` when one of them does not
+ * hold, so a check that is missing, extra, repeated, or out of order makes the whole object invalid.
+ */
+export function deploymentResult(
+  object: Readonly<Record<string, unknown>>,
+): { status: 'passed' | 'failed'; checks: Array<{ name: DeploymentCheckName; status: 'passed' | 'failed' | 'not_run' }> } | null {
+  const status = object['status'];
+  const checks = object['checks'];
+  if (object['schema'] !== 1 || (status !== 'passed' && status !== 'failed') || !Array.isArray(checks)) return null;
+  if (checks.length !== DEPLOYMENT_CHECKS.length) return null;
+  const found: Array<{ name: DeploymentCheckName; status: 'passed' | 'failed' | 'not_run' }> = [];
+  for (const [index, check] of checks.entries()) {
+    if (typeof check !== 'object' || check === null || Array.isArray(check)) return null;
+    const { name, status: checkStatus } = check as Record<string, unknown>;
+    if (name !== DEPLOYMENT_CHECKS[index]!.name || !deploymentCheckStatuses.has(checkStatus)) return null;
+    found.push({ name: name as DeploymentCheckName, status: checkStatus as 'passed' | 'failed' | 'not_run' });
+  }
+  if (status === 'passed' && found.some((check) => check.status !== 'passed')) return null;
+  return { status, checks: found };
+}
+
+/** Jenis bukti `deployment`: the shape of `deploymentResult`, and a step that exited 0 needs `status` `passed`. */
+export function deploymentEvidenceValid(object: Readonly<Record<string, unknown>>, exitCode: number | null): boolean {
+  const result = deploymentResult(object);
+  return result !== null && (exitCode !== 0 || result.status === 'passed');
+}
+
 export type EvidenceSpec = {
   /** Repository path; a folder ends with `/`. */
   path: string;
@@ -86,7 +168,7 @@ export type Tier = {
 };
 
 const junit = (path: string, runner: JUnitRunner): EvidenceSpec => ({ path, kind: 'junit', runner, required: true });
-const json = (path: string, kind: 'image' | 'scan' | 'scanner' | 'performance' | 'data'): EvidenceSpec => ({ path, kind, runner: null, required: true });
+const json = (path: string, kind: 'image' | 'scan' | 'scanner' | 'performance' | 'data' | 'deployment'): EvidenceSpec => ({ path, kind, runner: null, required: true });
 const screenshots = (path: string): EvidenceSpec => ({ path, kind: 'screenshots', runner: null, required: false });
 const plain = (script: string): TierStep => ({ script, evidence: [] });
 
@@ -107,12 +189,31 @@ function performanceStep(profile: PerformanceProfile): TierStep {
   };
 }
 
+/** Folder of the evidence of `test:deployment:real` and `test:deployment:plan` (spec 0012). */
+export const DEPLOYMENT_EVIDENCE_DIR = '.local/feature-13';
+
+/**
+ * The deployment step of the real tier (spec 0012, *Bukti langkah deployment*): `result.json` of kind `deployment`,
+ * `images.json`, the JUnit of DEP-006, and `artifact-scan.json`, all required, plus the optional screenshots.
+ */
+const deploymentStep: TierStep = {
+  script: 'test:deployment:real',
+  evidence: [
+    json(`${DEPLOYMENT_EVIDENCE_DIR}/result.json`, 'deployment'),
+    json(`${DEPLOYMENT_EVIDENCE_DIR}/images.json`, 'data'),
+    junit(`${DEPLOYMENT_EVIDENCE_DIR}/playwright-deployment.xml`, 'playwright'),
+    json(`${DEPLOYMENT_EVIDENCE_DIR}/artifact-scan.json`, 'scan'),
+    screenshots(`${DEPLOYMENT_EVIDENCE_DIR}/test-results/`),
+  ],
+};
+
 /**
  * *Tabel tier*: steps in the order they run, with the evidence of *Bukti per langkah*. The `real` tier runs through
  * `test:ci:real` in the workflow job `real`; its first step builds the pinned PostgreSQL 18 image that the later steps
  * start. The `security` tier runs the three pinned scanners through `check:security` in the workflow job `security`;
  * its 90 second grace holds the removal of the scanner containers. The gate report expects all of `TIER_NAMES`,
- * so a tier without a bundle reads as not run.
+ * so a tier without a bundle reads as not run. Spec 0012 adds `test:deployment:plan` to the fast tier and
+ * `test:deployment:real` to the real tier, before the k6 smoke; the step limit and the grace do not change.
  */
 export const TIERS: Readonly<Partial<Record<TierName, Tier>>> = {
   fast: {
@@ -139,6 +240,8 @@ export const TIERS: Readonly<Partial<Record<TierName, Tier>>> = {
       { script: 'test:gate', evidence: [junit('.local/feature-11/gate.xml', 'bun:test')] },
       // Spec 0011 (*Tier kapasitas dan gate*): the pure plan and classification units of the k6 profiles.
       { script: 'test:performance:plan', evidence: [junit('.local/feature-12/plan.xml', 'bun:test')] },
+      // Spec 0012 (*Perubahan gate yang dinamai*, Langkah tier): DEP-001 and DEP-008, without a container engine.
+      { script: 'test:deployment:plan', evidence: [junit(`${DEPLOYMENT_EVIDENCE_DIR}/plan.xml`, 'bun:test')] },
       {
         script: 'test:e2e',
         evidence: [junit('.local/feature-4/playwright.xml', 'playwright'), screenshots('test-results/')],
@@ -176,6 +279,8 @@ export const TIERS: Readonly<Partial<Record<TierName, Tier>>> = {
           screenshots('.local/feature-10/test-results/'),
         ],
       },
+      // Spec 0012: the deployment topology on local images, after the real suites and before the k6 smoke.
+      deploymentStep,
       // Spec 0011 (*Tier kapasitas dan gate*): the k6 smoke profile, last, with its four required files.
       performanceStep('smoke'),
     ],
@@ -323,6 +428,20 @@ export const REASON_CODES = {
   release: ['gate_not_passed', 'not_clean', 'not_ci', 'event_not_push', 'ref_not_main'],
   /** Spec 0011 (*Laporan kapasitas*): the release candidate of the capacity report, in this fixed order. */
   capacityRelease: ['gate_not_passed', 'not_clean', 'not_ci', 'event_not_dispatch', 'ref_not_main'],
+  /**
+   * Spec 0012 (*Status kesiapan release*): the reasons of `test:report:release`, in this fixed order. The first two are
+   * of class `blocked`, the other six of class `incomplete`.
+   */
+  releaseReadiness: [
+    'gate_failed',
+    'capacity_failed',
+    'gate_incomplete',
+    'capacity_incomplete',
+    'gate_not_candidate',
+    'capacity_not_candidate',
+    'candidate_differs',
+    'image_differs',
+  ],
 } as const;
 
 export type StepReasonCode = (typeof REASON_CODES.step)[number];
@@ -331,6 +450,7 @@ export type BindingReasonCode = (typeof REASON_CODES.binding)[number];
 export type DiscoveryReasonCode = (typeof REASON_CODES.discovery)[number];
 export type ReleaseReasonCode = (typeof REASON_CODES.release)[number];
 export type CapacityReleaseReasonCode = (typeof REASON_CODES.capacityRelease)[number];
+export type ReleaseReadinessReasonCode = (typeof REASON_CODES.releaseReadiness)[number];
 
 /** Every reason in a manifest: a code plus a repository path or `null`. */
 export type Reason<Code extends string> = { code: Code; path: string | null };
@@ -592,7 +712,7 @@ async function tierOutputs(root: string): Promise<Record<string, string>> {
 // Evidence (*Bukti per langkah*): read once, checked, hashed, and copied byte for byte into the bundle.
 
 type Copy = { path: string; data: Uint8Array };
-/** The step an evidence file belongs to, for the rule of the `performance` kind. */
+/** The step an evidence file belongs to, for the rules of the `performance` and `deployment` kinds. */
 type StepOutcome = { script: string; exitCode: number | null };
 type Collected = { record: EvidenceRecord; reasons: Reason<StepReasonCode>[]; skipped: number; copies: Copy[] };
 type Read = { state: 'absent' } | { state: 'not_regular' } | { state: 'too_large' } | { state: 'read'; data: Uint8Array };
@@ -701,6 +821,8 @@ async function collectFile(
       const findings = object['findings'];
       if (!Array.isArray(findings) || findings.length !== 0) reasons.push({ code: 'artifact_scan_findings', path: spec.path });
     } else if (spec.kind === 'performance' && !performanceEvidenceValid(object, step.script, step.exitCode)) {
+      reasons.push({ code: 'evidence_invalid', path: spec.path });
+    } else if (spec.kind === 'deployment' && !deploymentEvidenceValid(object, step.exitCode)) {
       reasons.push({ code: 'evidence_invalid', path: spec.path });
     }
     // A `data` file only has to be a readable JSON object within the text size limit, checked above.

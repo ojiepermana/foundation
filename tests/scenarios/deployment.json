@@ -1,0 +1,35 @@
+{
+  "source": "docs/specs/0012-build-container-deployment-terpisah/index.md",
+  "scenarios": [
+    { "id": "DEP-001", "criteria": ["AC-1", "AC-2", "AC-6", "AC-7", "AC-8", "AC-10", "AC-11", "AC-12"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/deployment/static.test.ts", "testTag": "DEP-001", "script": "test:deployment:plan" }
+    ] },
+    { "id": "DEP-002", "criteria": ["AC-4"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/backend/health.test.ts", "testTag": "DEP-002", "script": "test:integration" }
+    ] },
+    { "id": "DEP-003", "criteria": ["AC-4"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/contract/openapi-contract.test.ts", "testTag": "DEP-003", "script": "test:integration" },
+      { "runner": "bun:test", "file": "tests/integration/contract/readiness-contract.test.ts", "testTag": "DEP-003", "script": "test:integration" },
+      { "runner": "vitest", "file": "apps/frontend/src/app/sdk-contract.integration.spec.ts", "testTag": "DEP-003", "script": "test:frontend" },
+      { "runner": "command", "file": "scripts/check-api.ts", "script": "api:check" }
+    ] },
+    { "id": "DEP-004", "criteria": ["AC-11", "AC-12"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/gate/release.test.ts", "testTag": "DEP-004", "script": "test:gate" }
+    ] },
+    { "id": "DEP-005", "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8", "AC-9", "AC-10", "AC-11"], "checks": [
+      { "runner": "command", "file": "tests/orchestration/deployment-real.ts", "script": "test:deployment:real" }
+    ] },
+    { "id": "DEP-006", "criteria": ["AC-6"], "critical": true, "checks": [
+      { "runner": "playwright", "file": "tests/e2e/deployment/edge.deployment.e2e.spec.ts", "testTag": "DEP-006", "script": "test:deployment:real" }
+    ] },
+    { "id": "DEP-007", "criteria": ["AC-9", "AC-10"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/backend/logging.test.ts", "testTag": "DEP-007", "script": "test:integration" }
+    ] },
+    { "id": "DEP-008", "criteria": ["AC-8", "AC-11"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/deployment/signal.test.ts", "testTag": "DEP-008", "script": "test:deployment:plan" }
+    ] },
+    { "id": "DEP-009", "criteria": ["AC-4"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/health.test.ts", "testTag": "DEP-009", "script": "test:database:real" }
+    ] }
+  ]
+}

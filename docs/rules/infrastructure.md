@@ -4,6 +4,8 @@
 
 Cache, broker antrean, object storage, atau layanan pendukung lain dapat ditambahkan jika kebutuhan fitur telah diputuskan dalam specs. Jangan menambahkan layanan contoh tanpa kebutuhan atau menjadikan Compose root tempat build SDK, test runner, migration, seed, maupun orchestration aplikasi. Dockerfile aplikasi/worker tetap dapat digunakan untuk deployment mandiri; file deployment runtime diatur terpisah ketika diperlukan.
 
+Topologi deployment rujukan berada terpisah di `deploy/compose.yaml` (spec 0012, project `foundation-deploy`): edge, backend, PostgreSQL dari image `foundation-postgres:18-pinned`, dan job migration, dengan network internal, batas resource, dan credential per service dari `.env.deploy`. File itu tidak membangun image dan tidak dipakai untuk development; `docker-compose.yml` root tetap hanya infrastruktur pendukung development. Langkah build, provisioning, migration, rotasi password, dan pembaruan sertifikat ada di [aturan deployment](deployment.md).
+
 ## Image PostgreSQL proyek
 
 Server dibangun dari `infrastructure/postgres/Dockerfile` di atas `oraclelinux:10-slim` dengan paket `postgresql18-server` dari repository resmi PGDG. Image yang sama nanti menjadi dasar server database production, sehingga dev, CI, dan production memakai OS dan paket yang sama.

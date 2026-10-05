@@ -4,6 +4,6 @@
     "types": ["node"], "strict": true, "noEmit": true, "skipLibCheck": true,
     "noUncheckedIndexedAccess": true
   },
-  "files": ["playwright.config.ts", "playwright.real.config.ts"],
-  "include": ["tests/e2e/readiness/*.ts"]
+  "files": ["playwright.config.ts", "playwright.real.config.ts", "playwright.deployment.config.ts"],
+  "include": ["tests/e2e/readiness/*.ts", "tests/e2e/deployment/*.ts"]
 }

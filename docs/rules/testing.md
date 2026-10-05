@@ -40,6 +40,7 @@ foundation/
 │   │   ├── worker/
 │   │   ├── database/
 │   │   ├── gate/
+│   │   ├── deployment/
 │   │   └── performance/
 │   ├── e2e/
 │   │   ├── fixtures.ts
@@ -48,6 +49,7 @@ foundation/
 │   ├── orchestration/
 │   │   ├── <suite>-real.ts
 │   │   ├── performance-real.ts
+│   │   ├── deployment-real.ts
 │   │   ├── security-scan.ts
 │   │   └── signal-cleanup.ts
 │   ├── security/
@@ -223,12 +225,15 @@ Nama script root yang digunakan saat suite diimplementasikan:
 | `test:performance:spike` | Spike k6 dengan lonjakan beban lebih selama 60 detik; langkah tier kapasitas. |
 | `test:performance:outage` | Outage k6: PostgreSQL dihentikan lalu dijalankan lagi pada beban normal; langkah tier kapasitas. |
 | `test:performance:soak` | Soak k6 pada beban normal selama 3.600 detik; langkah tier kapasitas. |
+| `test:deployment:plan` | Suite statis DEP-001 dan test sinyal orkestrasi DEP-008 di `tests/integration/deployment/` tanpa Docker nyata (spec 0012); langkah tier cepat `test:ci` sesudah `test:performance:plan`. |
+| `test:deployment:real` | Orkestrasi `tests/orchestration/deployment-real.ts` (spec 0012): build ketiga image dari salinan input, topologi `deploy/compose.yaml` pada container nyata, check `result.json`, alur browser DEP-006 lewat edge, dan pemindaian artefak di `.local/feature-13/`; langkah tier nyata `test:ci:real` sesudah `test:readiness:real` dan sebelum `test:performance:smoke`. |
 | `test:ci` | Tier cepat gate CI tanpa Docker: `bun --no-env-file scripts/gate.ts fast`. |
 | `test:ci:real` | Tier nyata gate CI dengan Docker, PostgreSQL 18, dan Chromium: `bun --no-env-file scripts/gate.ts real`. |
 | `test:ci:security` | Tier keamanan gate CI: `bun --no-env-file scripts/gate.ts security`, yang menjalankan `check:security`. |
 | `test:report` | Laporan gate dari ketiga bundle bukti: `.local/feature-11/report.json` dan `.local/feature-11/report.md`. |
 | `test:ci:capacity` | Tier kapasitas manual (spec 0011): `bun --no-env-file scripts/gate.ts capacity`, yang menjalankan load, stress, spike, outage, dan soak berurutan; tidak termasuk gate per push. |
 | `test:report:capacity` | Laporan kapasitas dari bundle `.local/feature-11/evidence/capacity/`: `.local/feature-12/report.json` dan `.local/feature-12/report.md`. |
+| `test:report:release` | Status kesiapan release (spec 0012) dari bundle `fast`, `real`, `security`, dan `capacity` hasil unduhan artifact CI: `.local/feature-13/release.json` dan `.local/feature-13/release.md`; keluar 0 hanya untuk `ready`. |
 
 Gate CI (spec 0010) terdiri dari tiga tier yang dijalankan `scripts/gate.ts` dan satu laporan. Tabel tier di `scripts/lib/gate.ts` menetapkan langkah, batas waktu, masa tenggang, dan bukti setiap langkah. Workflow `.github/workflows/application.yml` menjalankan setiap push dan pull request dengan empat job: `application` (`bun run test:ci`), `real` (`bun run test:ci:real`), `security` (`bun run test:ci:security`), dan `report` (`bun run test:report`) yang berjalan setelah ketiga job itu, juga ketika salah satunya gagal. Seluruh suite berjalan pada setiap push tanpa seleksi berdasarkan perubahan. Setiap langkah CI adalah script root yang sama dengan yang dapat Anda jalankan lokal; tier nyata membutuhkan Docker, dan tier keamanan membutuhkan Docker serta akses ke registry npm.
 
@@ -237,6 +242,10 @@ Runner tier menjalankan langkah berurutan sebagai `bun --no-env-file run <script
 `test:report` menghitung ulang status setiap check dari manifest dan JUnit di bundle, membedakan `passed`, `failed`, `skipped`, `not_run`, dan `missing_test`, mengikat ketiga tier pada commit, pohon sumber, dan run serta attempt CI yang sama, membuktikan discovery dari JUnit, merangkum `security.json`, mencatat identitas PostgreSQL tier nyata, dan menandai kandidat release. Gate `passed` hanya bila seluruh skenario lulus, ketiga tier lulus, discovery sesuai, ketiga pemindai lulus, dan pengikatan sah; `test:report` keluar 0 hanya untuk gate `passed`. Run lokal pada working tree yang belum masuk commit dapat lulus gate tetapi bukan kandidat release. Di GitHub hanya *Re-run all jobs* yang menghasilkan gate sah. Laporan release di `docs/testing/releases/` tetap ditulis manual dengan menyalin `report.md` run kandidat.
 
 Tier kapasitas (spec 0011) berada di luar gate per push: `TIER_NAMES` tetap `fast`, `real`, dan `security`, dan `test:report` tidak menuntut bundle kapasitas. Workflow `.github/workflows/capacity.yml` hanya dipicu manual (`workflow_dispatch`), menjalankan `bun run test:ci:capacity` lalu `bun run test:report:capacity`, dan mengunggah artifact `capacity-evidence`. Skenario yang semua check nya merujuk script tier kapasitas hanya dihitung `test:report:capacity`, dan `test:scenarios` menolak skenario yang mencampur script tier kapasitas dengan script tier lain. Laporan kapasitas `passed` bila tier kapasitas lulus, seluruh skenario kapasitas lulus, dan bundle terikat pada checkout; kandidat release kapasitas hanya dari run CI bersih dengan event `workflow_dispatch` pada `refs/heads/main`. Laporan release menyalin `report.md` per push dan `.local/feature-12/report.md` kapasitas untuk commit yang sama.
+
+Deployment container (spec 0012) menambah satu langkah pada dua tier per push. `test:deployment:plan` di tier cepat membuktikan bentuk statis Dockerfile, file ignore, pin, `deploy/compose.yaml`, konfigurasi edge, string wajib dokumen, dan fungsi murni orkestrasi. `test:deployment:real` di tier nyata membangun ketiga image dan menjalankan topologi rujukan, lalu menulis `.local/feature-13/result.json` (jenis bukti `deployment`: `schema` 1 dan tepat check `DEPLOYMENT_CHECKS` dalam urutannya), `images.json`, `playwright-deployment.xml`, dan `artifact-scan.json`. `test:report` menyalin status dan check itu ke field `deployment` dan bagian *Deployment* `report.md`, tanpa mengubah status gate. Image hanya dibangun lokal dan tidak didorong ke registry. Prosedur operasi dan pembersihan manual ada di [aturan deployment](deployment.md).
+
+`bun run test:report:release` menghitung ulang laporan per push dan laporan kapasitas dari keempat bundle di `.local/feature-11/evidence/` pada checkout bersih commit kandidat. Identitas CI setiap laporan dibaca dari `candidate.ci` manifest bundle nya, tidak dari variable `GITHUB_*` proses laporan, sehingga bundle per push dari run `push` dan bundle kapasitas dari run `workflow_dispatch` dapat dinilai bersama. Perintah hanya menulis `.local/feature-13/release.json` dan `.local/feature-13/release.md`, dengan status `blocked` bila gate per push atau laporan kapasitas `failed`, `incomplete` bila salah satunya `incomplete`, salah satu laporan bukan kandidat release, bundle tidak berasal dari commit dan pohon sumber checkout, atau image tidak berlabel commit dan pohon sumber itu, serta `ready` hanya tanpa alasan. Bundle dari run lokal tidak mempunyai identitas CI, sehingga statusnya selalu `incomplete`. `grantsDeployment` selalu `false`. Prosedur mengunduh artifact ada di [aturan deployment](deployment.md).
 
 Setiap pekerjaan menjalankan pemeriksaan yang relevan dengan dampaknya. CI perubahan kode menjalankan build atau pemeriksaan tipe yang diperlukan, validasi registry, test area yang berubah, regression terkait, serta E2E alur kritis yang terdampak. Jalankan smoke k6 bila perubahan menyentuh perilaku atau performance yang diukur.
 
@@ -256,7 +265,7 @@ Catat commit atau identitas build, waktu dan run CI, versi runtime serta databas
 
 Seluruh skenario wajib harus memiliki bukti yang valid untuk kandidat release. Perubahan setelah pengujian memerlukan verifikasi ulang area yang terdampak; agent utama menentukan dan mencatat cakupan pengujian ulang berdasarkan dampaknya.
 
-Status kesiapan adalah `ready` ketika bukti wajib lengkap dan memenuhi kriteria, `blocked` ketika skenario wajib gagal atau hasil menunjukkan masalah, dan `incomplete` ketika bukti wajib belum tersedia. Jangan menyatakan siap production dengan skenario wajib yang dilewati, belum dijalankan, atau belum memiliki test.
+Status kesiapan adalah `ready` ketika bukti wajib lengkap dan memenuhi kriteria, `blocked` ketika skenario wajib gagal atau hasil menunjukkan masalah, dan `incomplete` ketika bukti wajib belum tersedia. Untuk kandidat release, status itu diambil dari `.local/feature-13/release.json` hasil `bun run test:report:release` atas bundle CI commit kandidat, tidak ditulis tangan. Jangan menyatakan siap production dengan skenario wajib yang dilewati, belum dijalankan, atau belum memiliki test.
 
 Jika ada keputusan untuk menerima pengecualian, catat skenario, alasan, dampak, penanggung jawab, dan keputusan pengguna atau pemilik release secara terpisah. Status test tetap mencerminkan hasil sebenarnya. Bukti kesiapan tidak dengan sendirinya memberi izin untuk deploy.
 

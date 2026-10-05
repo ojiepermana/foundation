@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
   bundlePath,
+  DEPLOYMENT_CHECKS,
   INPUT_FILES,
   INPUT_TREES,
   OUTPUT_FILES,
@@ -121,6 +122,22 @@ const SMOKE_RESULT = {
   outage: null,
   environment: null,
   limits: ['Batas bukti fixture.'],
+};
+
+/** A `result.json` and an `images.json` of the deployment step (spec 0012), enough for the field `deployment`. */
+const DEPLOYMENT_RESULT = {
+  schema: 1,
+  status: 'passed',
+  checks: DEPLOYMENT_CHECKS.map(({ name }) => ({ name, status: 'passed', detail: null })),
+  reasons: [],
+  boundary: 'Batas bukti fixture.',
+};
+const DEPLOYMENT_IMAGES = {
+  schema: 1,
+  images: ['frontend', 'backend', 'migrate'].map((name) => ({
+    name, tag: `foundation-${name}:deploy-0123456789ab`, imageId: `sha256:${'5'.repeat(64)}`, sizeBytes: 1, user: '1000:1000', bases: [],
+    labels: { revision: null, sourceTree: null },
+  })),
 };
 
 function scanner(name: string, coverage: object, status = 'passed') {
@@ -302,7 +319,9 @@ async function bundles(fixture: Fixture, options: Options = {}): Promise<void> {
         else if (spec.kind === 'scan') text = '{ "findings": [] }';
         // Spec 0011: the result.json of the k6 smoke step and its other JSON files.
         else if (spec.kind === 'performance') text = JSON.stringify(SMOKE_RESULT);
-        else if (spec.kind === 'data') text = '{ "metrics": {} }';
+        // Spec 0012: result.json and images.json of the deployment step.
+        else if (spec.kind === 'deployment') text = JSON.stringify(DEPLOYMENT_RESULT);
+        else if (spec.kind === 'data') text = spec.path.endsWith('/images.json') ? JSON.stringify(DEPLOYMENT_IMAGES) : '{ "metrics": {} }';
         else text = JSON.stringify(options.security ?? security());
         const record: EvidenceRecord = { path: spec.path, kind: spec.kind, required: spec.required, present: text !== null, sha256: text === null ? null : sha256(text) };
         if (spec.runner !== null) Object.assign(record, { runner: spec.runner, ...counts });
@@ -393,7 +412,7 @@ test('GATE-005 a complete fixture run passes every check, discovery, and the sca
   const found = JSON.parse(await readFile(join(fixture.dir, REPORT_JSON), 'utf8')) as GateReport;
   expect(Object.keys(found)).toEqual([
     'schema', 'generatedAt', 'candidate', 'binding', 'tiers', 'postgres', 'discovery', 'scenarios', 'critical', 'scanners', 'gate', 'releaseCandidate', 'outOfScope',
-    'performance',
+    'performance', 'deployment',
   ]);
   expect(found.gate).toBe('passed');
   expect(found.binding).toEqual({ valid: true, problems: [] });
@@ -411,7 +430,11 @@ test('GATE-005 a complete fixture run passes every check, discovery, and the sca
     ['actionlint', 'passed'],
   ]);
   expect(found.scanners?.scanners[0]).not.toHaveProperty('findings');
-  expect(found.outOfScope).toEqual([{ area: 'capacity_profiles', feature: 12 }, { area: 'deployment_image', feature: 13 }]);
+  // Spec 0012: the deployment image is bound through the field deployment, so only the capacity profiles stay out of scope.
+  expect(found.outOfScope).toEqual([{ area: 'capacity_profiles', feature: 12 }]);
+  expect([found.deployment?.status, found.deployment?.evidence, found.deployment?.images.map((image) => image.name)]).toEqual([
+    'passed', '.local/feature-11/evidence/real/.local/feature-13/result.json', ['frontend', 'backend', 'migrate'],
+  ]);
   // Spec 0011 (*Laporan per push*): the bound result.json of the k6 smoke step.
   expect(found.performance.map((item) => [item.tier, item.script, item.profile, item.status, item.evidence])).toEqual([
     ['real', 'test:performance:smoke', 'smoke', 'passed', '.local/feature-11/evidence/real/.local/feature-12/smoke/result.json'],

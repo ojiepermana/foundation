@@ -96,3 +96,18 @@ bun run test:report:capacity     # laporan kapasitas dari bundle tier kapasitas
 ```
 
 Tier kapasitas tidak termasuk gate per push. Bundle buktinya ada di `.local/feature-11/evidence/capacity/`, dan `test:report:capacity` menulis `.local/feature-12/report.json` serta `.local/feature-12/report.md`, lalu keluar 0 hanya bila tier lulus, seluruh skenario kapasitas lulus, dan bundle terikat pada checkout. Di GitHub, workflow `.github/workflows/capacity.yml` hanya dijalankan manual (`gh workflow run capacity.yml --ref main`) dan mengunggah artifact `capacity-evidence`. Angka yang dihasilkan berlaku untuk satu backend development dengan satu CPU, bukan perkiraan kapasitas produk; batas buktinya tertulis di setiap hasil. Aturan lengkap dan langkah pembersihan manual ada di [aturan testing](docs/rules/testing.md).
+
+## Deployment container (spec 0012)
+
+Frontend, backend, dan runner migration masing masing mendapat image sendiri yang dibangun dari root monorepo. `deploy/compose.yaml` adalah topologi rujukan satu host Docker: edge nginx dengan TLS yang melayani frontend dan meneruskan `/api/`, backend serta PostgreSQL di network internal, dan migration sebagai job sekali jalan. Image hanya ditandai lokal; proyek tidak mendorong image ke registry dan tidak melakukan deploy.
+
+```sh
+docker build -f apps/frontend/Dockerfile -t foundation-frontend:<tag> .
+docker build -f apps/backend/Dockerfile -t foundation-backend:<tag> .
+docker build -f database/Dockerfile -t foundation-migrate:<tag> .
+bun run test:deployment:plan   # bentuk statis dan test sinyal orkestrasi, langkah tier cepat
+bun run test:deployment:real   # topologi rujukan pada container nyata, langkah tier nyata
+bun run test:report:release    # status kesiapan release dari bundle CI yang diunduh untuk commit kandidat
+```
+
+Langkah deployment berurutan (build, PostgreSQL, provisioning sekali, backend, readiness, migration, edge), kebijakan endpoint production, retensi log, rotasi password, pembaruan sertifikat TLS, pembaruan pin, dan prosedur mengunduh artifact CI untuk `test:report:release` ada di [aturan deployment](docs/rules/deployment.md). Status `ready` dari `test:report:release` adalah ringkasan bukti untuk pemilik release, bukan izin deploy.

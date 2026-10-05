@@ -1,0 +1,10 @@
+# Daftar izin konteks build database/Dockerfile (spec 0012, tabel Daftar izin konteks build).
+# Aturan pertama menolak semua path; baris ! hanya memasukkan kembali input runner; dua baris terakhir menahan file
+# .env di folder mana pun, termasuk di dalam folder yang diizinkan.
+*
+!database/*.ts
+!database/migrations/
+!database/seeds/
+!libs/server/database/
+**/.env
+**/.env.*

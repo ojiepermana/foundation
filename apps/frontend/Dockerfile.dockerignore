@@ -1,0 +1,19 @@
+# Daftar izin konteks build apps/frontend/Dockerfile (spec 0012, tabel Daftar izin konteks build).
+# Aturan pertama menolak semua path; baris ! hanya memasukkan kembali input build; dua baris terakhir menahan file
+# .env di folder mana pun, termasuk di dalam folder yang diizinkan.
+*
+!package.json
+!bun.lock
+!apps/frontend/angular.json
+!apps/frontend/tsconfig.json
+!apps/frontend/tsconfig.app.json
+!apps/frontend/tsconfig.spec.json
+!apps/frontend/.postcssrc.json
+!apps/frontend/src/
+!apps/frontend/public/
+!apps/frontend/sdk/
+!apps/frontend/edge/
+**/*.spec.ts
+**/*.test.ts
+**/.env
+**/.env.*

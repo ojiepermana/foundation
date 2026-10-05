@@ -1,0 +1,12 @@
+# Daftar izin konteks build apps/backend/Dockerfile (spec 0012, tabel Daftar izin konteks build).
+# Aturan pertama menolak semua path; baris ! hanya memasukkan kembali input build; dua baris terakhir menahan file
+# .env di folder mana pun, termasuk di dalam folder yang diizinkan.
+*
+!package.json
+!bun.lock
+!apps/backend/src/
+!libs/server/
+**/*.spec.ts
+**/*.test.ts
+**/.env
+**/.env.*

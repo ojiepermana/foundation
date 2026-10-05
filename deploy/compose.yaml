@@ -1,0 +1,143 @@
+# Topologi rujukan deployment Foundation untuk satu host Docker (spec 0012, tabel Topologi dan Environment per service).
+# Image dibangun lokal dari root monorepo dan dirujuk lewat variable; file ini tidak membangun image. Jalankan dengan
+# --env-file .env.deploy (mode 0600, diabaikan Git); langkah berurutan ada di docs/rules/deployment.md.
+# Hanya edge yang mempublikasikan port. Backend dan PostgreSQL hanya berada di network internal, migration adalah job
+# sekali jalan (profil migrate), dan setiap service hanya menerima credential miliknya.
+name: foundation-deploy
+
+services:
+  edge:
+    image: ${FOUNDATION_FRONTEND_IMAGE:?}
+    networks:
+      - public
+      - app
+    ports:
+      - "${FOUNDATION_EDGE_BIND:-0.0.0.0}:${FOUNDATION_EDGE_HTTPS_PORT:-443}:8443"
+      - "${FOUNDATION_EDGE_BIND:-0.0.0.0}:${FOUNDATION_EDGE_HTTP_PORT:-80}:8080"
+    secrets:
+      - edge_tls_cert
+      - edge_tls_key
+    cpus: 0.5
+    mem_limit: 128m
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    stop_grace_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  backend:
+    image: ${FOUNDATION_BACKEND_IMAGE:?}
+    networks:
+      - app
+      - data
+    environment:
+      DATABASE_URL: ${FOUNDATION_BACKEND_DATABASE_URL:?}
+    cpus: 1
+    mem_limit: 512m
+    pids_limit: 256
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    stop_grace_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  postgres:
+    image: ${FOUNDATION_POSTGRES_IMAGE:-foundation-postgres:18-pinned}
+    # Diteruskan entrypoint spec 0002 ke postgres tanpa mengubah cluster; statement gagal tidak masuk log.
+    command: ["-c", "log_min_messages=log", "-c", "log_min_error_statement=panic", "-c", "log_error_verbosity=terse"]
+    networks:
+      - data
+    environment:
+      POSTGRES_DB: foundation
+      POSTGRES_USER: foundation_admin
+      POSTGRES_PASSWORD: ${FOUNDATION_POSTGRES_PASSWORD:?}
+    volumes:
+      - pgsql_data:/var/lib/pgsql
+    cpus: 2
+    mem_limit: 1g
+    shm_size: 128mb
+    pids_limit: 256
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  migrate:
+    image: ${FOUNDATION_MIGRATE_IMAGE:?}
+    profiles:
+      - migrate
+    networks:
+      - data
+    environment:
+      FOUNDATION_MIGRATOR_DATABASE_URL: ${FOUNDATION_MIGRATOR_DATABASE_URL:?}
+    cpus: 0.5
+    mem_limit: 256m
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    stop_grace_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  public: {}
+  app:
+    internal: true
+  data:
+    internal: true
+
+volumes:
+  pgsql_data: {}
+
+secrets:
+  edge_tls_cert:
+    file: ${FOUNDATION_EDGE_TLS_CERT_FILE:?}
+  edge_tls_key:
+    file: ${FOUNDATION_EDGE_TLS_KEY_FILE:?}

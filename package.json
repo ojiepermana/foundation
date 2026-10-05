@@ -37,6 +37,7 @@
     "test:report": "bun --no-env-file scripts/gate-report.ts",
     "test:ci:capacity": "bun --no-env-file scripts/gate.ts capacity",
     "test:report:capacity": "bun --no-env-file scripts/gate-report.ts capacity",
+    "test:report:release": "bun --no-env-file scripts/gate-report.ts release",
     "check:dependencies": "bun scripts/check-dependencies.ts",
     "test:scenarios": "bun --no-env-file scripts/validate-scenarios.ts",
     "check:test-discovery": "bun --no-env-file scripts/check-test-discovery.ts",
@@ -49,7 +50,9 @@
     "test:performance:stress": "bun --no-env-file tests/orchestration/performance-real.ts stress",
     "test:performance:spike": "bun --no-env-file tests/orchestration/performance-real.ts spike",
     "test:performance:outage": "bun --no-env-file tests/orchestration/performance-real.ts outage",
-    "test:performance:soak": "bun --no-env-file tests/orchestration/performance-real.ts soak"
+    "test:performance:soak": "bun --no-env-file tests/orchestration/performance-real.ts soak",
+    "test:deployment:plan": "mkdir -p .local/feature-13 && bun --no-env-file test ./tests/integration/deployment --reporter=junit --reporter-outfile=.local/feature-13/plan.xml",
+    "test:deployment:real": "bun --no-env-file tests/orchestration/deployment-real.ts"
   },
   "dependencies": {
     "@angular/common": "22.2.0",
