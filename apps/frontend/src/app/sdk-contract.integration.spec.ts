@@ -6,8 +6,10 @@ import {
   DevelopmentService,
   FoundationApi,
   getDevelopmentStatus,
+  HealthService,
   provideApiConfiguration,
   type DevelopmentStatus,
+  type HealthLive,
   type StrictHttpResponse,
 } from '@sdk';
 import { firstValueFrom } from 'rxjs';
@@ -102,5 +104,34 @@ describe('SDK-004 responses from the real backend', () => {
   it('fails with HttpErrorResponse status 0 when nothing listens on the port', async () => {
     const error = await failure(closedUrl);
     expect(error.status).toBe(0);
+  });
+});
+
+// DEP-003 (spec 0012, AC-4): the generated HealthService against the same real backend harness, which runs the
+// development composition without DATABASE_URL, so liveness answers 200 and readiness 503 without a pool.
+describe('DEP-003 HealthService against the real backend', () => {
+  it('returns {"status":"live"} with status 200 and Cache-Control no-store through getHealthLive', async () => {
+    useRealBackend(backendUrl);
+    const response = await firstValueFrom(TestBed.inject(HealthService).getHealthLive$Response());
+    expect(response.status).toBe(200);
+    expect(response.url).toBe(`${backendUrl}/health/live`);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    const body: HealthLive = response.body;
+    expect(body).toStrictEqual({ status: 'live' });
+    expect(await firstValueFrom(TestBed.inject(HealthService).getHealthLive())).toStrictEqual({ status: 'live' });
+  });
+
+  it('fails getHealthReady with HttpErrorResponse 503 and {"status":"unavailable"} when the backend has no database', async () => {
+    useRealBackend(backendUrl);
+    const error: unknown = await firstValueFrom(TestBed.inject(HealthService).getHealthReady$Response()).then(
+      () => undefined,
+      (reason: unknown) => reason,
+    );
+    expect(error).toBeInstanceOf(HttpErrorResponse);
+    const failure = error as HttpErrorResponse;
+    expect(failure.status).toBe(503);
+    expect(failure.url).toBe(`${backendUrl}/health/ready`);
+    expect(failure.headers.get('Cache-Control')).toBe('no-store');
+    expect(failure.error).toStrictEqual({ status: 'unavailable' });
   });
 });

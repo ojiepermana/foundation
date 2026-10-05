@@ -1295,8 +1295,8 @@ const probeComposition: ReadonlyArray<readonly [string, string]> = [
     "import { developmentRoutes } from './features/development/status.routes';",
     "import { developmentRoutes } from './features/development/status.routes';\nimport { probeRoutes } from './features/probe/probe.routes';",
   ],
-  ["tags: [{ name: 'development' }]", "tags: [{ name: 'development' }, { name: 'probe' }]"],
-  ['.use(developmentRoutes);', '.use(developmentRoutes).use(probeRoutes);'],
+  ["tags: [{ name: 'development' }, { name: 'health' }]", "tags: [{ name: 'development' }, { name: 'health' }, { name: 'probe' }]"],
+  ['.use(developmentRoutes).use(healthRoutes);', '.use(developmentRoutes).use(healthRoutes).use(probeRoutes);'],
 ];
 
 const probeFiles = ['fn/probe/get-probe.ts', 'models/probe-available.ts', 'models/probe-unavailable.ts', 'services/probe.service.ts'].map(
@@ -1429,7 +1429,7 @@ function operationExports(publicApi: string): string[] {
   return [...publicApi.matchAll(/export \{\s*(\w+),[^}]*\} from '\.\/fn\/[^']+';/g)].map((match) => match[1]!);
 }
 
-test('SDK-007 sdk:generate under cs_CZ.UTF-8 and en_US.UTF-8 writes byte identical SDKs that export getChart, getDevelopmentReadiness, getDevelopmentStatus, getHelp in order', async () => {
+test('SDK-007 sdk:generate under cs_CZ.UTF-8 and en_US.UTF-8 writes byte identical SDKs that export getChart, getDevelopmentReadiness, getDevelopmentStatus, getHealthLive, getHealthReady, getHelp in order', async () => {
   const dirs: string[] = [];
   try {
     for (const locale of ['cs_CZ.UTF-8', 'en_US.UTF-8']) {
@@ -1441,7 +1441,8 @@ test('SDK-007 sdk:generate under cs_CZ.UTF-8 and en_US.UTF-8 writes byte identic
       const result = await run(dir, 'sdk:generate', { timeout: checkTimeoutMs, env: { LC_ALL: locale, LANG: locale } });
       expect(result.code, result.output).toBe(0);
       const publicApi = await Bun.file(join(dir, 'apps/frontend/sdk/public-api.ts')).text();
-      expect(operationExports(publicApi)).toEqual(['getChart', 'getDevelopmentReadiness', 'getDevelopmentStatus', 'getHelp']);
+      // Spec 0012 adds getHealthLive and getHealthReady; in the pinned en_US order they sit between getDevelopmentStatus and getHelp.
+      expect(operationExports(publicApi)).toEqual(['getChart', 'getDevelopmentReadiness', 'getDevelopmentStatus', 'getHealthLive', 'getHealthReady', 'getHelp']);
     }
     expect(await diffArtifacts(dirs[0]!, dirs[1]!)).toEqual(noDifference);
   } finally {

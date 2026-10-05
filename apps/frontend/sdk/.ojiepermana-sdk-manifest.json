@@ -6,13 +6,19 @@
     "base-service.ts",
     "fn/development/get-development-readiness.ts",
     "fn/development/get-development-status.ts",
+    "fn/health/get-health-live.ts",
+    "fn/health/get-health-ready.ts",
     "models/development-status.ts",
+    "models/health-live.ts",
+    "models/health-ready.ts",
+    "models/health-unavailable.ts",
     "models/readiness-available.ts",
     "models/readiness-busy.ts",
     "models/readiness-unavailable.ts",
     "public-api.ts",
     "request-builder.ts",
     "services/development.service.ts",
+    "services/health.service.ts",
     "strict-http-response.ts"
   ]
 }

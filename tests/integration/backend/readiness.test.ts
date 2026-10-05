@@ -177,6 +177,30 @@ test('READY-001 a Host header that forms no absolute URL keeps the fixed order 4
   }
 }, 15_000);
 
+test('READY-001 a Host header that Bun keeps in a request URL that new URL refuses keeps the fixed order 404, 400, 503 instead of a 500', async () => {
+  // Bun gives the handler `http://<Host>/api/readiness` for these Host values, an absolute URL that `new URL` refuses.
+  const app = createApp('development').listen({ hostname: '127.0.0.1', port: 0, maxRequestBodySize: 1024, idleTimeout: 10 });
+  try {
+    const port = app.server!.port!;
+    for (const host of ['h%5e.example', 'h%zz', '%', '[::1h', 'h:99999', 'a:b:c']) {
+      const request = (target: string) => rawRequest(port, `GET ${target} HTTP/1.1\r\nHost: ${host}\r\n\r\n`);
+      const valid = await request('/api/readiness');
+      expect(valid.status, `Host ${host}`).toBe(503);
+      expect(valid.headers['cache-control']).toBe('no-store');
+      expectUnavailable(JSON.parse(valid.body));
+      const query = await request('/api/readiness?x=1');
+      expect(query.status, `Host ${host} with a query`).toBe(400);
+      expect(query.headers['cache-control']).toBe('no-store');
+      expect(query.body).toBe(INVALID_REQUEST);
+      const slash = await request('/api/readiness/');
+      expect(slash.status, `Host ${host} with a trailing slash`).toBe(404);
+      expect(JSON.parse(slash.body)).toEqual({ error: 'Not found' });
+    }
+  } finally {
+    await app.stop(true);
+  }
+}, 15_000);
+
 async function unusedPort(): Promise<number> {
   const server = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: () => new Response('fixture') });
   const port = server.port!;

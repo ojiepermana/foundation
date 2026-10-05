@@ -65,9 +65,13 @@ test('READY-003 stored openapi.json holds the three named readiness models', () 
 });
 
 test('READY-003 REQUIRED_OPERATIONS keeps the status entry and adds the readiness entry of the table', () => {
+  // Spec 0012 (*Perubahan gate yang dinamai*, Test kontrak lama): the two entries above stay as they are and the two
+  // health entries follow them.
   expect(REQUIRED_OPERATIONS.map(({ checkComponent: _check, ...entry }) => entry)).toEqual([
     { path: '/api/status', method: 'get', operationId: 'getDevelopmentStatus', tag: 'development', security: [], successStatus: '200', component: 'DevelopmentStatus' },
     { path: '/api/readiness', method: 'get', operationId: 'getDevelopmentReadiness', tag: 'development', security: [], successStatus: '200', component: 'ReadinessAvailable' },
+    { path: '/health/live', method: 'get', operationId: 'getHealthLive', tag: 'health', security: [], successStatus: '200', component: 'HealthLive' },
+    { path: '/health/ready', method: 'get', operationId: 'getHealthReady', tag: 'health', security: [], successStatus: '200', component: 'HealthReady' },
   ]);
   expect(Object.isFrozen(REQUIRED_OPERATIONS[1]) && Object.isFrozen(REQUIRED_OPERATIONS[1]!.security)).toBe(true);
   const { checkComponent } = REQUIRED_OPERATIONS[1]!;
@@ -188,4 +192,44 @@ test('READY-005 readiness-page.ts imports only the AC-8 classes from the card, b
   ]);
   expect(source).not.toContain('node_modules');
   expect(source).not.toMatch(/\brequire\s*\(/);
+});
+
+// DEP-003 (spec 0012, AC-4): the two health entries of REQUIRED_OPERATIONS take the shape of the getDevelopmentStatus
+// entry (one required status string with a single enum value and additionalProperties false), and the generated SDK
+// exports HealthService with both operations and the three health models.
+const healthService = await Bun.file(join(root, 'apps/frontend/sdk/services/health.service.ts')).text();
+
+test('DEP-003 the health entries of REQUIRED_OPERATIONS accept only one required status literal without additional properties', () => {
+  const entries: [number, string, string][] = [[2, 'HealthLive', 'live'], [3, 'HealthReady', 'ready']];
+  for (const [index, name, value] of entries) {
+    const { checkComponent, component } = REQUIRED_OPERATIONS[index]!;
+    expect(component).toBe(name);
+    const model = () => structuredClone(stored.components.schemas[name]);
+    expect(checkComponent(model()), name).toBe(true);
+    const rejected: [string, (schema: any) => void][] = [
+      ['additional properties allowed', schema => { schema.additionalProperties = true; }],
+      ['additionalProperties left out', schema => { delete schema.additionalProperties; }],
+      ['another literal', schema => { schema.properties.status = literal('ok'); }],
+      ['an enum with a second value', schema => { schema.properties.status.enum = [value, 'unavailable']; }],
+      ['neither const nor enum', schema => { delete schema.properties.status.const; delete schema.properties.status.enum; }],
+      ['an extra property', schema => { schema.properties.detail = { type: 'string' }; }],
+      ['status left out of required', schema => { schema.required = []; }],
+      ['status as a reference', schema => { schema.properties.status = { $ref: '#/components/schemas/HealthUnavailable' }; }],
+    ];
+    for (const [label, mutate] of rejected) {
+      const schema = model();
+      mutate(schema);
+      expect(checkComponent(schema), `${name} ${label}`).toBe(false);
+    }
+  }
+});
+
+test('DEP-003 generated SDK exports HealthService with getHealthLive and getHealthReady and the three health models', () => {
+  for (const model of ['HealthLive', 'HealthReady', 'HealthUnavailable']) expect(publicApi).toContain(`export type { ${model} } from './models/`);
+  expect(publicApi).toContain("export { HealthService } from './services/health.service';");
+  expect(publicApi).toContain("export { getHealthLive, type GetHealthLive$Params } from './fn/health/get-health-live';");
+  expect(publicApi).toContain("export { getHealthReady, type GetHealthReady$Params } from './fn/health/get-health-ready';");
+  expect(healthService).toContain('export class HealthService extends BaseService');
+  expect(healthService).toContain('getHealthLive(params?: GetHealthLive$Params, context?: HttpContext): Observable<HealthLive>');
+  expect(healthService).toContain('getHealthReady(params?: GetHealthReady$Params, context?: HttpContext): Observable<HealthReady>');
 });

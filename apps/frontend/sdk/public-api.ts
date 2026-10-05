@@ -8,11 +8,15 @@ export type { StrictHttpResponse } from './strict-http-response';
 export { FoundationApi } from './api';
 
 export type { DevelopmentStatus } from './models/development-status';
+export type { HealthLive } from './models/health-live';
+export type { HealthReady } from './models/health-ready';
+export type { HealthUnavailable } from './models/health-unavailable';
 export type { ReadinessAvailable } from './models/readiness-available';
 export type { ReadinessBusy } from './models/readiness-busy';
 export type { ReadinessUnavailable } from './models/readiness-unavailable';
 
 export { DevelopmentService } from './services/development.service';
+export { HealthService } from './services/health.service';
 
 export {
   getDevelopmentReadiness,
@@ -22,3 +26,5 @@ export {
   getDevelopmentStatus,
   type GetDevelopmentStatus$Params,
 } from './fn/development/get-development-status';
+export { getHealthLive, type GetHealthLive$Params } from './fn/health/get-health-live';
+export { getHealthReady, type GetHealthReady$Params } from './fn/health/get-health-ready';

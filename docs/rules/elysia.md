@@ -8,6 +8,12 @@ Ikuti [aturan keamanan](security.md) untuk validasi, permission pada setiap requ
 
 Development backend memakai `HOST` dan `PORT` yang diberikan root supervisor, dengan default `127.0.0.1:8888`. Jalankan bersama frontend melalui [doctor dan serve](development-commands.md), bukan dengan angka port berbeda yang tersebar di script fitur.
 
+## Health dan log production
+
+Kedua komposisi `createApp` memasang `GET /health/live` dan `GET /health/ready` di `apps/backend/src/features/health/` (spec 0012), di luar `/api/` sehingga edge deployment tidak pernah meneruskannya. `/health/live` menjawab 200 tanpa menyentuh pool. `/health/ready` menjalankan paling banyak satu pemeriksaan per proses atas `common.schema_migrations` dengan `REQUIRED_MIGRATION` sebagai parameter, dan menjawab 503 bila database tidak siap. Kedua route memakai penjaga GET bersama `plugins/request-guard.ts` dan `Cache-Control: no-store`, tanpa waktu, versi, atau pesan error di jawaban. Setiap migration baru memperbarui `REQUIRED_MIGRATION` di `health.queries.ts` pada commit yang sama.
+
+Komposisi production hanya memasang route health; route development, plugin OpenAPI, admin, metrics, dan debug tidak ada. Pada `NODE_ENV=production`, `index.ts` memberi `log` ke `createApp`, sehingga plugin `plugins/request-log.ts` menulis satu baris JSON per request (tanpa query, header, cookie, body, atau IP) serta baris lifecycle JSON, dengan level `info` ke stdout dan `error` ke stderr. Teks lifecycle development tidak berubah. Kebijakan endpoint dan retensi log ada di [aturan deployment](deployment.md).
+
 ## Struktur backend
 
 ```text

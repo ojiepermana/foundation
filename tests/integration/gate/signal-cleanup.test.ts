@@ -270,6 +270,7 @@ test('GATE-009 every real bun:test file that runs Docker imports the signal clea
     }
   }
   expect(checked.sort()).toEqual([
+    'tests/integration/database/health.test.ts',
     'tests/integration/database/migration.test.ts',
     'tests/integration/database/provision.test.ts',
     'tests/integration/database/readiness.test.ts',
@@ -414,12 +415,14 @@ test('GATE-009 SIGTERM to the infrastructure suite runs compose down for its pro
   expect(run.after).toEqual([down, down, `ps -aq ${filter}`, `network ls -q ${filter}`, `volume ls -q ${filter}`].map((line) => `${line}|${run.folder}`));
 }, 60_000);
 
-test('GATE-009 SIGTERM to the provision, migration, and readiness suites removes the container they started on both passes, then its folder', async () => {
-  // covers: AC-4 (Pembersihan sinyal suite nyata: provision.test.ts, migration.test.ts, readiness.test.ts)
+test('GATE-009 SIGTERM to the provision, migration, readiness, and health suites removes the container they started on both passes, then its folder', async () => {
+  // covers: AC-4 (Pembersihan sinyal suite nyata: provision.test.ts, migration.test.ts, readiness.test.ts, health.test.ts)
   const suites = [
     ['tests/integration/database/provision.test.ts', undefined, /^foundation-db-test-\w{6}$/, /^run --rm -d --name (foundation-db-test-[0-9a-f]{8}) /, false],
     ['tests/integration/database/migration.test.ts', 'MIG-001', /^foundation-migration-\w{6}$/, /^run --rm -d --name (foundation-mig-test-[0-9a-f]{8}) /, false],
     ['tests/integration/database/readiness.test.ts', undefined, /^foundation-readiness-test-\w{6}$/, /^run -d --name (foundation-readiness-db-[0-9a-f]{8}) /, true],
+    // DEP-009 of spec 0012 uses the READY-008 harness: the same guarded container, with a folder of its own.
+    ['tests/integration/database/health.test.ts', undefined, /^foundation-health-test-\w{6}$/, /^run -d --name (foundation-readiness-db-[0-9a-f]{8}) /, true],
   ] as const;
   for (const [file, filter, folderPattern, started, guarded] of suites) {
     const run = await interruptedSuite(file, filter);
@@ -433,6 +436,7 @@ test('GATE-009 SIGTERM to the provision, migration, and readiness suites removes
 }, 120_000);
 
 const REAL_SUITES = [
+  'tests/integration/database/health.test.ts',
   'tests/integration/database/migration.test.ts',
   'tests/integration/database/provision.test.ts',
   'tests/integration/database/readiness.test.ts',

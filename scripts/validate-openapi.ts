@@ -50,6 +50,26 @@ function check(condition: unknown, rule: OpenApiRuleId): asserts condition {
 }
 
 /**
+ * Component check of an object with exactly one required `status` property: a string with the single literal `value`
+ * through `const`, `enum`, or both, and `additionalProperties: false`. The shape of `getDevelopmentStatus`, which the
+ * health entries of spec 0012 reuse.
+ */
+const statusOnly = (value: string) => (schema: Json): boolean => {
+  const properties = own(schema, 'properties');
+  const required = own(schema, 'required');
+  if (own(schema, 'type') !== 'object' || own(schema, 'additionalProperties') !== false) return false;
+  if (!Array.isArray(required) || required.length !== 1 || required[0] !== 'status') return false;
+  if (!isRecord(properties) || Object.keys(properties).length !== 1) return false;
+  const status = own(properties, 'status');
+  if (!isRecord(status) || isReference(status) || own(status, 'type') !== 'string') return false;
+  const values = own(status, 'enum');
+  const hasConst = Object.hasOwn(status, 'const');
+  const hasEnum = Object.hasOwn(status, 'enum');
+  return (hasConst || hasEnum) && (!hasConst || own(status, 'const') === value) &&
+    (!hasEnum || (Array.isArray(values) && values.length === 1 && values[0] === value));
+};
+
+/**
  * Operations that every exported contract must contain. New entries come only from the spec of the feature
  * that owns the route, together with a test that proves the entry (spec 0008, "Tabel operasi wajib").
  */
@@ -74,20 +94,7 @@ export const REQUIRED_OPERATIONS: readonly Readonly<{
     security: Object.freeze([]),
     successStatus: '200',
     component: 'DevelopmentStatus',
-    checkComponent: (schema: Json) => {
-      const properties = own(schema, 'properties');
-      const required = own(schema, 'required');
-      if (own(schema, 'type') !== 'object' || own(schema, 'additionalProperties') !== false) return false;
-      if (!Array.isArray(required) || required.length !== 1 || required[0] !== 'status') return false;
-      if (!isRecord(properties) || Object.keys(properties).length !== 1) return false;
-      const status = own(properties, 'status');
-      if (!isRecord(status) || isReference(status) || own(status, 'type') !== 'string') return false;
-      const values = own(status, 'enum');
-      const hasConst = Object.hasOwn(status, 'const');
-      const hasEnum = Object.hasOwn(status, 'enum');
-      return (hasConst || hasEnum) && (!hasConst || own(status, 'const') === 'ok') &&
-        (!hasEnum || (Array.isArray(values) && values.length === 1 && values[0] === 'ok'));
-    },
+    checkComponent: statusOnly('ok'),
   }),
   // Spec 0006, "Operasi wajib baru": the development readiness check.
   Object.freeze({
@@ -117,6 +124,27 @@ export const REQUIRED_OPERATIONS: readonly Readonly<{
       const applied = own(properties, 'appliedMigrations');
       return isRecord(applied) && !isReference(applied) && own(applied, 'type') === 'integer' && own(applied, 'minimum') === 0;
     },
+  }),
+  // Spec 0012, *Kontrak OpenAPI*: the backend health routes of both compositions.
+  Object.freeze({
+    path: '/health/live',
+    method: 'get',
+    operationId: 'getHealthLive',
+    tag: 'health',
+    security: Object.freeze([]),
+    successStatus: '200',
+    component: 'HealthLive',
+    checkComponent: statusOnly('live'),
+  }),
+  Object.freeze({
+    path: '/health/ready',
+    method: 'get',
+    operationId: 'getHealthReady',
+    tag: 'health',
+    security: Object.freeze([]),
+    successStatus: '200',
+    component: 'HealthReady',
+    checkComponent: statusOnly('ready'),
   }),
 ]);
 

@@ -191,6 +191,57 @@
         ],
         "type": "object"
       },
+      "HealthLive": {
+        "$id": "#/components/schemas/HealthLive",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "const": "live",
+            "enum": [
+              "live"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "HealthReady": {
+        "$id": "#/components/schemas/HealthReady",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "const": "ready",
+            "enum": [
+              "ready"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "HealthUnavailable": {
+        "$id": "#/components/schemas/HealthUnavailable",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "const": "unavailable",
+            "enum": [
+              "unavailable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
       "ItemKind": {
         "description": "Kind of item",
         "enum": [
@@ -999,6 +1050,140 @@
           "development"
         ]
       }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "getHealthLive",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthLive"
+                }
+              }
+            },
+            "description": "Response for status 200"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "const": "Invalid request",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Response for status 400"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "const": "Internal server error",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Response for status 500"
+          }
+        },
+        "security": [],
+        "summary": "Backend process liveness",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "getHealthReady",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthReady"
+                }
+              }
+            },
+            "description": "Response for status 200"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "const": "Invalid request",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Response for status 400"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "const": "Internal server error",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Response for status 500"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthUnavailable"
+                }
+              }
+            },
+            "description": "Response for status 503"
+          }
+        },
+        "security": [],
+        "summary": "Backend database readiness",
+        "tags": [
+          "health"
+        ]
+      }
     }
   },
   "security": [],
@@ -1009,6 +1194,9 @@
     },
     {
       "name": "development"
+    },
+    {
+      "name": "health"
     }
   ]
 }

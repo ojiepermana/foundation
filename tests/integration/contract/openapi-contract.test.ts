@@ -259,7 +259,7 @@ const exportFailures: [string, (dir: string, secret: string) => Promise<void>, s
   ['an /openapi/json response that is not 200', dir => edit(dir, appModule, "provider: null,", "provider: null, path: '/moved',"), 'OpenAPI export failed\n'],
   ['an /openapi/json response that answers 200 with text that is not JSON', async dir => {
     await edit(dir, appModule, "provider: null,", "provider: null, path: '/moved',");
-    await edit(dir, appModule, '.use(developmentRoutes);', ".use(developmentRoutes).get('/openapi/json', () => 'not json');");
+    await edit(dir, appModule, '.use(developmentRoutes).use(healthRoutes);', ".use(developmentRoutes).use(healthRoutes).get('/openapi/json', () => 'not json');");
   }, 'OpenAPI export failed\n'],
 ];
 for (const [name, mutate, stderr] of exportFailures) {
@@ -1100,7 +1100,8 @@ for (const [name, rule, model, exported] of elysiaExports) {
 }
 
 test('OPENAPI-004 REQUIRED_OPERATIONS holds exactly the entries of the required operation table', () => {
-  expect(REQUIRED_OPERATIONS.length).toBe(2);
+  // Spec 0006 adds the readiness entry and spec 0012 the two health entries; READY-003 checks those three.
+  expect(REQUIRED_OPERATIONS.length).toBe(4);
   const { checkComponent, ...entry } = REQUIRED_OPERATIONS[0]!;
   expect(entry).toEqual({
     path: '/api/status', method: 'get', operationId: 'getDevelopmentStatus', tag: 'development',
@@ -1212,8 +1213,11 @@ test('OPENAPI-006 subset-full.json holds the required status operation and every
   const stored = JSON.parse(storedText);
   expect(d.paths['/api/status']).toStrictEqual(stored.paths['/api/status']);
   expect(d.components.schemas.DevelopmentStatus).toStrictEqual(stored.components.schemas.DevelopmentStatus);
+  // Spec 0012: the two required health operations and their models come from the stored contract as well.
+  for (const path of ['/health/live', '/health/ready']) expect(d.paths[path]).toStrictEqual(stored.paths[path]);
+  for (const name of ['HealthLive', 'HealthReady', 'HealthUnavailable']) expect(d.components.schemas[name]).toStrictEqual(stored.components.schemas[name]);
   const operations: any[] = Object.values(d.paths).flatMap((item: any) => Object.values(item));
-  expect(Object.values(d.paths).flatMap((item: any) => Object.keys(item)).sort()).toEqual(['delete', 'get', 'get', 'get', 'get', 'get', 'head', 'options', 'patch', 'post', 'put']);
+  expect(Object.values(d.paths).flatMap((item: any) => Object.keys(item)).sort()).toEqual(['delete', 'get', 'get', 'get', 'get', 'get', 'get', 'get', 'head', 'options', 'patch', 'post', 'put']);
   expect(operations.some(operation => operation.deprecated === true)).toBe(true);
 
   const parameters: any[] = operations.flatMap(operation => operation.parameters ?? []);
@@ -1598,3 +1602,64 @@ test('OPENAPI-007 api:openapi and api:validate ignore a .env file in the checkou
     await rm(dir, { recursive: true, force: true });
   }
 }, 30_000);
+
+// DEP-003 (spec 0012, AC-4, table *Kontrak OpenAPI*): the two health operations of the stored contract, the live export
+// of the development composition, the four required operations, and the production composition without the plugin.
+test('DEP-003 the stored contract declares GET /health/live and GET /health/ready as the Kontrak OpenAPI table, and the development export equals it', async () => {
+  const stored = JSON.parse(storedText);
+  expect(stored.tags).toEqual([{ name: 'development' }, { name: 'health' }]);
+  const inline = (error: string) => ({ 'application/json': { schema: {
+    additionalProperties: false, properties: { error: { const: error, type: 'string' } }, required: ['error'], type: 'object',
+  } } });
+  const reference = (name: string) => ({ 'application/json': { schema: { $ref: `#/components/schemas/${name}` } } });
+  const rows: [string, string, string, Record<string, unknown>][] = [
+    ['/health/live', 'getHealthLive', 'Backend process liveness', { 200: reference('HealthLive'), 400: inline('Invalid request'), 500: inline('Internal server error') }],
+    ['/health/ready', 'getHealthReady', 'Backend database readiness', {
+      200: reference('HealthReady'), 400: inline('Invalid request'), 500: inline('Internal server error'), 503: reference('HealthUnavailable'),
+    }],
+  ];
+  for (const [path, operationId, summary, responses] of rows) {
+    expect(Object.keys(stored.paths[path]), path).toEqual(['get']);
+    const operation = stored.paths[path].get;
+    expect([operation.operationId, operation.tags, operation.security, operation.summary], path).toEqual([operationId, ['health'], [], summary]);
+    expect(Object.keys(operation.responses).sort(), path).toEqual(Object.keys(responses).sort());
+    for (const [status, content] of Object.entries(responses)) expect(operation.responses[status].content, `${path} ${status}`).toStrictEqual(content);
+  }
+  for (const [name, value] of [['HealthLive', 'live'], ['HealthReady', 'ready'], ['HealthUnavailable', 'unavailable']] as const) {
+    expect(stored.components.schemas[name], name).toStrictEqual({
+      $id: `#/components/schemas/${name}`, additionalProperties: false, type: 'object',
+      properties: { status: { const: value, enum: [value], type: 'string' } }, required: ['status'],
+    });
+  }
+  // The export of the backend source gives the same operations and models, and the production composition has no plugin.
+  const exported = await (await createApp('development').handle(new Request('http://localhost/openapi/json'))).json();
+  for (const path of ['/health/live', '/health/ready']) expect(exported.paths[path], path).toStrictEqual(stored.paths[path]);
+  for (const name of ['HealthLive', 'HealthReady', 'HealthUnavailable']) expect(exported.components.schemas[name], name).toStrictEqual(stored.components.schemas[name]);
+  const production = createApp('production');
+  for (const path of ['/openapi', '/openapi/json']) expect((await production.handle(new Request(`http://localhost${path}`))).status, path).toBe(404);
+});
+
+test('DEP-003 REQUIRED_OPERATIONS holds four entries, and removing or changing a health operation is rejected as required-operation', () => {
+  expect(REQUIRED_OPERATIONS.map(operation => `${operation.method} ${operation.path} ${operation.operationId}`)).toEqual([
+    'get /api/status getDevelopmentStatus',
+    'get /api/readiness getDevelopmentReadiness',
+    'get /health/live getHealthLive',
+    'get /health/ready getHealthReady',
+  ]);
+  const stored = JSON.parse(storedText);
+  expect(ruleOf(structuredClone(stored))).toBe('accepted');
+  const cases: [string, (d: any) => void][] = [
+    ['no /health/live', d => { delete d.paths['/health/live']; }],
+    ['no /health/ready', d => { delete d.paths['/health/ready']; }],
+    ['another operationId on /health/live', d => { d.paths['/health/live'].get.operationId = 'getLive'; }],
+    ['another tag on /health/ready', d => { d.paths['/health/ready'].get.tags = ['development']; }],
+    ['a 200 that references another model', d => { d.paths['/health/live'].get.responses['200'].content = { 'application/json': { schema: { $ref: '#/components/schemas/HealthReady' } } }; }],
+    ['a HealthLive with another literal', d => { d.components.schemas.HealthLive.properties.status = { const: 'ok', enum: ['ok'], type: 'string' }; }],
+    ['a HealthReady with additional properties', d => { d.components.schemas.HealthReady.additionalProperties = true; }],
+  ];
+  for (const [name, mutate] of cases) {
+    const document = structuredClone(stored);
+    mutate(document);
+    expect(ruleOf(document), name).toBe('required-operation');
+  }
+});
