@@ -526,7 +526,7 @@ _Langkah 10 build plan (AC-8, AC-9, keputusan 77): service `edge` mendapat `dns_
 - [x] Mac (Docker Desktop 29.8.0) → `bun run test:deployment:real` `36 check passed, 0 failed, 0 not_run`, exit 0; `backend_shutdown_restart` `stop backend 209 ms, exit 0, baris stopped; 30 jawaban (0 kali 504) lalu 502; 404 backend lagi 6063 ms sesudah start tanpa restart edge` (2026-10-06) → AC-8, AC-9
 - [x] `bun run test:ci` → `gate fast: tier passed (19 dari 19 langkah passed)`, exit 0 (2026-10-06) → AC-11
 - [x] `bun run check:workflow` → `Workflow lulus` untuk `application.yml` dan `capacity.yml`, tanpa perubahan workflow (2026-10-06) → AC-11
-- [ ] Sesudah push: job `real` run GitHub Actions commit perbaikan → `check backend_shutdown_restart passed` dan `deployment: passed` pada runner `ubuntu-24.04`
+- [x] Sesudah push: job `real` run GitHub Actions commit perbaikan → `check backend_shutdown_restart passed` dan `deployment: passed` pada runner `ubuntu-24.04` (2026-10-06: run 37378048630 commit `dec4dda`, `36 check passed, 0 failed, 0 not_run`, `test:deployment:real` 93,1 detik, `test:performance:smoke` passed, tier nyata 7 dari 7 langkah passed, dan job `application`, `real`, `security`, serta `report` sukses) → AC-8, AC-9
 
 ## Acceptance-criteria coverage (langkah 10)
 
