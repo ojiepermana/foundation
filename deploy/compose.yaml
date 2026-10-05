@@ -17,6 +17,11 @@ services:
     secrets:
       - edge_tls_cert
       - edge_tls_key
+    # ndots yang ditulis sendiri membuat DNS Docker menjawab nama satu label yang tidak dikenalnya (backend yang berhenti)
+    # dengan jawaban kosong, tanpa meneruskannya ke DNS host. nginx lalu melepas alamat lama dan menjawab 502; tanpa ini
+    # DNS host dapat menjawab SERVFAIL dan edge terus menunggu alamat lama sampai 504 (rationale spec 0012, keputusan 77).
+    dns_opt:
+      - ndots:0
     cpus: 0.5
     mem_limit: 128m
     pids_limit: 128

@@ -1,4 +1,4 @@
-# Verifikasi: build container dan deployment terpisah · spec 0012 · diperbarui 2026-10-05
+# Verifikasi: build container dan deployment terpisah · spec 0012 · diperbarui 2026-10-06
 
 _Langkah diturunkan dari acceptance criteria spec 0012 dan tabel Value sourcing. `/check verify` menjalankannya; `/test` mengunci langkah yang tahan lama. Bagian ini mencakup langkah 1 build plan (AC-1, AC-3, AC-4, dan sebagian AC-8): health dan readiness pada kedua komposisi beserta kontrak dan SDK, ketiga Dockerfile dengan konteks daftar izin, edge minimum, `deploy/compose.yaml`, serta orkestrasi dari salinan sampai readiness 503 lalu 200 dengan pembersihan pada setiap jalur keluar. Langkah 2 sampai 5 menambahkan bagiannya sendiri. Jalankan langkah Docker tanpa suite lain yang sedang berjalan, dan pastikan tidak ada container berlabel `foundation.test=deployment` sebelum mulai._
 
@@ -505,3 +505,30 @@ _Langkah 9 build plan (AC-7, AC-10, keputusan 74 sampai 76): konfigurasi edge, D
 
 - AC-7: kalimat pengecualian yang diperbaiki (414 untuk request line HTTP/1.1, field HTTP/2 diukur sesudah dikodekan) dibuktikan langkah curl langkah 9; 400 header besar HTTP/1.1 dan `/api/../../x` tetap dikunci check `edge_errors` per push.
 - AC-10: baris log 414 dibuktikan langkah curl langkah 9; statement gagal yang kini selalu memberi `invalid input syntax` dibuktikan check `postgres_log_policy` dan DEP-001.
+
+## Perintah: nama backend yang berhenti di DNS Docker (langkah 10)
+
+_Langkah 10 build plan (AC-8, AC-9, keputusan 77): service `edge` mendapat `dns_opt: [ndots:0]`, dan check `compose_declaration`, `container_hardening`, serta DEP-001 menguncinya. Ditulis `/debug` pada 2026-10-06 sesudah run GitHub Actions 37371338557 gagal pada check `backend_shutdown_restart`._
+
+### Reproduksi di daemon Linux
+
+- [x] Daemon `docker:28.0.4-dind` (privileged) dengan `/etc/resolv.conf` seperti runner (`nameserver 127.0.0.53`, `options edns0 trust-ad`, `search`, tanpa `ndots`) dan resolver lokal di `127.0.0.53` yang meneruskan nama bertitik tetapi tidak menjawab nama satu label; client Linux `mcr.microsoft.com/playwright:v1.63.0-noble` dengan Bun 1.4.2, Docker CLI 28.0.4, dan Compose 2.38.2 atas salinan `git archive` commit `826b328` → `bun run test:deployment:real` keluar 1 dengan pesan yang sama dengan run CI: `check backend_shutdown_restart failed: 1 jawaban sesudah 15000 ms, diharapkan paling sedikit 3; 1 jawaban sesudah 15000 ms bukan 502`, dan 35 check lain lulus (2026-10-06) → AC-9
+- [x] Probe di daemon yang sama dengan image edge dan backend commit itu, network biasa dan internal seperti topologi: `resolv.conf` edge menulis `# Option ndots from: internal` dan `# ExtServers: [host(127.0.0.53)]`; sesudah `docker stop` backend, `dig backend @127.0.0.11` dari namespace network edge → `SERVFAIL` sesudah sekitar 4 detik; `/api/status` setiap 500 ms → 504 dengan `time_total` 3,0 detik sampai detik ke 18; sesudah `docker start` 404 backend lagi dalam 613 ms karena alamat lama tidak pernah dilepas (2026-10-06) → AC-9
+- [x] Probe yang sama dengan `--dns-option ndots:0` pada edge → `# Option ndots from: override`; sesudah stop, `backend` → `NOERROR` tanpa jawaban dalam sekitar 20 ms, `/api/status` 504 sampai detik ke 9 lalu 502, dan 404 backend lagi 10,7 detik sesudah start (2026-10-06) → AC-9
+- [x] Docker Desktop 29.8.0: `resolv.conf` container pada network buatan pengguna menulis `# Option ndots from: internal` dan `# ExtServers: [host(192.168.65.7)]`, dan `dig backend @192.168.65.7` → `NXDOMAIN`, sehingga suite lulus di Mac tanpa perbaikan (2026-10-06)
+
+### Sesudah perbaikan
+
+- [x] `bun --no-env-file test ./tests/integration/deployment/static.test.ts -t "DEP-001"` → 29 pass, 0 fail (2026-10-06) → AC-8
+- [x] Uji mutasi: hapus `dns_opt` dari service `edge` di `deploy/compose.yaml`, jalankan test yang sama, lalu kembalikan file nya byte identik (`cmp`) → 2 fail: tabel *Topologi* (`dns_opt` hilang) dan `declarationProblems` (`edge: dns_opt`) (2026-10-06) → AC-8
+- [x] `bun run test:deployment:plan` → 51 pass, 0 fail (2026-10-06) → AC-1, AC-2, AC-6, AC-7, AC-8, AC-10, AC-11, AC-12
+- [x] Daemon Linux runner seperti di atas, salinan commit `826b328` ditambah perbaikan → `bun run test:deployment:real` `36 check passed, 0 failed, 0 not_run`, exit 0 dalam 75 detik; `backend_shutdown_restart` `stop backend 153 ms, exit 0, baris stopped; 24 jawaban (0 kali 504) lalu 502; 404 backend lagi 8630 ms sesudah start tanpa restart edge`; tidak ada container, network, volume, atau image run tersisa (2026-10-06) → AC-8, AC-9
+- [x] Mac (Docker Desktop 29.8.0) → `bun run test:deployment:real` `36 check passed, 0 failed, 0 not_run`, exit 0; `backend_shutdown_restart` `stop backend 209 ms, exit 0, baris stopped; 30 jawaban (0 kali 504) lalu 502; 404 backend lagi 6063 ms sesudah start tanpa restart edge` (2026-10-06) → AC-8, AC-9
+- [x] `bun run test:ci` → `gate fast: tier passed (19 dari 19 langkah passed)`, exit 0 (2026-10-06) → AC-11
+- [x] `bun run check:workflow` → `Workflow lulus` untuk `application.yml` dan `capacity.yml`, tanpa perubahan workflow (2026-10-06) → AC-11
+- [ ] Sesudah push: job `real` run GitHub Actions commit perbaikan → `check backend_shutdown_restart passed` dan `deployment: passed` pada runner `ubuntu-24.04`
+
+## Acceptance-criteria coverage (langkah 10)
+
+- AC-8: `dns_opt` `ndots:0` hanya pada edge dibuktikan check `compose_declaration` (deklarasi) dan `container_hardening` (`DnsOptions` container), dan DEP-001 menguji tabel *Topologi* serta mutasi tanpa opsi itu.
+- AC-9: `backend_shutdown_restart` lulus pada daemon Linux dengan DNS host seperti runner yang sebelumnya mereproduksi kegagalan CI, dan pada Docker Desktop; jendela 15.000 ms dan 20 detik tidak berubah.

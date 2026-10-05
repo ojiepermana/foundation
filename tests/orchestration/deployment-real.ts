@@ -769,6 +769,8 @@ type Declared = Readonly<{
   image: string; networks: readonly string[]; ports: readonly string[]; cpus: number; memory: number; pids: number; shm: number | null;
   readOnly: boolean; tmpfs: readonly string[]; restart: string; stopGraceMs: number; environment: Readonly<Record<string, string>>;
   dependsOnPostgres: boolean; profiles: readonly string[]; command: readonly string[] | null; healthcheck: boolean; secrets: boolean; volume: boolean;
+  /** `dns_opt`: only the edge, so Docker answers a stopped backend name itself (rationale decision 77). */
+  dnsOptions: readonly string[];
 }>;
 
 /** *Topologi* and *Environment per service* as `compose config --no-interpolate --format json` shows them, without the override. */
@@ -778,22 +780,26 @@ export const DECLARATION: Readonly<Record<ServiceName, Declared>> = Object.freez
     ports: Object.freeze(['${FOUNDATION_EDGE_BIND:-0.0.0.0}:${FOUNDATION_EDGE_HTTPS_PORT:-443}:8443', '${FOUNDATION_EDGE_BIND:-0.0.0.0}:${FOUNDATION_EDGE_HTTP_PORT:-80}:8080']),
     cpus: 0.5, memory: 128 * MIB, pids: 128, shm: null, readOnly: true, tmpfs: Object.freeze(['/tmp:rw,nosuid,nodev,noexec,size=16m']), restart: 'unless-stopped', stopGraceMs: 15_000,
     environment: Object.freeze({}), dependsOnPostgres: false, profiles: Object.freeze([]), command: null, healthcheck: false, secrets: true, volume: false,
+    dnsOptions: Object.freeze(['ndots:0']),
   }),
   backend: Object.freeze({
     image: '${FOUNDATION_BACKEND_IMAGE:?}', networks: Object.freeze(['app', 'data']), ports: Object.freeze([]),
     cpus: 1, memory: 512 * MIB, pids: 256, shm: null, readOnly: true, tmpfs: Object.freeze(['/tmp:rw,nosuid,nodev,noexec,size=64m']), restart: 'unless-stopped', stopGraceMs: 10_000,
     environment: Object.freeze({ DATABASE_URL: '${FOUNDATION_BACKEND_DATABASE_URL:?}' }), dependsOnPostgres: true, profiles: Object.freeze([]), command: null, healthcheck: false, secrets: false, volume: false,
+    dnsOptions: Object.freeze([]),
   }),
   postgres: Object.freeze({
     image: '${FOUNDATION_POSTGRES_IMAGE:-foundation-postgres:18-pinned}', networks: Object.freeze(['data']), ports: Object.freeze([]),
     cpus: 2, memory: 1024 * MIB, pids: 256, shm: 128 * MIB, readOnly: false, tmpfs: Object.freeze([]), restart: 'unless-stopped', stopGraceMs: 30_000,
     environment: Object.freeze({ POSTGRES_DB: 'foundation', POSTGRES_PASSWORD: '${FOUNDATION_POSTGRES_PASSWORD:?}', POSTGRES_USER: 'foundation_admin' }),
     dependsOnPostgres: false, profiles: Object.freeze([]), command: POSTGRES_COMMAND, healthcheck: true, secrets: false, volume: true,
+    dnsOptions: Object.freeze([]),
   }),
   migrate: Object.freeze({
     image: '${FOUNDATION_MIGRATE_IMAGE:?}', networks: Object.freeze(['data']), ports: Object.freeze([]),
     cpus: 0.5, memory: 256 * MIB, pids: 128, shm: null, readOnly: true, tmpfs: Object.freeze(['/tmp:rw,nosuid,nodev,noexec,size=16m']), restart: 'no', stopGraceMs: 10_000,
     environment: Object.freeze({ FOUNDATION_MIGRATOR_DATABASE_URL: '${FOUNDATION_MIGRATOR_DATABASE_URL:?}' }), dependsOnPostgres: true, profiles: Object.freeze(['migrate']), command: null, healthcheck: false, secrets: false, volume: false,
+    dnsOptions: Object.freeze([]),
   }),
 });
 
@@ -804,7 +810,8 @@ const sameJson = (left: unknown, right: unknown) => JSON.stringify(left) === JSO
  * AC-8 and AC-10 for the output of `compose -f deploy/compose.yaml config --no-interpolate --format json` without the
  * override: exactly the four services and three networks of *Topologi*, each declarative field of the table, the
  * environment keys of *Environment per service* with variables in place of values, no `build` and no `user`, the
- * PostgreSQL log flags, `json-file` 10m × 3 on every service, and a published port on the edge only.
+ * PostgreSQL log flags, `json-file` 10m × 3 on every service, `dns_opt` `ndots:0` on the edge only, and a published
+ * port on the edge only.
  */
 export function declarationProblems(config: unknown): string[] {
   const root = recordOf(config);
@@ -839,6 +846,7 @@ export function declarationProblems(config: unknown): string[] {
     if (!sameJson(service['tmpfs'] ?? [], expected.tmpfs)) differs('tmpfs');
     if (!sameJson(service['cap_drop'], ['ALL'])) differs('cap_drop');
     if (!sameJson(service['security_opt'], ['no-new-privileges:true'])) differs('security_opt');
+    if (!sameJson(service['dns_opt'] ?? [], expected.dnsOptions)) differs('dns_opt');
     if (service['restart'] !== expected.restart) differs('restart');
     if (composeDuration(service['stop_grace_period']) !== expected.stopGraceMs) differs('stop_grace_period');
     const logging = recordOf(service['logging']);
@@ -864,19 +872,19 @@ export function declarationProblems(config: unknown): string[] {
   return problems;
 }
 
-type Runtime = Readonly<{ networks: readonly string[]; user: string; nanoCpus: number; memory: number; pids: number; shm: number | null; readOnly: boolean; tmpfs: Readonly<Record<string, string>>; stopTimeout: number; healthcheck: 'none' | 'image' | 'pg_isready' }>;
+type Runtime = Readonly<{ networks: readonly string[]; user: string; nanoCpus: number; memory: number; pids: number; shm: number | null; readOnly: boolean; tmpfs: Readonly<Record<string, string>>; stopTimeout: number; healthcheck: 'none' | 'image' | 'pg_isready'; dnsOptions: readonly string[] }>;
 
 /** AC-8: what `docker inspect` shows for each container of the run (the restart policy is the `no` of the override). */
 export const RUNTIME: Readonly<Record<ServiceName, Runtime>> = Object.freeze({
-  edge: Object.freeze({ networks: Object.freeze(['app', 'public']), user: '101:101', nanoCpus: 500_000_000, memory: 128 * MIB, pids: 128, shm: null, readOnly: true, tmpfs: Object.freeze({ '/tmp': 'rw,nosuid,nodev,noexec,size=16m' }), stopTimeout: 15, healthcheck: 'none' }),
-  backend: Object.freeze({ networks: Object.freeze(['app', 'data']), user: '1000:1000', nanoCpus: 1_000_000_000, memory: 512 * MIB, pids: 256, shm: null, readOnly: true, tmpfs: Object.freeze({ '/tmp': 'rw,nosuid,nodev,noexec,size=64m' }), stopTimeout: 10, healthcheck: 'image' }),
-  postgres: Object.freeze({ networks: Object.freeze(['data']), user: 'postgres', nanoCpus: 2_000_000_000, memory: 1024 * MIB, pids: 256, shm: 128 * MIB, readOnly: false, tmpfs: Object.freeze({}), stopTimeout: 30, healthcheck: 'pg_isready' }),
-  migrate: Object.freeze({ networks: Object.freeze(['data']), user: '1000:1000', nanoCpus: 500_000_000, memory: 256 * MIB, pids: 128, shm: null, readOnly: true, tmpfs: Object.freeze({ '/tmp': 'rw,nosuid,nodev,noexec,size=16m' }), stopTimeout: 10, healthcheck: 'none' }),
+  edge: Object.freeze({ networks: Object.freeze(['app', 'public']), user: '101:101', nanoCpus: 500_000_000, memory: 128 * MIB, pids: 128, shm: null, readOnly: true, tmpfs: Object.freeze({ '/tmp': 'rw,nosuid,nodev,noexec,size=16m' }), stopTimeout: 15, healthcheck: 'none', dnsOptions: Object.freeze(['ndots:0']) }),
+  backend: Object.freeze({ networks: Object.freeze(['app', 'data']), user: '1000:1000', nanoCpus: 1_000_000_000, memory: 512 * MIB, pids: 256, shm: null, readOnly: true, tmpfs: Object.freeze({ '/tmp': 'rw,nosuid,nodev,noexec,size=64m' }), stopTimeout: 10, healthcheck: 'image', dnsOptions: Object.freeze([]) }),
+  postgres: Object.freeze({ networks: Object.freeze(['data']), user: 'postgres', nanoCpus: 2_000_000_000, memory: 1024 * MIB, pids: 256, shm: 128 * MIB, readOnly: false, tmpfs: Object.freeze({}), stopTimeout: 30, healthcheck: 'pg_isready', dnsOptions: Object.freeze([]) }),
+  migrate: Object.freeze({ networks: Object.freeze(['data']), user: '1000:1000', nanoCpus: 500_000_000, memory: 256 * MIB, pids: 128, shm: null, readOnly: true, tmpfs: Object.freeze({ '/tmp': 'rw,nosuid,nodev,noexec,size=16m' }), stopTimeout: 10, healthcheck: 'none', dnsOptions: Object.freeze([]) }),
 });
 
 /**
  * AC-8 for one `docker inspect` object: the networks of *Topologi*, the numeric user, CPU, memory, PIDs, shm, read only
- * root, tmpfs, `CapDrop`, `SecurityOpt`, restart `no`, stop timeout, healthcheck, and `json-file` 10m × 3.
+ * root, tmpfs, `CapDrop`, `SecurityOpt`, `DnsOptions`, restart `no`, stop timeout, healthcheck, and `json-file` 10m × 3.
  * `imageHealthcheck` is the healthcheck of the backend image, which the backend container must carry unchanged.
  */
 export function hardeningProblems(service: ServiceName, inspected: unknown, project: string, imageHealthcheck: unknown): string[] {
@@ -897,6 +905,7 @@ export function hardeningProblems(service: ServiceName, inspected: unknown, proj
   if (!sameJson(Object.fromEntries(Object.entries(recordOf(host['Tmpfs'])).sort(([a], [b]) => codeUnit(a, b))), expected.tmpfs)) differs('Tmpfs');
   if (!sameJson(host['CapDrop'], ['ALL'])) differs('CapDrop');
   if (!sameJson(host['SecurityOpt'], ['no-new-privileges:true'])) differs('SecurityOpt');
+  if (!sameJson(host['DnsOptions'] ?? [], expected.dnsOptions)) differs('DnsOptions');
   if (recordOf(host['RestartPolicy'])['Name'] !== 'no') differs('RestartPolicy');
   if (config['StopTimeout'] !== expected.stopTimeout) differs('StopTimeout');
   const log = recordOf(host['LogConfig']);

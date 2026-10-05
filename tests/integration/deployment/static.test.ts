@@ -247,7 +247,7 @@ const TOPOLOGY: Record<string, Service> = {
   edge: {
     image: '${FOUNDATION_FRONTEND_IMAGE:?}', networks: ['public', 'app'],
     ports: ['${FOUNDATION_EDGE_BIND:-0.0.0.0}:${FOUNDATION_EDGE_HTTPS_PORT:-443}:8443', '${FOUNDATION_EDGE_BIND:-0.0.0.0}:${FOUNDATION_EDGE_HTTP_PORT:-80}:8080'],
-    secrets: ['edge_tls_cert', 'edge_tls_key'], cpus: 0.5, mem_limit: '128m', pids_limit: 128, read_only: true, tmpfs: ['/tmp:rw,nosuid,nodev,noexec,size=16m'],
+    secrets: ['edge_tls_cert', 'edge_tls_key'], dns_opt: ['ndots:0'], cpus: 0.5, mem_limit: '128m', pids_limit: 128, read_only: true, tmpfs: ['/tmp:rw,nosuid,nodev,noexec,size=16m'],
     cap_drop: ['ALL'], security_opt: ['no-new-privileges:true'], restart: 'unless-stopped', stop_grace_period: '15s', logging: LOGGING,
   },
   backend: {
@@ -325,6 +325,9 @@ test('DEP-001 declarationProblems accepts deploy/compose.yaml in the config shap
     ['app not internal', (config) => void (config['networks'].app = {}), 'network app atau data tanpa internal: true'],
     ['a user override', (config) => void (config['services'].backend.user = '0:0'), 'backend: user'],
     ['writable root', (config) => void (config['services'].migrate.read_only = false), 'migrate: read_only'],
+    // Without its own ndots, Docker forwards the stopped backend name to the host DNS (rationale decision 77).
+    ['no DNS option on the edge', (config) => void delete config['services'].edge.dns_opt, 'edge: dns_opt'],
+    ['a DNS option on the backend', (config) => void (config['services'].backend.dns_opt = ['ndots:0']), 'backend: dns_opt'],
   ];
   for (const [label, mutate, problem] of cases) {
     const config = configShape(compose);
@@ -963,7 +966,7 @@ test('DEP-001 the inspect and reachability judges: hardening of the edge, the im
     NetworkSettings: { Networks: { [`${project}_public`]: {}, [`${project}_app`]: {} } },
     HostConfig: {
       NanoCpus: 500_000_000, Memory: 128 * mib, PidsLimit: 128, ReadonlyRootfs: true, Tmpfs: { '/tmp': 'rw,nosuid,nodev,noexec,size=16m' }, CapDrop: ['ALL'],
-      SecurityOpt: ['no-new-privileges:true'], RestartPolicy: { Name: 'no' }, LogConfig: { Type: 'json-file', Config: { 'max-file': '3', 'max-size': '10m' } },
+      SecurityOpt: ['no-new-privileges:true'], DnsOptions: ['ndots:0'], RestartPolicy: { Name: 'no' }, LogConfig: { Type: 'json-file', Config: { 'max-file': '3', 'max-size': '10m' } },
     },
   };
   expect(hardeningProblems('edge', edge, project, null)).toEqual([]);
@@ -973,6 +976,7 @@ test('DEP-001 the inspect and reachability judges: hardening of the edge, the im
     ['no-new-privileges off', (value) => void (value.HostConfig.SecurityOpt = []), 'edge: SecurityOpt'],
     ['a writable root', (value) => void (value.HostConfig.ReadonlyRootfs = false), 'edge: ReadonlyRootfs'],
     ['restart always', (value) => void (value.HostConfig.RestartPolicy = { Name: 'always' }), 'edge: RestartPolicy'],
+    ['no DNS option', (value) => void (value.HostConfig.DnsOptions = null), 'edge: DnsOptions'],
     ['another log driver', (value) => void (value.HostConfig.LogConfig = { Type: 'local', Config: {} }), 'edge: LogConfig'],
     ['the data network', (value) => void (value.NetworkSettings.Networks[`${project}_data`] = {}), `edge: network ${project}_app, ${project}_data, ${project}_public`],
   ];
