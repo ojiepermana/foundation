@@ -1,0 +1,954 @@
+{
+  "schema": 1,
+  "profile": "stress",
+  "status": "passed",
+  "reasons": [],
+  "startedAt": "2026-10-05T05:05:53.739Z",
+  "finishedAt": "2026-10-05T05:18:30.968Z",
+  "t0": 1791176778825,
+  "model": {
+    "iterationIsOneRequest": true,
+    "phases": [
+      {
+        "phase": "warmup",
+        "shape": "ramp",
+        "seconds": 60,
+        "load": "N",
+        "rates": {
+          "status": {
+            "startRate": 0,
+            "endRate": 1000
+          },
+          "readiness": {
+            "startRate": 0,
+            "endRate": 50
+          }
+        }
+      },
+      {
+        "phase": "ramp",
+        "shape": "ramp",
+        "seconds": 120,
+        "load": "O",
+        "rates": {
+          "status": {
+            "startRate": 1000,
+            "endRate": 4000
+          },
+          "readiness": {
+            "startRate": 50,
+            "endRate": 1000
+          }
+        }
+      },
+      {
+        "phase": "hold",
+        "shape": "constant",
+        "seconds": 300,
+        "load": "O",
+        "rates": {
+          "status": {
+            "startRate": 4000,
+            "endRate": 4000
+          },
+          "readiness": {
+            "startRate": 1000,
+            "endRate": 1000
+          }
+        }
+      },
+      {
+        "phase": "rampdown",
+        "shape": "ramp",
+        "seconds": 60,
+        "load": "N",
+        "rates": {
+          "status": {
+            "startRate": 4000,
+            "endRate": 1000
+          },
+          "readiness": {
+            "startRate": 1000,
+            "endRate": 50
+          }
+        }
+      },
+      {
+        "phase": "settle",
+        "shape": "constant",
+        "seconds": 10,
+        "load": "N",
+        "rates": {
+          "status": {
+            "startRate": 1000,
+            "endRate": 1000
+          },
+          "readiness": {
+            "startRate": 50,
+            "endRate": 50
+          }
+        }
+      },
+      {
+        "phase": "recover",
+        "shape": "constant",
+        "seconds": 180,
+        "load": "N",
+        "rates": {
+          "status": {
+            "startRate": 1000,
+            "endRate": 1000
+          },
+          "readiness": {
+            "startRate": 50,
+            "endRate": 50
+          }
+        }
+      }
+    ]
+  },
+  "actual": {
+    "scenarios": [
+      {
+        "name": "status_warmup",
+        "endpoint": "status",
+        "phase": "warmup",
+        "executor": "ramping-arrival-rate",
+        "startRate": 0,
+        "endRate": 1000,
+        "seconds": 60,
+        "plannedIterations": 30000,
+        "iterations": 29995,
+        "rate": 499.9166666666667
+      },
+      {
+        "name": "readiness_warmup",
+        "endpoint": "readiness",
+        "phase": "warmup",
+        "executor": "ramping-arrival-rate",
+        "startRate": 0,
+        "endRate": 50,
+        "seconds": 60,
+        "plannedIterations": 1500,
+        "iterations": 1500,
+        "rate": 25
+      },
+      {
+        "name": "status_ramp",
+        "endpoint": "status",
+        "phase": "ramp",
+        "executor": "ramping-arrival-rate",
+        "startRate": 1000,
+        "endRate": 4000,
+        "seconds": 120,
+        "plannedIterations": 300000,
+        "iterations": 299977,
+        "rate": 2499.8083333333334
+      },
+      {
+        "name": "readiness_ramp",
+        "endpoint": "readiness",
+        "phase": "ramp",
+        "executor": "ramping-arrival-rate",
+        "startRate": 50,
+        "endRate": 1000,
+        "seconds": 120,
+        "plannedIterations": 63000,
+        "iterations": 62998,
+        "rate": 524.9833333333333
+      },
+      {
+        "name": "status_hold",
+        "endpoint": "status",
+        "phase": "hold",
+        "executor": "constant-arrival-rate",
+        "startRate": 4000,
+        "endRate": 4000,
+        "seconds": 300,
+        "plannedIterations": 1200000,
+        "iterations": 1200001,
+        "rate": 4000.0033333333336
+      },
+      {
+        "name": "readiness_hold",
+        "endpoint": "readiness",
+        "phase": "hold",
+        "executor": "constant-arrival-rate",
+        "startRate": 1000,
+        "endRate": 1000,
+        "seconds": 300,
+        "plannedIterations": 300000,
+        "iterations": 300001,
+        "rate": 1000.0033333333333
+      },
+      {
+        "name": "status_rampdown",
+        "endpoint": "status",
+        "phase": "rampdown",
+        "executor": "ramping-arrival-rate",
+        "startRate": 4000,
+        "endRate": 1000,
+        "seconds": 60,
+        "plannedIterations": 150000,
+        "iterations": 149997,
+        "rate": 2499.95
+      },
+      {
+        "name": "readiness_rampdown",
+        "endpoint": "readiness",
+        "phase": "rampdown",
+        "executor": "ramping-arrival-rate",
+        "startRate": 1000,
+        "endRate": 50,
+        "seconds": 60,
+        "plannedIterations": 31500,
+        "iterations": 31499,
+        "rate": 524.9833333333333
+      },
+      {
+        "name": "status_settle",
+        "endpoint": "status",
+        "phase": "settle",
+        "executor": "constant-arrival-rate",
+        "startRate": 1000,
+        "endRate": 1000,
+        "seconds": 10,
+        "plannedIterations": 10000,
+        "iterations": 10001,
+        "rate": 1000.1
+      },
+      {
+        "name": "readiness_settle",
+        "endpoint": "readiness",
+        "phase": "settle",
+        "executor": "constant-arrival-rate",
+        "startRate": 50,
+        "endRate": 50,
+        "seconds": 10,
+        "plannedIterations": 500,
+        "iterations": 501,
+        "rate": 50.1
+      },
+      {
+        "name": "status_recover",
+        "endpoint": "status",
+        "phase": "recover",
+        "executor": "constant-arrival-rate",
+        "startRate": 1000,
+        "endRate": 1000,
+        "seconds": 180,
+        "plannedIterations": 180000,
+        "iterations": 180002,
+        "rate": 1000.0111111111111
+      },
+      {
+        "name": "readiness_recover",
+        "endpoint": "readiness",
+        "phase": "recover",
+        "executor": "constant-arrival-rate",
+        "startRate": 50,
+        "endRate": 50,
+        "seconds": 180,
+        "plannedIterations": 9000,
+        "iterations": 9000,
+        "rate": 50
+      }
+    ],
+    "iterations": 2275472,
+    "httpReqs": 2275472,
+    "droppedIterations": 0,
+    "vusMax": 1000,
+    "scenarioStartLateMs": 3
+  },
+  "latency": [
+    {
+      "endpoint": "status",
+      "phase": "warmup",
+      "outcome": "all",
+      "count": 29995,
+      "p50": 0.192667,
+      "p95": 0.7379916999999997,
+      "p99": 1.7180264199999993,
+      "max": 11.0805
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "warmup",
+      "outcome": "available",
+      "count": 1499,
+      "p50": 1.191625,
+      "p95": 3.593224999999998,
+      "p99": 5.5360925,
+      "max": 9.998333
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "warmup",
+      "outcome": "busy",
+      "count": 1,
+      "p50": 1.092958,
+      "p95": 1.092958,
+      "p99": 1.092958,
+      "max": 1.092958
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "warmup",
+      "outcome": "unavailable",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "status",
+      "phase": "ramp",
+      "outcome": "all",
+      "count": 299977,
+      "p50": 0.115625,
+      "p95": 0.2425,
+      "p99": 1.0372579199999994,
+      "max": 16.213958
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "ramp",
+      "outcome": "available",
+      "count": 52465,
+      "p50": 0.548417,
+      "p95": 0.9072753999999998,
+      "p99": 1.3014649999999999,
+      "max": 10.630542
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "ramp",
+      "outcome": "busy",
+      "count": 10533,
+      "p50": 0.125041,
+      "p95": 1.1728751999999971,
+      "p99": 3.1776368799999988,
+      "max": 10.557292
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "ramp",
+      "outcome": "unavailable",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "status",
+      "phase": "hold",
+      "outcome": "all",
+      "count": 1200001,
+      "p50": 0.100292,
+      "p95": 0.255917,
+      "p99": 2.591208,
+      "max": 19.642458
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "hold",
+      "outcome": "available",
+      "count": 191865,
+      "p50": 0.514917,
+      "p95": 0.63875,
+      "p99": 1.3160748799999997,
+      "max": 16.047875
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "hold",
+      "outcome": "busy",
+      "count": 108136,
+      "p50": 0.12375,
+      "p95": 0.6507809999999986,
+      "p99": 3.7283000999999993,
+      "max": 15.886708
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "hold",
+      "outcome": "unavailable",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "status",
+      "phase": "rampdown",
+      "outcome": "all",
+      "count": 149997,
+      "p50": 0.118,
+      "p95": 0.2337912,
+      "p99": 0.6850879999999998,
+      "max": 11.412125
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "rampdown",
+      "outcome": "available",
+      "count": 26404,
+      "p50": 0.558166,
+      "p95": 0.8931356499999998,
+      "p99": 1.2691367499999993,
+      "max": 5.943708
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "rampdown",
+      "outcome": "busy",
+      "count": 5095,
+      "p50": 0.122083,
+      "p95": 0.9476205999999999,
+      "p99": 2.4253749999999994,
+      "max": 4.963959
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "rampdown",
+      "outcome": "unavailable",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "status",
+      "phase": "settle",
+      "outcome": "all",
+      "count": 10001,
+      "p50": 0.208125,
+      "p95": 0.7,
+      "p99": 2.00875,
+      "max": 12.101167
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "settle",
+      "outcome": "available",
+      "count": 501,
+      "p50": 1.237916,
+      "p95": 3.593833,
+      "p99": 4.533708,
+      "max": 8.246125
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "settle",
+      "outcome": "busy",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "settle",
+      "outcome": "unavailable",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "status",
+      "phase": "recover",
+      "outcome": "all",
+      "count": 180002,
+      "p50": 0.192833,
+      "p95": 0.4822889499999997,
+      "p99": 1.6144165799999999,
+      "max": 11.71075
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "recover",
+      "outcome": "available",
+      "count": 8987,
+      "p50": 1.136834,
+      "p95": 2.8002706,
+      "p99": 4.481651759999999,
+      "max": 34.392083
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "recover",
+      "outcome": "busy",
+      "count": 13,
+      "p50": 0.996583,
+      "p95": 2.867166399999999,
+      "p99": 3.71556688,
+      "max": 3.927667
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "recover",
+      "outcome": "unavailable",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    }
+  ],
+  "readiness": {
+    "phases": [
+      {
+        "phase": "warmup",
+        "available": 1499,
+        "busy": 1,
+        "unavailable": 0,
+        "availableRatio": 0.9993333333333333
+      },
+      {
+        "phase": "ramp",
+        "available": 52465,
+        "busy": 10533,
+        "unavailable": 0,
+        "availableRatio": 0.8328042160068574
+      },
+      {
+        "phase": "hold",
+        "available": 191865,
+        "busy": 108136,
+        "unavailable": 0,
+        "availableRatio": 0.6395478681737727
+      },
+      {
+        "phase": "rampdown",
+        "available": 26404,
+        "busy": 5095,
+        "unavailable": 0,
+        "availableRatio": 0.8382488332962951
+      },
+      {
+        "phase": "settle",
+        "available": 501,
+        "busy": 0,
+        "unavailable": 0,
+        "availableRatio": 1
+      },
+      {
+        "phase": "recover",
+        "available": 8987,
+        "busy": 13,
+        "unavailable": 0,
+        "availableRatio": 0.9985555555555555
+      }
+    ],
+    "recoveryMs": null
+  },
+  "thresholds": [
+    {
+      "metric": "unexpected_responses",
+      "expression": "count==0",
+      "ok": true
+    },
+    {
+      "metric": "dropped_iterations",
+      "expression": "count==0",
+      "ok": true
+    },
+    {
+      "metric": "checks",
+      "expression": "rate==1",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:status_warmup}",
+      "expression": "count>=0",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:readiness_warmup}",
+      "expression": "count>=0",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:status_ramp}",
+      "expression": "count>=0",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:readiness_ramp}",
+      "expression": "count>=0",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:status_hold}",
+      "expression": "count>=1198800",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:readiness_hold}",
+      "expression": "count>=299700",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:status_rampdown}",
+      "expression": "count>=0",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:readiness_rampdown}",
+      "expression": "count>=0",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:status_settle}",
+      "expression": "count>=9900",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:readiness_settle}",
+      "expression": "count>=490",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:status_recover}",
+      "expression": "count>=179820",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:readiness_recover}",
+      "expression": "count>=8990",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:ramp}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:ramp}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:ramp}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:ramp}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:hold}",
+      "expression": "p(99)<25",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:hold}",
+      "expression": "p(95)<10",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:hold}",
+      "expression": "p(95)<25",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:hold}",
+      "expression": "p(99)<50",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:hold}",
+      "expression": "p(95)<10",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:hold}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available{phase:hold}",
+      "expression": "rate>=0.20",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:rampdown}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:rampdown}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:rampdown}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:rampdown}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:settle}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:settle}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:settle}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:settle}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:recover}",
+      "expression": "p(95)<10",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:recover}",
+      "expression": "p(99)<25",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:recover}",
+      "expression": "p(95)<25",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:recover}",
+      "expression": "p(99)<50",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:recover}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:recover}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available{phase:recover}",
+      "expression": "rate>=0.98",
+      "ok": true
+    }
+  ],
+  "observation": {
+    "containers": {
+      "postgres": {
+        "cpuMean": 6.39,
+        "cpuMax": 11.11,
+        "memoryMeanMiB": 45.41,
+        "memoryMaxMiB": 46.8,
+        "memoryGrowthMiB": null,
+        "restarts": null,
+        "oomKilled": null,
+        "stderrBytes": null
+      },
+      "backend": {
+        "cpuMean": 19.69,
+        "cpuMax": 30.81,
+        "memoryMeanMiB": 30.26,
+        "memoryMaxMiB": 36.28,
+        "memoryGrowthMiB": null,
+        "restarts": 0,
+        "oomKilled": false,
+        "stderrBytes": 0
+      },
+      "k6": {
+        "cpuMean": 60.87,
+        "cpuMax": 96.22,
+        "memoryMeanMiB": 846.21,
+        "memoryMaxMiB": 1120.26,
+        "memoryGrowthMiB": null,
+        "restarts": null,
+        "oomKilled": null,
+        "stderrBytes": null
+      }
+    },
+    "pool": {
+      "sessions": 5,
+      "nonIdle": 1,
+      "total": 6,
+      "samples": 745,
+      "failedSamples": 0
+    },
+    "checks": [
+      {
+        "name": "backend_running",
+        "rule": "sesudah k6 keluar, backend berjalan, RestartCount 0, dan tidak OOMKilled",
+        "actual": {
+          "running": true,
+          "restarts": 0,
+          "oomKilled": false
+        },
+        "ok": true
+      },
+      {
+        "name": "backend_output",
+        "rule": "stderr 0 byte; stdout tepat baris listening lalu Backend stopped",
+        "actual": {
+          "stderrBytes": 0,
+          "stdoutExpected": true
+        },
+        "ok": true
+      },
+      {
+        "name": "backend_memory_peak",
+        "rule": "memory backend maksimum <= 128 MiB",
+        "actual": 36.28,
+        "ok": true
+      },
+      {
+        "name": "pool_sessions",
+        "rule": "setiap sampel mencatat paling banyak 5 sesi foundation_backend",
+        "actual": 5,
+        "ok": true
+      },
+      {
+        "name": "pool_non_idle",
+        "rule": "setiap sampel mencatat paling banyak 1 sesi foundation_backend yang tidak idle",
+        "actual": 1,
+        "ok": true
+      },
+      {
+        "name": "generator_cpu",
+        "rule": "rata rata CPU k6 pada setiap fase terukur <= 240 persen satu CPU",
+        "actual": 76.94,
+        "ok": true
+      },
+      {
+        "name": "generator_memory",
+        "rule": "memory k6 maksimum <= 1638 MiB",
+        "actual": 1120.26,
+        "ok": true
+      },
+      {
+        "name": "observation_coverage",
+        "rule": "sampel cukup dan celah dalam batas pada setiap container dan fase terukur, serta pada pg_stat_activity",
+        "actual": [],
+        "ok": true
+      },
+      {
+        "name": "clock_offset",
+        "rule": "selisih jam container dengan host <= 1000 ms sebelum T0 dan sesudah k6 keluar",
+        "actual": {
+          "before": 7,
+          "after": 6
+        },
+        "ok": true
+      }
+    ]
+  },
+  "outage": null,
+  "environment": {
+    "os": "Darwin 27.0.0",
+    "arch": "arm64",
+    "cpuModel": "Apple M1 Max",
+    "cpuCount": 10,
+    "memoryBytes": 34359738368,
+    "containerEngine": {
+      "serverVersion": "29.8.0",
+      "os": "Docker Desktop",
+      "ncpu": 10,
+      "memTotal": 8319504384
+    },
+    "otherContainersRunning": 7,
+    "ci": false,
+    "images": {
+      "k6": "grafana/k6:2.3.0@sha256:9c2dee7f8ed74d317e4027c06a10f169b625638189de8d4555d0b3486a5aeb34",
+      "bun": "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61",
+      "postgres": {
+        "image": "foundation-postgres:18-pinned",
+        "imageId": "sha256:0470b120c2ebef56573f3f66861a6a50bea3e6daf9c819c37c598fecf6ff5557",
+        "baseImage": "oraclelinux:10-slim@sha256:0660af1f1bb56559b299d99d3b71d0ff51f9d593cecbd3154a46914704ec34d6",
+        "serverVersion": "18.6"
+      }
+    },
+    "limits": {
+      "postgres": {
+        "cpus": "2",
+        "memory": "1g",
+        "shmSize": "128m",
+        "pids": "256"
+      },
+      "backend": {
+        "cpus": "1",
+        "memory": "512m",
+        "pids": "256"
+      },
+      "k6": {
+        "cpus": "3",
+        "memory": "2g",
+        "pids": "512"
+      },
+      "inspect": {
+        "cpus": "1",
+        "memory": "512m",
+        "pids": "512"
+      }
+    },
+    "pool": {
+      "max": 5,
+      "connectionTimeoutSeconds": 3
+    },
+    "data": {
+      "appliedMigrations": 1
+    },
+    "clockOffsetMs": {
+      "before": 7,
+      "after": 6
+    }
+  },
+  "limits": [
+    "Alur yang diukur adalah diagnostik komposisi development, `GET /api/status` dan `GET /api/readiness`; komposisi production tidak memasang route apa pun dan belum ada endpoint bisnis.",
+    "Backend berjalan sebagai satu container dengan 1 CPU dan 512 MiB dari image Bun slim dengan source yang di mount, bukan image deployment fitur 13.",
+    "k6 dan backend berbagi network namespace loopback; tidak ada reverse proxy, TLS, atau latency jaringan nyata.",
+    "Data hanya riwayat migration (1 baris); tidak ada tabel bisnis.",
+    "Mesin dipakai bersama (Docker Desktop di macOS bersama container lain, atau runner GitHub hosted); hasil hanya sebanding dengan run pada kelas environment yang sama.",
+    "Batas kapasitas (breakpoint) tidak dicari; hasil membuktikan beban yang disepakati, bukan titik jenuh."
+  ]
+}

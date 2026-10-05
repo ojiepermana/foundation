@@ -1,0 +1,483 @@
+{
+  "schema": 1,
+  "profile": "soak",
+  "status": "passed",
+  "reasons": [],
+  "startedAt": "2026-10-05T05:30:25.511Z",
+  "finishedAt": "2026-10-05T06:32:31.286Z",
+  "t0": 1791178288370,
+  "model": {
+    "iterationIsOneRequest": true,
+    "phases": [
+      {
+        "phase": "warmup",
+        "shape": "ramp",
+        "seconds": 60,
+        "load": "N",
+        "rates": {
+          "status": {
+            "startRate": 0,
+            "endRate": 1000
+          },
+          "readiness": {
+            "startRate": 0,
+            "endRate": 50
+          }
+        }
+      },
+      {
+        "phase": "steady",
+        "shape": "constant",
+        "seconds": 3600,
+        "load": "N",
+        "rates": {
+          "status": {
+            "startRate": 1000,
+            "endRate": 1000
+          },
+          "readiness": {
+            "startRate": 50,
+            "endRate": 50
+          }
+        }
+      }
+    ]
+  },
+  "actual": {
+    "scenarios": [
+      {
+        "name": "status_warmup",
+        "endpoint": "status",
+        "phase": "warmup",
+        "executor": "ramping-arrival-rate",
+        "startRate": 0,
+        "endRate": 1000,
+        "seconds": 60,
+        "plannedIterations": 30000,
+        "iterations": 29996,
+        "rate": 499.93333333333334
+      },
+      {
+        "name": "readiness_warmup",
+        "endpoint": "readiness",
+        "phase": "warmup",
+        "executor": "ramping-arrival-rate",
+        "startRate": 0,
+        "endRate": 50,
+        "seconds": 60,
+        "plannedIterations": 1500,
+        "iterations": 1500,
+        "rate": 25
+      },
+      {
+        "name": "status_steady",
+        "endpoint": "status",
+        "phase": "steady",
+        "executor": "constant-arrival-rate",
+        "startRate": 1000,
+        "endRate": 1000,
+        "seconds": 3600,
+        "plannedIterations": 3600000,
+        "iterations": 3600001,
+        "rate": 1000.0002777777778
+      },
+      {
+        "name": "readiness_steady",
+        "endpoint": "readiness",
+        "phase": "steady",
+        "executor": "constant-arrival-rate",
+        "startRate": 50,
+        "endRate": 50,
+        "seconds": 3600,
+        "plannedIterations": 180000,
+        "iterations": 180000,
+        "rate": 50
+      }
+    ],
+    "iterations": 3811497,
+    "httpReqs": 3811497,
+    "droppedIterations": 0,
+    "vusMax": 220,
+    "scenarioStartLateMs": 0
+  },
+  "latency": [
+    {
+      "endpoint": "status",
+      "phase": "warmup",
+      "outcome": "all",
+      "count": 29996,
+      "p50": 0.1835835,
+      "p95": 0.70685375,
+      "p99": 1.6388503499999971,
+      "max": 10.245625
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "warmup",
+      "outcome": "available",
+      "count": 1500,
+      "p50": 1.1236665000000001,
+      "p95": 3.416340249999999,
+      "p99": 5.46711,
+      "max": 11.990333
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "warmup",
+      "outcome": "busy",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "warmup",
+      "outcome": "unavailable",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "status",
+      "phase": "steady",
+      "outcome": "all",
+      "count": 3600001,
+      "p50": 0.169167,
+      "p95": 0.413625,
+      "p99": 1.465042,
+      "max": 37.750875
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "steady",
+      "outcome": "available",
+      "count": 179936,
+      "p50": 1.017458,
+      "p95": 2.7549689999999982,
+      "p99": 4.4657851,
+      "max": 29.290958
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "steady",
+      "outcome": "busy",
+      "count": 64,
+      "p50": 1.1392289999999998,
+      "p95": 4.490316949999999,
+      "p99": 5.59297979,
+      "max": 6.133625
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "steady",
+      "outcome": "unavailable",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    }
+  ],
+  "readiness": {
+    "phases": [
+      {
+        "phase": "warmup",
+        "available": 1500,
+        "busy": 0,
+        "unavailable": 0,
+        "availableRatio": 1
+      },
+      {
+        "phase": "steady",
+        "available": 179936,
+        "busy": 64,
+        "unavailable": 0,
+        "availableRatio": 0.9996444444444444
+      }
+    ],
+    "recoveryMs": null
+  },
+  "thresholds": [
+    {
+      "metric": "unexpected_responses",
+      "expression": "count==0",
+      "ok": true
+    },
+    {
+      "metric": "dropped_iterations",
+      "expression": "count==0",
+      "ok": true
+    },
+    {
+      "metric": "checks",
+      "expression": "rate==1",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:status_warmup}",
+      "expression": "count>=0",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:readiness_warmup}",
+      "expression": "count>=0",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:status_steady}",
+      "expression": "count>=3596400",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:readiness_steady}",
+      "expression": "count>=179820",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:steady}",
+      "expression": "p(95)<10",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:steady}",
+      "expression": "p(99)<25",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:steady}",
+      "expression": "p(95)<25",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:steady}",
+      "expression": "p(99)<50",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:steady}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:steady}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available{phase:steady}",
+      "expression": "rate>=0.98",
+      "ok": true
+    }
+  ],
+  "observation": {
+    "containers": {
+      "postgres": {
+        "cpuMean": 1.92,
+        "cpuMax": 3.99,
+        "memoryMeanMiB": 45.26,
+        "memoryMaxMiB": 46.32,
+        "memoryGrowthMiB": null,
+        "restarts": null,
+        "oomKilled": null,
+        "stderrBytes": null
+      },
+      "backend": {
+        "cpuMean": 9.74,
+        "cpuMax": 15.64,
+        "memoryMeanMiB": 26.83,
+        "memoryMaxMiB": 30.77,
+        "memoryGrowthMiB": 0.65,
+        "restarts": 0,
+        "oomKilled": false,
+        "stderrBytes": 0
+      },
+      "k6": {
+        "cpuMean": 43.01,
+        "cpuMax": 95.64,
+        "memoryMeanMiB": 541.11,
+        "memoryMaxMiB": 1020,
+        "memoryGrowthMiB": null,
+        "restarts": null,
+        "oomKilled": null,
+        "stderrBytes": null
+      }
+    },
+    "pool": {
+      "sessions": 5,
+      "nonIdle": 1,
+      "total": 6,
+      "samples": 3671,
+      "failedSamples": 0
+    },
+    "checks": [
+      {
+        "name": "backend_running",
+        "rule": "sesudah k6 keluar, backend berjalan, RestartCount 0, dan tidak OOMKilled",
+        "actual": {
+          "running": true,
+          "restarts": 0,
+          "oomKilled": false
+        },
+        "ok": true
+      },
+      {
+        "name": "backend_output",
+        "rule": "stderr 0 byte; stdout tepat baris listening lalu Backend stopped",
+        "actual": {
+          "stderrBytes": 0,
+          "stdoutExpected": true
+        },
+        "ok": true
+      },
+      {
+        "name": "backend_memory_peak",
+        "rule": "memory backend maksimum <= 128 MiB",
+        "actual": 30.77,
+        "ok": true
+      },
+      {
+        "name": "backend_cpu_mean",
+        "rule": "rata rata CPU backend pada steady <= 50 persen satu CPU",
+        "actual": 9.78,
+        "ok": true
+      },
+      {
+        "name": "backend_memory_growth",
+        "rule": "pertumbuhan memory backend pada steady <= 16 MiB",
+        "actual": 0.65,
+        "ok": true
+      },
+      {
+        "name": "pool_sessions",
+        "rule": "setiap sampel mencatat paling banyak 5 sesi foundation_backend",
+        "actual": 5,
+        "ok": true
+      },
+      {
+        "name": "pool_non_idle",
+        "rule": "setiap sampel mencatat paling banyak 1 sesi foundation_backend yang tidak idle",
+        "actual": 1,
+        "ok": true
+      },
+      {
+        "name": "generator_cpu",
+        "rule": "rata rata CPU k6 pada setiap fase terukur <= 240 persen satu CPU",
+        "actual": 43.26,
+        "ok": true
+      },
+      {
+        "name": "generator_memory",
+        "rule": "memory k6 maksimum <= 1638 MiB",
+        "actual": 1020,
+        "ok": true
+      },
+      {
+        "name": "observation_coverage",
+        "rule": "sampel cukup dan celah dalam batas pada setiap container dan fase terukur, serta pada pg_stat_activity",
+        "actual": [],
+        "ok": true
+      },
+      {
+        "name": "clock_offset",
+        "rule": "selisih jam container dengan host <= 1000 ms sebelum T0 dan sesudah k6 keluar",
+        "actual": {
+          "before": 7,
+          "after": 7
+        },
+        "ok": true
+      }
+    ]
+  },
+  "outage": null,
+  "environment": {
+    "os": "Darwin 27.0.0",
+    "arch": "arm64",
+    "cpuModel": "Apple M1 Max",
+    "cpuCount": 10,
+    "memoryBytes": 34359738368,
+    "containerEngine": {
+      "serverVersion": "29.8.0",
+      "os": "Docker Desktop",
+      "ncpu": 10,
+      "memTotal": 8319504384
+    },
+    "otherContainersRunning": 7,
+    "ci": false,
+    "images": {
+      "k6": "grafana/k6:2.3.0@sha256:9c2dee7f8ed74d317e4027c06a10f169b625638189de8d4555d0b3486a5aeb34",
+      "bun": "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61",
+      "postgres": {
+        "image": "foundation-postgres:18-pinned",
+        "imageId": "sha256:0470b120c2ebef56573f3f66861a6a50bea3e6daf9c819c37c598fecf6ff5557",
+        "baseImage": "oraclelinux:10-slim@sha256:0660af1f1bb56559b299d99d3b71d0ff51f9d593cecbd3154a46914704ec34d6",
+        "serverVersion": "18.6"
+      }
+    },
+    "limits": {
+      "postgres": {
+        "cpus": "2",
+        "memory": "1g",
+        "shmSize": "128m",
+        "pids": "256"
+      },
+      "backend": {
+        "cpus": "1",
+        "memory": "512m",
+        "pids": "256"
+      },
+      "k6": {
+        "cpus": "3",
+        "memory": "2g",
+        "pids": "512"
+      },
+      "inspect": {
+        "cpus": "1",
+        "memory": "512m",
+        "pids": "512"
+      }
+    },
+    "pool": {
+      "max": 5,
+      "connectionTimeoutSeconds": 3
+    },
+    "data": {
+      "appliedMigrations": 1
+    },
+    "clockOffsetMs": {
+      "before": 7,
+      "after": 7
+    }
+  },
+  "limits": [
+    "Alur yang diukur adalah diagnostik komposisi development, `GET /api/status` dan `GET /api/readiness`; komposisi production tidak memasang route apa pun dan belum ada endpoint bisnis.",
+    "Backend berjalan sebagai satu container dengan 1 CPU dan 512 MiB dari image Bun slim dengan source yang di mount, bukan image deployment fitur 13.",
+    "k6 dan backend berbagi network namespace loopback; tidak ada reverse proxy, TLS, atau latency jaringan nyata.",
+    "Data hanya riwayat migration (1 baris); tidak ada tabel bisnis.",
+    "Mesin dipakai bersama (Docker Desktop di macOS bersama container lain, atau runner GitHub hosted); hasil hanya sebanding dengan run pada kelas environment yang sama.",
+    "Batas kapasitas (breakpoint) tidak dicari; hasil membuktikan beban yang disepakati, bukan titik jenuh."
+  ]
+}

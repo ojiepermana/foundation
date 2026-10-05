@@ -1,0 +1,239 @@
+{
+  "schema": 1,
+  "tier": "capacity",
+  "candidate": {
+    "commit": "34e905dff01b66fc2b9cd51f6e6686b5008c247c",
+    "clean": false,
+    "sourceTree": "7185cf7b7a9f5a3cedff10c6a8ac0a452ceb284e1bbba380f2d9c33f33ca1514",
+    "sourceTreeAfter": "7185cf7b7a9f5a3cedff10c6a8ac0a452ceb284e1bbba380f2d9c33f33ca1514",
+    "ci": null
+  },
+  "environment": {
+    "os": "darwin",
+    "arch": "arm64",
+    "bun": "1.4.2",
+    "node": "24.21.0"
+  },
+  "inputs": {
+    "package.json": "1d085a593c0410aa6897be8cab7914b3fd141b22ebfa7ed4c5e9d52a655f8475",
+    "bun.lock": "e74e16b34cde3c1a76d17328f5da63da16614409318218231e320d0a2e1fcc3f",
+    "openapi.json": "e583aa33ea689908d8188f5b1338a441475c9a434e97589e0b47366da95f0c00",
+    "infrastructure/postgres/pins.json": "63fe647f7df56c5e94a0e5cb6483d845eeea548dcfdbe991c50e95c234f438c4",
+    "tests/security/scanners.json": "311f56a9f4cfc6e801069ac407fec4c37b55c2988f5ed7dc92248c17db243581",
+    "tests/security/exceptions.json": "0c1de1a21eb6b25b59576015d5fa5c9fbb2fd081a192ac0c221c37f5e562271f",
+    "tests/security/gitleaks.toml": "b2218eefd2c12a1a2f23d36735ac4aaae6965d917965a8ed5881d0a4e8669376",
+    "tests/security/actionlint.yaml": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".github/workflows/application.yml": "edda79e565b79b9a5d204e9aaf57df86d3eae11adb723f0bb31796e3eb0fe164",
+    "apps/frontend/sdk/": "b7fde5e16f8c7b653b6b76cdb9d6e508017b02b44e237839bfdab38615b0a96e",
+    "tests/scenarios/": "89bd88f9fff53b5cf010ee9b541ef769c4baf6624730775728192315903332e4"
+  },
+  "outputs": {
+    "apps/frontend/dist/frontend/": "747ea3fc972f80b102cefab6fd0184c279add2edd2764e4c5f8b301c395b0683",
+    "dist/backend/index.js": "7f0d92c719ae41ec6ba4b8f928626d84ed65731384c022fba224cfbdf1b7ec40"
+  },
+  "steps": [
+    {
+      "script": "test:performance:load",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 686374,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-12/load/result.json",
+          "kind": "performance",
+          "required": true,
+          "present": true,
+          "sha256": "09529f69ba6c80fb5a0198719d6b2717fb72b7124fb8e9721170a4cfe5dc64aa"
+        },
+        {
+          "path": ".local/feature-12/load/k6/summary.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "6073caa90dc7bc16645fb10723c3682e27aa960ddfdbd438368aa8fa30873b7d"
+        },
+        {
+          "path": ".local/feature-12/load/observation.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "ea965a17bf6dab7c809c384b1bcf53493d295f68d8be731e81510b176b46aa3d"
+        },
+        {
+          "path": ".local/feature-12/load/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "f336f3f0d137fb0d9b774a2fd7a2c1e6fd6a21ac75c4c05cbc63d87c68a64449"
+        }
+      ]
+    },
+    {
+      "script": "test:performance:stress",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 757312,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-12/stress/result.json",
+          "kind": "performance",
+          "required": true,
+          "present": true,
+          "sha256": "1e896ebed684fd73f701399010fc577a140bd080115849cfecc70658cf457af7"
+        },
+        {
+          "path": ".local/feature-12/stress/k6/summary.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "0d620baab887d5109c02e6cac389ba1f021699de23f23c1dc847b57f7117130b"
+        },
+        {
+          "path": ".local/feature-12/stress/observation.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "f3f9667e1892de07c4bf5e1fc3408c3214a37e2b6145a89de64bc802ca15b557"
+        },
+        {
+          "path": ".local/feature-12/stress/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "a1eb6b3a3b044fd87e2c6d61ab4c8da95ad1124ea7fd50d3d3b158613079b7da"
+        }
+      ]
+    },
+    {
+      "script": "test:performance:spike",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 464750,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-12/spike/result.json",
+          "kind": "performance",
+          "required": true,
+          "present": true,
+          "sha256": "ac390d1bca7297473ab576bc472fe2167b46a3844d5e15e8550b16bde031691e"
+        },
+        {
+          "path": ".local/feature-12/spike/k6/summary.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "8e96101fcaf1bc217c2ca8814c1ec11b167744ecfdf66001c934b7ff9a78ccf1"
+        },
+        {
+          "path": ".local/feature-12/spike/observation.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "19dcb455beb8a9d3b32fff9e16e3f92cbb70d0d46d2a13f686a2ac045c0a78f8"
+        },
+        {
+          "path": ".local/feature-12/spike/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "5bc47242b1d847a74fde4882d76f4d910e56b03748e09f6b3c1aae6f333083cf"
+        }
+      ]
+    },
+    {
+      "script": "test:performance:outage",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 249728,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-12/outage/result.json",
+          "kind": "performance",
+          "required": true,
+          "present": true,
+          "sha256": "b0c38c86a8f78ac08c5706a96a5874c0485b09f5dc134b09dddb181db79aa638"
+        },
+        {
+          "path": ".local/feature-12/outage/k6/summary.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "55a0ac8b601cb06b7d82138feb5ae5cffeb9aa44e05fe36af532c0be4a706e52"
+        },
+        {
+          "path": ".local/feature-12/outage/observation.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "a5a4e998cf55e73822d86d0b37764c5023fa93358f3aa203c15cdb59024455ae"
+        },
+        {
+          "path": ".local/feature-12/outage/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "d7e91bb867a8970190bfe27e96e4d3bbafa3084118214ea5e93f0c0c0cd499d0"
+        }
+      ]
+    },
+    {
+      "script": "test:performance:soak",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 3725830,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-12/soak/result.json",
+          "kind": "performance",
+          "required": true,
+          "present": true,
+          "sha256": "0c7b5c4c2a2a3ce0b3bef1bfe37b2c3c22c7304c323bd0ef9cf08fc0ca41bb8c"
+        },
+        {
+          "path": ".local/feature-12/soak/k6/summary.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "f416e68873126370727ea6a2e3ec075bfbc90620e3641c9a0df464c224a7d79d"
+        },
+        {
+          "path": ".local/feature-12/soak/observation.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "1926c6d1503720c7322c239c6935268bf44dc8b5e413a15735b866620479f0f9"
+        },
+        {
+          "path": ".local/feature-12/soak/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "c6103ee43d006c7955ba315ed6b676690f50b077a97fe3bd318b128324260695"
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "startedAt": "2026-10-05T04:54:27.246Z",
+  "finishedAt": "2026-10-05T06:32:31.391Z"
+}

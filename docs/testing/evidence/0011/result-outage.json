@@ -1,0 +1,755 @@
+{
+  "schema": 1,
+  "profile": "outage",
+  "status": "passed",
+  "reasons": [],
+  "startedAt": "2026-10-05T05:26:15.783Z",
+  "finishedAt": "2026-10-05T05:30:25.454Z",
+  "t0": 1791177999012,
+  "model": {
+    "iterationIsOneRequest": true,
+    "phases": [
+      {
+        "phase": "timeline",
+        "shape": "constant",
+        "seconds": 220,
+        "load": "N",
+        "rates": {
+          "status": {
+            "startRate": 1000,
+            "endRate": 1000
+          },
+          "readiness": {
+            "startRate": 50,
+            "endRate": 50
+          }
+        }
+      }
+    ]
+  },
+  "actual": {
+    "scenarios": [
+      {
+        "name": "status_timeline",
+        "endpoint": "status",
+        "phase": "timeline",
+        "executor": "constant-arrival-rate",
+        "startRate": 1000,
+        "endRate": 1000,
+        "seconds": 220,
+        "plannedIterations": 220000,
+        "iterations": 220001,
+        "rate": 1000.0045454545455
+      },
+      {
+        "name": "readiness_timeline",
+        "endpoint": "readiness",
+        "phase": "timeline",
+        "executor": "constant-arrival-rate",
+        "startRate": 50,
+        "endRate": 50,
+        "seconds": 220,
+        "plannedIterations": 11000,
+        "iterations": 11001,
+        "rate": 50.00454545454546
+      }
+    ],
+    "iterations": 231002,
+    "httpReqs": 231002,
+    "droppedIterations": 0,
+    "vusMax": 110,
+    "scenarioStartLateMs": 1
+  },
+  "latency": [
+    {
+      "endpoint": "status",
+      "phase": "warmup",
+      "outcome": "all",
+      "count": 29997,
+      "p50": 0.187959,
+      "p95": 0.5162999999999996,
+      "p99": 1.5530416799999998,
+      "max": 12.878084
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "warmup",
+      "outcome": "available",
+      "count": 1500,
+      "p50": 1.1400000000000001,
+      "p95": 2.748914599999998,
+      "p99": 4.33214875,
+      "max": 8.8155
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "warmup",
+      "outcome": "busy",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "warmup",
+      "outcome": "unavailable",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "status",
+      "phase": "before",
+      "outcome": "all",
+      "count": 58000,
+      "p50": 0.197167,
+      "p95": 0.6347624999999993,
+      "p99": 1.8516722499999998,
+      "max": 10.658417
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "before",
+      "outcome": "available",
+      "count": 2899,
+      "p50": 1.171792,
+      "p95": 2.9626296999999995,
+      "p99": 4.532474659999999,
+      "max": 8.984042
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "before",
+      "outcome": "busy",
+      "count": 1,
+      "p50": 0.614583,
+      "p95": 0.614583,
+      "p99": 0.614583,
+      "max": 0.614583
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "before",
+      "outcome": "unavailable",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "status",
+      "phase": "stopping",
+      "outcome": "all",
+      "count": 13000,
+      "p50": 0.21575,
+      "p95": 1.0388201999999982,
+      "p99": 2.55104559,
+      "max": 36.116833
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "stopping",
+      "outcome": "available",
+      "count": 103,
+      "p50": 1.111459,
+      "p95": 2.6584452,
+      "p99": 3.4263934999999996,
+      "max": 3.582125
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "stopping",
+      "outcome": "busy",
+      "count": 538,
+      "p50": 0.27291699999999997,
+      "p95": 1.405483049999999,
+      "p99": 2.22166858,
+      "max": 4.308666
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "stopping",
+      "outcome": "unavailable",
+      "count": 9,
+      "p50": 3.112958,
+      "p95": 3001.7256343999998,
+      "p99": 3001.88286128,
+      "max": 3001.922168
+    },
+    {
+      "endpoint": "status",
+      "phase": "outage",
+      "outcome": "all",
+      "count": 44000,
+      "p50": 0.121042,
+      "p95": 0.5805166999999993,
+      "p99": 1.8073866599999995,
+      "max": 10.504292
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "outage",
+      "outcome": "available",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "outage",
+      "outcome": "busy",
+      "count": 962,
+      "p50": 0.2734165,
+      "p95": 1.4255327,
+      "p99": 2.5509179999999967,
+      "max": 3.84275
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "outage",
+      "outcome": "unavailable",
+      "count": 1238,
+      "p50": 7.8803335,
+      "p95": 11.434672449999997,
+      "p99": 15.660972459999986,
+      "max": 3002.630293
+    },
+    {
+      "endpoint": "status",
+      "phase": "recovering",
+      "outcome": "all",
+      "count": 15000,
+      "p50": 0.146625,
+      "p95": 0.39396219999999993,
+      "p99": 1.6461107499999992,
+      "max": 10.405916
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "recovering",
+      "outcome": "available",
+      "count": 492,
+      "p50": 1.071458,
+      "p95": 3.20436425,
+      "p99": 4.873457439999999,
+      "max": 11.813417
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "recovering",
+      "outcome": "busy",
+      "count": 1,
+      "p50": 0.256125,
+      "p95": 0.256125,
+      "p99": 0.256125,
+      "max": 0.256125
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "recovering",
+      "outcome": "unavailable",
+      "count": 257,
+      "p50": 7.86525,
+      "p95": 10.423684,
+      "p99": 11.374382039999999,
+      "max": 15.211084
+    },
+    {
+      "endpoint": "status",
+      "phase": "after",
+      "outcome": "all",
+      "count": 60004,
+      "p50": 0.199542,
+      "p95": 0.6338275499999999,
+      "p99": 1.8234192699999994,
+      "max": 19.932833
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "after",
+      "outcome": "available",
+      "count": 2999,
+      "p50": 1.174042,
+      "p95": 3.3007372000000004,
+      "p99": 4.70772384,
+      "max": 8.973292
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "after",
+      "outcome": "busy",
+      "count": 2,
+      "p50": 1.0747710000000001,
+      "p95": 1.1180277,
+      "p99": 1.1218727400000001,
+      "max": 1.122834
+    },
+    {
+      "endpoint": "readiness",
+      "phase": "after",
+      "outcome": "unavailable",
+      "count": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    }
+  ],
+  "readiness": {
+    "phases": [
+      {
+        "phase": "warmup",
+        "available": 1500,
+        "busy": 0,
+        "unavailable": 0,
+        "availableRatio": 1
+      },
+      {
+        "phase": "before",
+        "available": 2899,
+        "busy": 1,
+        "unavailable": 0,
+        "availableRatio": 0.9996551724137931
+      },
+      {
+        "phase": "stopping",
+        "available": 103,
+        "busy": 538,
+        "unavailable": 9,
+        "availableRatio": 0.15846153846153846
+      },
+      {
+        "phase": "outage",
+        "available": 0,
+        "busy": 962,
+        "unavailable": 1238,
+        "availableRatio": 0
+      },
+      {
+        "phase": "recovering",
+        "available": 492,
+        "busy": 1,
+        "unavailable": 257,
+        "availableRatio": 0.656
+      },
+      {
+        "phase": "after",
+        "available": 2999,
+        "busy": 2,
+        "unavailable": 0,
+        "availableRatio": 0.9993335554815062
+      }
+    ],
+    "recoveryMs": 154
+  },
+  "thresholds": [
+    {
+      "metric": "unexpected_responses",
+      "expression": "count==0",
+      "ok": true
+    },
+    {
+      "metric": "dropped_iterations",
+      "expression": "count==0",
+      "ok": true
+    },
+    {
+      "metric": "checks",
+      "expression": "rate==1",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:status_timeline}",
+      "expression": "count>=219780",
+      "ok": true
+    },
+    {
+      "metric": "iterations{scenario:readiness_timeline}",
+      "expression": "count>=10989",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:warmup}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:before}",
+      "expression": "p(95)<10",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:before}",
+      "expression": "p(99)<25",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:before}",
+      "expression": "p(95)<25",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:before}",
+      "expression": "p(99)<50",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:before}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:before}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available{phase:before}",
+      "expression": "rate>=0.98",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:stopping}",
+      "expression": "p(95)<10",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:stopping}",
+      "expression": "p(99)<25",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:stopping}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:stopping}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:stopping}",
+      "expression": "max<5500",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:outage}",
+      "expression": "p(95)<10",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:outage}",
+      "expression": "p(99)<25",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:outage}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:outage}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:outage}",
+      "expression": "max<5500",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:recovering}",
+      "expression": "p(99)<25",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:recovering}",
+      "expression": "p(95)<10",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:recovering}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:recovering}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:recovering}",
+      "expression": "max<5500",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:after}",
+      "expression": "p(95)<10",
+      "ok": true
+    },
+    {
+      "metric": "http_req_duration{endpoint:status,phase:after}",
+      "expression": "p(99)<25",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:after}",
+      "expression": "p(95)<25",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available_duration{phase:after}",
+      "expression": "p(99)<50",
+      "ok": true
+    },
+    {
+      "metric": "readiness_busy_duration{phase:after}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable_duration{phase:after}",
+      "expression": "max>=0",
+      "ok": true
+    },
+    {
+      "metric": "readiness_available{phase:after}",
+      "expression": "rate>=0.98",
+      "ok": true
+    },
+    {
+      "metric": "readiness_unavailable{phase:outage}",
+      "expression": "count>=1",
+      "ok": true
+    },
+    {
+      "metric": "readiness_recovery_ms",
+      "expression": "min>=0",
+      "ok": true
+    }
+  ],
+  "observation": {
+    "containers": {
+      "postgres": {
+        "cpuMean": 1.61,
+        "cpuMax": 5.8,
+        "memoryMeanMiB": 29.99,
+        "memoryMaxMiB": 45.61,
+        "memoryGrowthMiB": null,
+        "restarts": null,
+        "oomKilled": null,
+        "stderrBytes": null
+      },
+      "backend": {
+        "cpuMean": 10.2,
+        "cpuMax": 14.76,
+        "memoryMeanMiB": 25.35,
+        "memoryMaxMiB": 27.88,
+        "memoryGrowthMiB": null,
+        "restarts": 0,
+        "oomKilled": false,
+        "stderrBytes": 0
+      },
+      "k6": {
+        "cpuMean": 43.51,
+        "cpuMax": 63.17,
+        "memoryMeanMiB": 112.16,
+        "memoryMaxMiB": 152,
+        "memoryGrowthMiB": null,
+        "restarts": null,
+        "oomKilled": null,
+        "stderrBytes": null
+      }
+    },
+    "pool": {
+      "sessions": 5,
+      "nonIdle": 1,
+      "total": 6,
+      "samples": 175,
+      "failedSamples": 60
+    },
+    "checks": [
+      {
+        "name": "backend_running",
+        "rule": "sesudah k6 keluar, backend berjalan, RestartCount 0, dan tidak OOMKilled",
+        "actual": {
+          "running": true,
+          "restarts": 0,
+          "oomKilled": false
+        },
+        "ok": true
+      },
+      {
+        "name": "backend_output",
+        "rule": "stderr 0 byte; stdout tepat baris listening lalu Backend stopped",
+        "actual": {
+          "stderrBytes": 0,
+          "stdoutExpected": true
+        },
+        "ok": true
+      },
+      {
+        "name": "backend_memory_peak",
+        "rule": "memory backend maksimum <= 128 MiB",
+        "actual": 27.88,
+        "ok": true
+      },
+      {
+        "name": "pool_sessions",
+        "rule": "setiap sampel mencatat paling banyak 5 sesi foundation_backend",
+        "actual": 5,
+        "ok": true
+      },
+      {
+        "name": "pool_non_idle",
+        "rule": "setiap sampel mencatat paling banyak 1 sesi foundation_backend yang tidak idle",
+        "actual": 1,
+        "ok": true
+      },
+      {
+        "name": "pool_reconnect",
+        "rule": "sedikitnya satu sampel pada fase after dengan sesi foundation_backend",
+        "actual": 60,
+        "ok": true
+      },
+      {
+        "name": "generator_cpu",
+        "rule": "rata rata CPU k6 pada setiap fase terukur <= 240 persen satu CPU",
+        "actual": 49.41,
+        "ok": true
+      },
+      {
+        "name": "generator_memory",
+        "rule": "memory k6 maksimum <= 1638 MiB",
+        "actual": 152,
+        "ok": true
+      },
+      {
+        "name": "observation_coverage",
+        "rule": "sampel cukup dan celah dalam batas pada setiap container dan fase terukur, serta pada pg_stat_activity",
+        "actual": [],
+        "ok": true
+      },
+      {
+        "name": "clock_offset",
+        "rule": "selisih jam container dengan host <= 1000 ms sebelum T0 dan sesudah k6 keluar",
+        "actual": {
+          "before": 8,
+          "after": 6
+        },
+        "ok": true
+      },
+      {
+        "name": "outage_control",
+        "rule": "stop dan start dikirim tidak lebih awal dari jadwal dan paling lambat 1000 ms sesudahnya; stop selesai <= 8000 ms, start <= 5000 ms",
+        "actual": {
+          "stopPlannedMs": 90000,
+          "stopIssuedMs": 90006,
+          "stopCompletedMs": 90215,
+          "startPlannedMs": 150000,
+          "startIssuedMs": 150001,
+          "startCompletedMs": 150124
+        },
+        "ok": true
+      }
+    ]
+  },
+  "outage": {
+    "stopPlannedMs": 90000,
+    "stopIssuedMs": 90006,
+    "stopCompletedMs": 90215,
+    "startPlannedMs": 150000,
+    "startIssuedMs": 150001,
+    "startCompletedMs": 150124
+  },
+  "environment": {
+    "os": "Darwin 27.0.0",
+    "arch": "arm64",
+    "cpuModel": "Apple M1 Max",
+    "cpuCount": 10,
+    "memoryBytes": 34359738368,
+    "containerEngine": {
+      "serverVersion": "29.8.0",
+      "os": "Docker Desktop",
+      "ncpu": 10,
+      "memTotal": 8319504384
+    },
+    "otherContainersRunning": 7,
+    "ci": false,
+    "images": {
+      "k6": "grafana/k6:2.3.0@sha256:9c2dee7f8ed74d317e4027c06a10f169b625638189de8d4555d0b3486a5aeb34",
+      "bun": "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61",
+      "postgres": {
+        "image": "foundation-postgres:18-pinned",
+        "imageId": "sha256:0470b120c2ebef56573f3f66861a6a50bea3e6daf9c819c37c598fecf6ff5557",
+        "baseImage": "oraclelinux:10-slim@sha256:0660af1f1bb56559b299d99d3b71d0ff51f9d593cecbd3154a46914704ec34d6",
+        "serverVersion": "18.6"
+      }
+    },
+    "limits": {
+      "postgres": {
+        "cpus": "2",
+        "memory": "1g",
+        "shmSize": "128m",
+        "pids": "256"
+      },
+      "backend": {
+        "cpus": "1",
+        "memory": "512m",
+        "pids": "256"
+      },
+      "k6": {
+        "cpus": "3",
+        "memory": "2g",
+        "pids": "512"
+      },
+      "inspect": {
+        "cpus": "1",
+        "memory": "512m",
+        "pids": "512"
+      }
+    },
+    "pool": {
+      "max": 5,
+      "connectionTimeoutSeconds": 3
+    },
+    "data": {
+      "appliedMigrations": 1
+    },
+    "clockOffsetMs": {
+      "before": 8,
+      "after": 6
+    }
+  },
+  "limits": [
+    "Alur yang diukur adalah diagnostik komposisi development, `GET /api/status` dan `GET /api/readiness`; komposisi production tidak memasang route apa pun dan belum ada endpoint bisnis.",
+    "Backend berjalan sebagai satu container dengan 1 CPU dan 512 MiB dari image Bun slim dengan source yang di mount, bukan image deployment fitur 13.",
+    "k6 dan backend berbagi network namespace loopback; tidak ada reverse proxy, TLS, atau latency jaringan nyata.",
+    "Data hanya riwayat migration (1 baris); tidak ada tabel bisnis.",
+    "Mesin dipakai bersama (Docker Desktop di macOS bersama container lain, atau runner GitHub hosted); hasil hanya sebanding dengan run pada kelas environment yang sama.",
+    "Batas kapasitas (breakpoint) tidak dicari; hasil membuktikan beban yang disepakati, bukan titik jenuh."
+  ]
+}
