@@ -1,0 +1,24 @@
+<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="3.236063">
+<testsuite name="deployment/edge.deployment.e2e.spec.ts" timestamp="2026-10-05T20:26:51.748Z" hostname="chromium" tests="2" failures="0" skipped="0" time="2.82" errors="0">
+<testcase name="DEP-006 edge at 1280×812: the production build runs under the final CSP, the navigation holds only Beranda, and /kesiapan ends at /" classname="deployment/edge.deployment.e2e.spec.ts" time="1.352">
+<system-out>
+<![CDATA[requested-origins ["https://fonts.googleapis.com"]
+
+[[ATTACHMENT|test-results/deployment-edge.deployment-8af9b-randa-and-kesiapan-ends-at--chromium/attachments/requested-origins-88ecffe4d6ae407cbd4b5951fb97d5fb19915ce3.json]]
+
+[[ATTACHMENT|test-results/deployment-edge.deployment-8af9b-randa-and-kesiapan-ends-at--chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="DEP-006 edge at 375×812: the production build runs under the final CSP, the navigation drawer holds only Beranda, and /kesiapan ends at /" classname="deployment/edge.deployment.e2e.spec.ts" time="1.468">
+<system-out>
+<![CDATA[requested-origins ["https://fonts.googleapis.com"]
+
+[[ATTACHMENT|test-results/deployment-edge.deployment-334c6-randa-and-kesiapan-ends-at--chromium/attachments/requested-origins-4117580e5c5155903fb588195dfe7389155e2e58.json]]
+
+[[ATTACHMENT|test-results/deployment-edge.deployment-334c6-randa-and-kesiapan-ends-at--chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

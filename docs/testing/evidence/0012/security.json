@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "scannedAt": "2026-10-05T20:28:44.398Z",
+  "workingTreeClean": false,
+  "status": "passed",
+  "scanners": [
+    {
+      "name": "gitleaks",
+      "version": "v8.30.1",
+      "image": "ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f",
+      "status": "passed",
+      "reason": null,
+      "coverage": {
+        "head": "4c0b44f8df8b947ad313542bde11c8297fcc7135",
+        "commitsReachable": 47,
+        "shallow": false
+      },
+      "counts": {
+        "failed": 0,
+        "excepted": 0,
+        "reported": 0
+      },
+      "findings": [],
+      "unusedExceptions": []
+    },
+    {
+      "name": "bun audit",
+      "version": "1.4.2",
+      "image": null,
+      "status": "passed",
+      "reason": null,
+      "coverage": {
+        "packages": 487
+      },
+      "counts": {
+        "failed": 0,
+        "excepted": 0,
+        "reported": 0
+      },
+      "findings": [],
+      "unusedExceptions": []
+    },
+    {
+      "name": "actionlint",
+      "version": "1.7.12",
+      "image": "rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667",
+      "status": "passed",
+      "reason": null,
+      "coverage": {
+        "files": [
+          ".github/workflows/application.yml",
+          ".github/workflows/capacity.yml"
+        ]
+      },
+      "counts": {
+        "failed": 0,
+        "excepted": 0,
+        "reported": 0
+      },
+      "findings": [],
+      "unusedExceptions": []
+    }
+  ]
+}

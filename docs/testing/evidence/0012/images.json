@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "images": [
+    {
+      "name": "frontend",
+      "dockerfile": "apps/frontend/Dockerfile",
+      "tag": "foundation-frontend:deploy-0dbea2d8761b",
+      "imageId": "sha256:36e4250653e74f6099be23562b273fdd3b10a960c8936abf2216a7d04cea09dc",
+      "sizeBytes": 93144953,
+      "user": "101:101",
+      "exposedPorts": [
+        "80/tcp",
+        "8080/tcp",
+        "8443/tcp"
+      ],
+      "stopSignal": "SIGQUIT",
+      "healthcheck": false,
+      "bases": [
+        "node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe",
+        "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61",
+        "nginx:1.30.5-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94"
+      ],
+      "labels": {
+        "revision": "4c0b44f8df8b947ad313542bde11c8297fcc7135",
+        "sourceTree": "fe7865ae48c6dd3e12c4b4a9f9dda413b4f3964a504980e7abd9f896430f5bcd"
+      },
+      "files": {
+        "count": 2151,
+        "sha256": "f3839d92a6ac5d3337d3a03090e4aa55a237c028a079029bd6912c6dca6b9c4e"
+      }
+    },
+    {
+      "name": "backend",
+      "dockerfile": "apps/backend/Dockerfile",
+      "tag": "foundation-backend:deploy-0dbea2d8761b",
+      "imageId": "sha256:536e32567062be140702aadd4c1bedd833db661435c655da33cd0c7cd9790809",
+      "sizeBytes": 275358657,
+      "user": "1000:1000",
+      "exposedPorts": [
+        "8888/tcp"
+      ],
+      "stopSignal": "SIGTERM",
+      "healthcheck": true,
+      "bases": [
+        "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61"
+      ],
+      "labels": {
+        "revision": "4c0b44f8df8b947ad313542bde11c8297fcc7135",
+        "sourceTree": "fe7865ae48c6dd3e12c4b4a9f9dda413b4f3964a504980e7abd9f896430f5bcd"
+      },
+      "files": {
+        "count": 3782,
+        "sha256": "682af26e990d92851ae61b49a6a945c176ba00355218f4d9180f02896f0cde62"
+      }
+    },
+    {
+      "name": "migrate",
+      "dockerfile": "database/Dockerfile",
+      "tag": "foundation-migrate:deploy-0dbea2d8761b",
+      "imageId": "sha256:6bc9cd27491672904b440206eb6e1b46797fb2a2f9064b78acbe09c155b04178",
+      "sizeBytes": 274610351,
+      "user": "1000:1000",
+      "exposedPorts": [],
+      "stopSignal": "SIGTERM",
+      "healthcheck": false,
+      "bases": [
+        "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61"
+      ],
+      "labels": {
+        "revision": "4c0b44f8df8b947ad313542bde11c8297fcc7135",
+        "sourceTree": "fe7865ae48c6dd3e12c4b4a9f9dda413b4f3964a504980e7abd9f896430f5bcd"
+      },
+      "files": {
+        "count": 3792,
+        "sha256": "d47de4c0a5bce710ddfb7130037e51994a082ded067bc6f22e7aa907f3839c3d"
+      }
+    }
+  ],
+  "postgres": {
+    "image": "foundation-postgres:18-pinned",
+    "imageId": "sha256:ae46ecb5a415709c581143261631a9063e753e85c37353083811d1637d91e775"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "outputsScanned": [
+    "logs backend sebelum recreate",
+    "logs edge",
+    "logs backend",
+    "logs postgres",
+    "logs migrate"
+  ],
+  "filesScanned": [
+    ".local/feature-13/images.json",
+    ".local/feature-13/playwright-deployment.xml",
+    ".local/feature-13/test-results/.last-run.json",
+    ".local/feature-13/test-results/deployment-edge.deployment-334c6-randa-and-kesiapan-ends-at--chromium/attachments/requested-origins-4117580e5c5155903fb588195dfe7389155e2e58.json",
+    ".local/feature-13/test-results/deployment-edge.deployment-334c6-randa-and-kesiapan-ends-at--chromium/requested-origins.json",
+    ".local/feature-13/test-results/deployment-edge.deployment-334c6-randa-and-kesiapan-ends-at--chromium/test-finished-1.png",
+    ".local/feature-13/test-results/deployment-edge.deployment-8af9b-randa-and-kesiapan-ends-at--chromium/attachments/requested-origins-88ecffe4d6ae407cbd4b5951fb97d5fb19915ce3.json",
+    ".local/feature-13/test-results/deployment-edge.deployment-8af9b-randa-and-kesiapan-ends-at--chromium/requested-origins.json",
+    ".local/feature-13/test-results/deployment-edge.deployment-8af9b-randa-and-kesiapan-ends-at--chromium/test-finished-1.png"
+  ],
+  "secretsChecked": 43,
+  "junitSha256": "7c62ca1dad3c8b1af0a2064354ca0d61266d62e748ca47bae1185452fc92d830",
+  "findings": []
+}

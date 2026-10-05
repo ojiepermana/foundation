@@ -1,0 +1,415 @@
+{
+  "schema": 1,
+  "tier": "fast",
+  "candidate": {
+    "commit": "4c0b44f8df8b947ad313542bde11c8297fcc7135",
+    "clean": false,
+    "sourceTree": "fe7865ae48c6dd3e12c4b4a9f9dda413b4f3964a504980e7abd9f896430f5bcd",
+    "sourceTreeAfter": "fe7865ae48c6dd3e12c4b4a9f9dda413b4f3964a504980e7abd9f896430f5bcd",
+    "ci": null
+  },
+  "environment": {
+    "os": "darwin",
+    "arch": "arm64",
+    "bun": "1.4.2",
+    "node": "24.21.0"
+  },
+  "inputs": {
+    "package.json": "d9c14419ac240d1da2612fe32399b1306d2249460359ea7c1b818e60e8ea1bd4",
+    "bun.lock": "e74e16b34cde3c1a76d17328f5da63da16614409318218231e320d0a2e1fcc3f",
+    "openapi.json": "f6c31a95f949fae4c3387a83362a2a3460cadd6c50802d9706e05bd23505b611",
+    "infrastructure/postgres/pins.json": "63fe647f7df56c5e94a0e5cb6483d845eeea548dcfdbe991c50e95c234f438c4",
+    "tests/security/scanners.json": "311f56a9f4cfc6e801069ac407fec4c37b55c2988f5ed7dc92248c17db243581",
+    "tests/security/exceptions.json": "0c1de1a21eb6b25b59576015d5fa5c9fbb2fd081a192ac0c221c37f5e562271f",
+    "tests/security/gitleaks.toml": "b2218eefd2c12a1a2f23d36735ac4aaae6965d917965a8ed5881d0a4e8669376",
+    "tests/security/actionlint.yaml": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".github/workflows/application.yml": "edda79e565b79b9a5d204e9aaf57df86d3eae11adb723f0bb31796e3eb0fe164",
+    "apps/frontend/sdk/": "e1edb26c945c62907c8025f605311980f31840754af8e8273ef67409bcaa03f0",
+    "tests/scenarios/": "b71e7d5e1fbe539a21731653d95984eb28e1cf0a712ea5f85cdf2804bf131f13"
+  },
+  "outputs": {
+    "apps/frontend/dist/frontend/": "7f0c3a6487ab521b0c7f53e8d69db28ad4c4cfb6dd4e26d711eadc4e70d196d6",
+    "dist/backend/index.js": "b2b99ba9a70fa229450eec9ef925c4c11fc6f6c1cc114ddbf27b901530e3de1a"
+  },
+  "steps": [
+    {
+      "script": "check:dependencies",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 89,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "test:scenarios",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 246,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "check:test-discovery",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 1563,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "check:workflow",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 51,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "api:check",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 1291,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "build:frontend",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 1634,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "check:frontend:bundle",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 145,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "typecheck:backend",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 727,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "typecheck:contract",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 1400,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "typecheck:e2e",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 712,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "typecheck:tooling",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 1685,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "build:backend",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 41,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "test:frontend",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 2858,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-4/frontend.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "5fb4f3788fef1da80c05d1cb0ec32708bf008f20cef1f371cedf756f644ab704",
+          "runner": "vitest",
+          "tests": 81,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:integration",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 83376,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-4/server.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "323ece3e81084a23312622a3a2653382c1974dd34606d4b65294c003f01fbcf2",
+          "runner": "bun:test",
+          "tests": 668,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:tooling",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 37251,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-4/tooling.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "7f700d26d63734cdb476dc0fb1b0c02be21ae18f8ea0752b871f84ce4f492d8b",
+          "runner": "bun:test",
+          "tests": 54,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:gate",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 60613,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-11/gate.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "fe77e7a502c704ab2399930abf1eea8dcef99e60db121efd37dba042f20d4e67",
+          "runner": "bun:test",
+          "tests": 268,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:performance:plan",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 22850,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-12/plan.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "d890eaf6be9c5952c7f193a23676a5616d9e739924abd5483459c3eba56582be",
+          "runner": "bun:test",
+          "tests": 78,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:deployment:plan",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 31487,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-13/plan.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "2c25aa7a02e8635d7b71d60c410a4c5293b957bac83d0c1b7555d5bd848c8ae0",
+          "runner": "bun:test",
+          "tests": 51,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:e2e",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 10637,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-4/playwright.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "42c657dbd55e19408d164b2277911e3fca924921aaf293f26d24e73f1ef9152f",
+          "runner": "playwright",
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": "test-results/",
+          "kind": "screenshots",
+          "required": false,
+          "present": true,
+          "files": [
+            {
+              "path": "test-results/.last-run.json",
+              "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+            },
+            {
+              "path": "test-results/application-framework.e2e--68980--proxy-reaches-real-backend-chromium/test-finished-1.png",
+              "sha256": "d863d32ff61f45bd3f46181da8394bdc811f5f7b4f2815ac7e753df56075779c"
+            },
+            {
+              "path": "test-results/application-framework.e2e--97374--proxy-reaches-real-backend-chromium/test-finished-1.png",
+              "sha256": "ad48f8b25f38d5bea1a7d09864c8fff4c86cf64bdfe3bbe7a7157cbe570c0d0b"
+            },
+            {
+              "path": "test-results/readiness-readiness-produc-6ac38--request-path-contains-api--chromium/test-finished-1.png",
+              "sha256": "f7ce646bfdeb79f475438affe678b848f2fa2f6380dbdc6c2367c73cb3c9094a"
+            },
+            {
+              "path": "test-results/readiness-readiness-produc-90406--request-path-contains-api--chromium/test-finished-1.png",
+              "sha256": "987b538d1dfc273a35259e28e9cb35e72101a62e3ea178da59f7ac782801ca4b"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-5ea1b-rrent-known-library-defect--chromium/test-finished-1.png",
+              "sha256": "3941d47b7556ed769a534ec6ebd8421c6e3c5898d3b18c23f5ce5ebcdcba689e"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-63c8e--never-carries-aria-current-chromium/test-finished-1.png",
+              "sha256": "325e20ec3bb9e7e89cbeae5fb83b280041a933fab04359a6e9c67de7d8c4aa14"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-96f39--never-carries-aria-current-chromium/test-finished-1.png",
+              "sha256": "bd8e5bc963942838f2374095c7c915c34957b962d3316f078d89e4eb377d85c0"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-982da-rrent-known-library-defect--chromium/test-finished-1.png",
+              "sha256": "98bc801c84f65a3cc5fd9c48163f04649dd6d373ee72af3c893f787f04a405a6"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-98a91-e-proxy-layout-and-keyboard-chromium/readiness-unavailable-mobile.png",
+              "sha256": "3914fae9c54e0b3fb5f1d05a03cda924f1bddc2ef7a929f927f00fdc10155842"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-98a91-e-proxy-layout-and-keyboard-chromium/test-finished-1.png",
+              "sha256": "be60cffdc2c5abf8c90d7bea5a6fb172536042d3a0fce40e0285995d7545e08e"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-f479d-e-proxy-layout-and-keyboard-chromium/readiness-unavailable-desktop.png",
+              "sha256": "67b528a59788b0eec294b14e81b520f8152ca0856c3c2a112e4855787f9658db"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-f479d-e-proxy-layout-and-keyboard-chromium/test-finished-1.png",
+              "sha256": "ef5749ab1d8c6852e7fdaf598bac233dde155939de4296489af08721e9e92455"
+            },
+            {
+              "path": "test-results/ui-shell-foundation-shell.-2fd3d-layout-work-at-target-sizes-chromium/test-finished-1.png",
+              "sha256": "be60cffdc2c5abf8c90d7bea5a6fb172536042d3a0fce40e0285995d7545e08e"
+            },
+            {
+              "path": "test-results/ui-shell-foundation-shell.-2fd3d-layout-work-at-target-sizes-chromium/ui-shell-desktop.png",
+              "sha256": "0c19409a298123a763159b2b4d63911ffaf34e3604ebd14c1747b7957a87c33c"
+            },
+            {
+              "path": "test-results/ui-shell-foundation-shell.-2fd3d-layout-work-at-target-sizes-chromium/ui-shell-mobile.png",
+              "sha256": "2d95d93ab9961ef0b4ec99da60b0786cdcdf72a01ddac14dd666419b9f88b326"
+            },
+            {
+              "path": "test-results/ui-shell-foundation-shell.-a4de2-es-not-call-the-backend-API-chromium/test-finished-1.png",
+              "sha256": "98bc801c84f65a3cc5fd9c48163f04649dd6d373ee72af3c893f787f04a405a6"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "startedAt": "2026-10-05T20:18:53.176Z",
+  "finishedAt": "2026-10-05T20:23:11.988Z"
+}

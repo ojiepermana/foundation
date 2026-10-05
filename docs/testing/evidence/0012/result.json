@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "startedAt": "2026-10-05T20:26:01.574Z",
+  "finishedAt": "2026-10-05T20:27:28.646Z",
+  "candidate": {
+    "commit": "4c0b44f8df8b947ad313542bde11c8297fcc7135",
+    "sourceTree": "fe7865ae48c6dd3e12c4b4a9f9dda413b4f3964a504980e7abd9f896430f5bcd"
+  },
+  "checks": [
+    {
+      "name": "image_pins",
+      "status": "passed",
+      "detail": "3 image dasar dipin tag dan digest"
+    },
+    {
+      "name": "image_context_sentinels",
+      "status": "passed",
+      "detail": "3 probe konteks sama dengan expectedContext (65 file) tanpa .env dan tanpa nilai sentinel; salinan tanpa .env, node_modules, dist, dan .angular"
+    },
+    {
+      "name": "image_filesystem",
+      "status": "passed",
+      "detail": "3 filesystem image tanpa nilai sentinel, password, DSN, atau path .env; isi stage akhir sesuai tabel Image; checkFrontendBundle lulus atas /srv/frontend/"
+    },
+    {
+      "name": "image_config",
+      "status": "passed",
+      "detail": "image inspect dan history tanpa nilai sentinel; USER numerik, entrypoint, STOPSIGNAL, HEALTHCHECK, ENV, dan label sesuai tabel Image"
+    },
+    {
+      "name": "provisioning_step",
+      "status": "passed",
+      "detail": "database/provision.ts --apply keluar 0 lewat image runner"
+    },
+    {
+      "name": "readiness_before_migration",
+      "status": "passed",
+      "detail": "GET /health/ready 503 {\"status\":\"unavailable\"} sebelum migration"
+    },
+    {
+      "name": "migration_step",
+      "status": "passed",
+      "detail": "perintah bawaan keluar 1 dengan Use --apply; migration 1 applied; rerun 0 applied, 1 skipped; seed keluar 0"
+    },
+    {
+      "name": "readiness_after_migration",
+      "status": "passed",
+      "detail": "GET /health/ready 200 {\"status\":\"ready\"} sesudah migration tanpa restart backend"
+    },
+    {
+      "name": "tls_versions",
+      "status": "passed",
+      "detail": "ALPN h2; TLS 1.2 dengan cipher daftar tanpa session ticket; kontrol TLS 1.2 lulus dan TLS 1.1 ditolak alert protocol version"
+    },
+    {
+      "name": "http_redirect",
+      "status": "passed",
+      "detail": "12 request ke port HTTP dijawab 308 ke https://localhost<path dan query> dengan Cache-Control no-store, tanpa HSTS dan tanpa upstream"
+    },
+    {
+      "name": "document_headers",
+      "status": "passed",
+      "detail": "28 jawaban di luar /api/ memuat Header dokumen tepat, termasuk CSP final dan HSTS"
+    },
+    {
+      "name": "static_cache_fallback",
+      "status": "passed",
+      "detail": "aset ber hash immutable termasuk 304, 404 aset ber hash dan file berekstensi lain no-cache, path tanpa ekstensi index.html 200; 4 aset dari index.html"
+    },
+    {
+      "name": "api_forwarding",
+      "status": "passed",
+      "detail": "/api/x.json dan /api/status dengan query sampai ke backend (404 JSON backend, upstreamStatus 404 di log edge, baris log backend dengan ID edge)"
+    },
+    {
+      "name": "api_headers",
+      "status": "passed",
+      "detail": "22 jawaban /api/ memuat Header API tepat; jawaban edge application/json dan no-store"
+    },
+    {
+      "name": "api_stub_forwarding",
+      "status": "passed",
+      "detail": "stub menerima host localhost tanpa header alamat client dengan x-request-id edge; 504 JSON; 1025 byte 413 tanpa sampai stub, 1024 byte sampai"
+    },
+    {
+      "name": "cors_absent",
+      "status": "passed",
+      "detail": "tidak ada header Access-Control-* untuk Origin asing dan preflight, di dokumen maupun /api/"
+    },
+    {
+      "name": "edge_errors",
+      "status": "passed",
+      "detail": "13 bentuk traversal 400 dan body 1025 byte 413 JSON; header 9000 byte dan /api/../../x 400 bawaan nginx dengan Header dokumen; baris log edge /api/../../x 400 dengan path dan upstreamStatus kosong"
+    },
+    {
+      "name": "health_not_public",
+      "status": "passed",
+      "detail": "7 target di luar /api/ index.html 200 dengan Header dokumen tanpa upstream; 2 target /api/health 404 JSON backend dengan Header API"
+    },
+    {
+      "name": "published_ports",
+      "status": "passed",
+      "detail": "hanya edge mempublikasikan port (HTTPS dan HTTP di 127.0.0.1, keduanya terjangkau dari host); compose port backend dan postgres kosong"
+    },
+    {
+      "name": "network_isolation",
+      "status": "passed",
+      "detail": "app dan data Internal true; app menjangkau backend /health/live 200 tetapi tidak postgres:5432; data menjangkau postgres:5432"
+    },
+    {
+      "name": "egress_blocked",
+      "status": "passed",
+      "detail": "kontrol public menjangkau 1.1.1.1:443; app dan data tidak menjangkaunya dalam 3 detik"
+    },
+    {
+      "name": "compose_declaration",
+      "status": "passed",
+      "detail": "compose config --no-interpolate tanpa override sama dengan tabel Topologi dan Environment per service, json-file 10m × 3, flag log PostgreSQL, tanpa nilai credential"
+    },
+    {
+      "name": "container_hardening",
+      "status": "passed",
+      "detail": "edge, backend, postgres, dan runner: network, user numerik, CPU, memory, PIDs, read only, tmpfs, CapDrop ALL, no-new-privileges, restart no, stop timeout, healthcheck, dan json-file sesuai tabel"
+    },
+    {
+      "name": "container_environment",
+      "status": "passed",
+      "detail": "environment tambahan tepat tabel: edge tanpa key, backend DATABASE_URL foundation_backend, postgres POSTGRES_*, runner FOUNDATION_MIGRATOR_DATABASE_URL saja"
+    },
+    {
+      "name": "browser_flow",
+      "status": "passed",
+      "detail": "DEP-006 lulus pada 1280×812 dan 375×812 tanpa pelanggaran CSP, error console, atau request /api/; origin yang diminta tercatat di JUnit"
+    },
+    {
+      "name": "backend_shutdown_restart",
+      "status": "passed",
+      "detail": "stop backend 200 ms, exit 0, baris stopped; 30 jawaban (0 kali 504) lalu 502; 404 backend lagi 6552 ms sesudah start tanpa restart edge"
+    },
+    {
+      "name": "backend_recreate",
+      "status": "passed",
+      "detail": "backend dibuat ulang (alamat app sama) dan diteruskan lagi 3 ms sesudah recreate tanpa restart edge"
+    },
+    {
+      "name": "database_outage",
+      "status": "passed",
+      "detail": "/health/ready 503 118 ms sesudah stop postgres, /health/live 200 dan edge / 200; 200 lagi 145 ms sesudah start tanpa restart backend"
+    },
+    {
+      "name": "edge_shutdown",
+      "status": "passed",
+      "detail": "stop edge (SIGQUIT) 321 ms dengan exit 0"
+    },
+    {
+      "name": "log_structure",
+      "status": "passed",
+      "detail": "142 baris JSON edge dengan key dan tipe AC-10, termasuk status 0 untuk request HTTP/2 yang diakhiri tanpa jawaban; log backend JSON production (info hanya stdout, error hanya stderr); health di bawah "
+    },
+    {
+      "name": "log_correlation",
+      "status": "passed",
+      "detail": "header X-Request-Id jawaban, baris log edge, dan baris log backend memuat ID yang sama; ID client tidak dipakai; ID tidak sah diganti backend"
+    },
+    {
+      "name": "log_no_data",
+      "status": "passed",
+      "detail": "43 nilai (sentinel query, Authorization, Cookie, header, body, termasuk saat 502; password dan DSN run) tidak ada di 14 keluaran container"
+    },
+    {
+      "name": "postgres_log_policy",
+      "status": "passed",
+      "detail": "postgres berjalan dengan log_min_messages=log, log_min_error_statement=panic, log_error_verbosity=terse; statement gagal bersentinel tidak masuk log"
+    },
+    {
+      "name": "topology_shutdown",
+      "status": "passed",
+      "detail": "compose stop 363 ms; edge, backend, dan postgres keluar 0 dalam stop grace masing masing"
+    },
+    {
+      "name": "artifact_scan",
+      "status": "passed",
+      "detail": "43 nilai run tidak ada di 9 file bukti dan 5 keluaran container"
+    },
+    {
+      "name": "cleanup",
+      "status": "passed",
+      "detail": "project, container bernama, image, dan folder run dihapus"
+    }
+  ],
+  "reasons": [],
+  "boundary": "Topologi rujukan satu host Docker dengan sertifikat dari CA sementara; bukan bukti platform deployment, kapasitas, image di registry, atau ketiadaan kerentanan paket OS di image (paket OS ketiga image tidak dipindai pemindai kerentanan)."
+}
