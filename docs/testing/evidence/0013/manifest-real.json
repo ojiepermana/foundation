@@ -1,0 +1,379 @@
+{
+  "schema": 1,
+  "tier": "real",
+  "candidate": {
+    "commit": "ad1dbf24b6605ac2802712c0723fd500475e0159",
+    "clean": false,
+    "sourceTree": "5512cee2da4d6e6dc0a8e9c0085cba50dd7187c2ccf1d2a846ce644c9d43af58",
+    "sourceTreeAfter": "5512cee2da4d6e6dc0a8e9c0085cba50dd7187c2ccf1d2a846ce644c9d43af58",
+    "ci": null
+  },
+  "environment": {
+    "os": "darwin",
+    "arch": "arm64",
+    "bun": "1.4.2",
+    "node": "24.21.0"
+  },
+  "inputs": {
+    "package.json": "d9c14419ac240d1da2612fe32399b1306d2249460359ea7c1b818e60e8ea1bd4",
+    "bun.lock": "709aa822bcd149ec2967ed79fffefe1248ddd47e8cfeee2146d68384c32de656",
+    "openapi.json": "f6c31a95f949fae4c3387a83362a2a3460cadd6c50802d9706e05bd23505b611",
+    "infrastructure/postgres/pins.json": "63fe647f7df56c5e94a0e5cb6483d845eeea548dcfdbe991c50e95c234f438c4",
+    "tests/security/scanners.json": "311f56a9f4cfc6e801069ac407fec4c37b55c2988f5ed7dc92248c17db243581",
+    "tests/security/exceptions.json": "0c1de1a21eb6b25b59576015d5fa5c9fbb2fd081a192ac0c221c37f5e562271f",
+    "tests/security/gitleaks.toml": "b2218eefd2c12a1a2f23d36735ac4aaae6965d917965a8ed5881d0a4e8669376",
+    "tests/security/actionlint.yaml": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".github/workflows/application.yml": "edda79e565b79b9a5d204e9aaf57df86d3eae11adb723f0bb31796e3eb0fe164",
+    "apps/frontend/sdk/": "e1edb26c945c62907c8025f605311980f31840754af8e8273ef67409bcaa03f0",
+    "tests/scenarios/": "8e899a64db0ff678950d9a620e0c70a6ca955f47d2941d0bed02a7917522a397"
+  },
+  "outputs": {
+    "apps/frontend/dist/frontend/": "7f0c3a6487ab521b0c7f53e8d69db28ad4c4cfb6dd4e26d711eadc4e70d196d6",
+    "dist/backend/index.js": "b2b99ba9a70fa229450eec9ef925c4c11fc6f6c1cc114ddbf27b901530e3de1a"
+  },
+  "steps": [
+    {
+      "script": "test:infrastructure",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 51568,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-3/infrastructure.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "25c2b56a8f5556d35ad3a065948b27432670d2f20d434e83a4c6442b0c207dbf",
+          "runner": "bun:test",
+          "tests": 18,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-3/image.json",
+          "kind": "image",
+          "required": true,
+          "present": true,
+          "sha256": "abaa1404e26d7dfa996c0f9525cd075ccfdb81afcd8ebf68e5de39077d522cee"
+        }
+      ]
+    },
+    {
+      "script": "test:database:real",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 153522,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-5/database.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "5be370f55ce19572b97cc73b4e955a69e20068af6dcc1f3854c6727b54a55320",
+          "runner": "bun:test",
+          "tests": 89,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-5/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "bf7216fd5a697bd3c4b9e720bf16b761e154ac068914f0594fb5f6d7e83c7164"
+        },
+        {
+          "path": ".local/feature-14/restore.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "85d78417467042e6f7e1ab55b6974cb531c9f7535d07f59c25a8d556670a3bdf"
+        }
+      ]
+    },
+    {
+      "script": "test:database:migration",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 16921,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-6/migration.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "34a55a5a3b84e63a19741134ef8b04835c83466abbd574c9dea7827cdaa1d379",
+          "runner": "bun:test",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:tooling:real",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 30569,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-2/playwright-real.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "676ac873ca26992a5aea948aec6e7fba328bd7ee04b518d19e735c0f443fa30c",
+          "runner": "playwright",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-2/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "8c2904d3b1873f0bdf22347d08d3231434d087461b40c1f72ceb58fe00f957df"
+        },
+        {
+          "path": ".local/feature-2/test-results/",
+          "kind": "screenshots",
+          "required": false,
+          "present": true,
+          "files": [
+            {
+              "path": ".local/feature-2/test-results/.last-run.json",
+              "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-desktop.png",
+              "sha256": "ebc1c9247efcc708510526d89e9662f90942bb74c874bb9fe72b1977f0a93df6"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-mobile.png",
+              "sha256": "a06e3db9ae77531f0d3dc4b111a95f3ee7dd27310d3cfd1aad4653556b7e19b5"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-recovered.png",
+              "sha256": "e6a23dae3b810043b915a1fa9bb825f8f341f9b54627862b93cbc69eb9841c30"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-unavailable-stopped.png",
+              "sha256": "e105903f6144fae54aac303c5ff1abcf4e2fc2de482f5fe3a7900e0b3290d312"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/test-finished-1.png",
+              "sha256": "e6a23dae3b810043b915a1fa9bb825f8f341f9b54627862b93cbc69eb9841c30"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "script": "test:readiness:real",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 5898,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-10/playwright-real.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "664baf57d58d3a59f412c2a9f0709b97687cf5c627fbe239ade114d10f2bcedf",
+          "runner": "playwright",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-10/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "916916770fa7fcabcf843893945f3a417230233f13e0d1c87a7b43a95593b135"
+        },
+        {
+          "path": ".local/feature-10/test-results/",
+          "kind": "screenshots",
+          "required": false,
+          "present": true,
+          "files": [
+            {
+              "path": ".local/feature-10/test-results/.last-run.json",
+              "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-desktop.png",
+              "sha256": "b02cca438c4164f2f7442f6d2401559ace64db2bd2728c5cb476a425f4a99a4f"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-mobile.png",
+              "sha256": "b030868bd2d163700c78eef5dd3e25aaf015f783b9643cd644acee92efa6222a"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-recovered.png",
+              "sha256": "54662070fd991da6a26abc0da8fa3f8fbca537a296ca104320460a70f88a1566"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-unavailable-stopped.png",
+              "sha256": "bc86144025e862f62623716a3935b3869fb26e0df84bffbb5580aed07ff8c7e5"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/test-finished-1.png",
+              "sha256": "54662070fd991da6a26abc0da8fa3f8fbca537a296ca104320460a70f88a1566"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "script": "test:deployment:real",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 84999,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-13/result.json",
+          "kind": "deployment",
+          "required": true,
+          "present": true,
+          "sha256": "a48f8cd82a2d3667b09b8581da813f08846057104adf200fcd38838b885237c1"
+        },
+        {
+          "path": ".local/feature-13/images.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "f13c00c12cdf23d4701e69ea93b0c0c16ed9bd74d69b67e83198ae5e256df1bc"
+        },
+        {
+          "path": ".local/feature-13/playwright-deployment.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "7eba9f5342947233dca2bd2cac0ee64ca368c0dc1b5a02e8dc91d9864b6b28a6",
+          "runner": "playwright",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-13/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "38973822a6253d831e4b140c3c8799451830bf971f9449f804ea01bd5649b3f7"
+        },
+        {
+          "path": ".local/feature-13/test-results/",
+          "kind": "screenshots",
+          "required": false,
+          "present": true,
+          "files": [
+            {
+              "path": ".local/feature-13/test-results/.last-run.json",
+              "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-334c6-randa-and-kesiapan-ends-at--chromium/attachments/requested-origins-4117580e5c5155903fb588195dfe7389155e2e58.json",
+              "sha256": "f54b731057756d02c91f9ea7e915a3f3822c4bd98472171082c68ea873d7640e"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-334c6-randa-and-kesiapan-ends-at--chromium/requested-origins.json",
+              "sha256": "f54b731057756d02c91f9ea7e915a3f3822c4bd98472171082c68ea873d7640e"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-334c6-randa-and-kesiapan-ends-at--chromium/test-finished-1.png",
+              "sha256": "e0a7bc73d74974d14c9d5194ca22c60dd55a5ccb0798e44a2025166b8277ffb0"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-8af9b-randa-and-kesiapan-ends-at--chromium/attachments/requested-origins-88ecffe4d6ae407cbd4b5951fb97d5fb19915ce3.json",
+              "sha256": "f54b731057756d02c91f9ea7e915a3f3822c4bd98472171082c68ea873d7640e"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-8af9b-randa-and-kesiapan-ends-at--chromium/requested-origins.json",
+              "sha256": "f54b731057756d02c91f9ea7e915a3f3822c4bd98472171082c68ea873d7640e"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-8af9b-randa-and-kesiapan-ends-at--chromium/test-finished-1.png",
+              "sha256": "987b538d1dfc273a35259e28e9cb35e72101a62e3ea178da59f7ac782801ca4b"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "script": "test:performance:smoke",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 66855,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-12/smoke/result.json",
+          "kind": "performance",
+          "required": true,
+          "present": true,
+          "sha256": "00b88e977369d619300f153e57aff195df133559bce8863b1c17007420f7c8a6"
+        },
+        {
+          "path": ".local/feature-12/smoke/k6/summary.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "621d49931b8c696ad8ecdc7041e978f6b1eef1bfac65ff0c991331567e2689c6"
+        },
+        {
+          "path": ".local/feature-12/smoke/observation.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "80b14ee29b74e6b7e0e10d73ef06cd615325c2566e1bfa3581c3503b69938b99"
+        },
+        {
+          "path": ".local/feature-12/smoke/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "88263f582ada65f08e8766d53b1b8615e9ab76c3b1878979eaeec6a91b99a891"
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "startedAt": "2026-10-06T03:34:23.505Z",
+  "finishedAt": "2026-10-06T03:41:13.967Z"
+}
