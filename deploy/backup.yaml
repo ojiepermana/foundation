@@ -1,0 +1,85 @@
+# Backup dan restore database Foundation (spec 0013, tabel Topologi backup). File Compose sendiri, tidak digabung dengan
+# deploy/compose.yaml, sehingga topologi spec 0012 tidak berubah. Kedua service adalah job sekali jalan dari image
+# PostgreSQL 18 proyek yang sama, tanpa port dan tanpa build, dan masing masing hanya bergabung dengan satu network data
+# project yang internal (external di sini). Jalankan dengan --env-file .env.backup (mode 0600, diabaikan Git):
+#   docker compose --env-file .env.backup -f deploy/backup.yaml --profile backup run --rm backup create scheduled
+#   docker compose --env-file .env.backup -f deploy/backup.yaml --profile backup run --rm backup check
+#   FOUNDATION_RESTORE_DATA_NETWORK=<target>_data docker compose --env-file .env.backup -f deploy/backup.yaml --profile restore run --rm -e FOUNDATION_ADMIN_DATABASE_URL restore <nama>.dump
+# Job backup hanya memegang DSN foundation_backup; DSN admin target hanya masuk ke restore lewat -e dari shell.
+# Network backup (FOUNDATION_DATA_NETWORK, sumber) ada di .env.backup; network restore hanya dari shell dan tidak pernah
+# ditulis ke file itu. Tanpa FOUNDATION_RESTORE_DATA_NETWORK, Compose berhenti sebelum membuat container (network
+# external tanpa nama tidak ditemukan), sehingga restore tidak pernah bergabung dengan network sumber.
+# FOUNDATION_BACKUP_DIR wajib path host absolut (path relatif dianggap Compose sebagai nama volume).
+name: foundation-backup
+
+services:
+  backup:
+    image: ${FOUNDATION_POSTGRES_IMAGE:-foundation-postgres:18-pinned}
+    profiles:
+      - backup
+    entrypoint: ["/bin/bash", "/opt/foundation/foundation-backup.sh"]
+    command: ["check"]
+    user: "${FOUNDATION_BACKUP_UID:-26}:${FOUNDATION_BACKUP_GID:-26}"
+    networks:
+      - data
+    volumes:
+      - ${FOUNDATION_BACKUP_DIR:?}:/backup
+      - ./backup/foundation-backup.sh:/opt/foundation/foundation-backup.sh:ro
+    environment:
+      FOUNDATION_BACKUP_DATABASE_URL: ${FOUNDATION_BACKUP_DATABASE_URL:-}
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1
+    mem_limit: 512m
+    pids_limit: 64
+    restart: "no"
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  restore:
+    image: ${FOUNDATION_POSTGRES_IMAGE:-foundation-postgres:18-pinned}
+    profiles:
+      - restore
+    entrypoint: ["/bin/bash", "/opt/foundation/foundation-restore.sh"]
+    user: "${FOUNDATION_BACKUP_UID:-26}:${FOUNDATION_BACKUP_GID:-26}"
+    networks:
+      - restore_data
+    volumes:
+      - ${FOUNDATION_BACKUP_DIR:?}:/backup:ro
+      - ./backup/foundation-restore.sh:/opt/foundation/foundation-restore.sh:ro
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1
+    mem_limit: 512m
+    pids_limit: 64
+    restart: "no"
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  data:
+    external: true
+    name: ${FOUNDATION_DATA_NETWORK:?}
+  # Kosong bila shell tidak memberinya, dan restore lalu berhenti karena network external tanpa nama tidak ditemukan.
+  # Bukan `:?`, karena Compose menginterpolasi seluruh file sehingga `:?` juga menghentikan job backup.
+  restore_data:
+    external: true
+    name: ${FOUNDATION_RESTORE_DATA_NETWORK:-}

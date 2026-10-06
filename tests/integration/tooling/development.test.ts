@@ -218,6 +218,31 @@ test("TOOL-003 service configuration isolates database credentials and uses the 
   }
 });
 
+test("BKP-008 serve does not pass FOUNDATION_BACKUP_PASSWORD and FOUNDATION_BACKUP_DATABASE_URL to any child process", () => {
+  // Spec 0013 AC-4: the backup credentials are removed like the provisioning ones, for the backend, the frontend, and
+  // every selected worker, including a worker that names one of them in its own `env` list.
+  const keys = ["FOUNDATION_BACKUP_PASSWORD", "FOUNDATION_BACKUP_DATABASE_URL"] as const;
+  const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  try {
+    process.env.FOUNDATION_BACKUP_PASSWORD = "backup-private-password";
+    process.env.FOUNDATION_BACKUP_DATABASE_URL = "postgres://foundation_backup:backup-private-password@postgres:5432/foundation";
+    const selected = config();
+    selected.workers.notification = { entry: "apps/worker/notification/src/index.ts", databaseUrlEnv: "NOTIFICATION_DATABASE_URL", schemas: ["users"] };
+    selected.workers.report = { entry: "apps/worker/report/src/index.ts", env: ["MAIL_API_KEY"] };
+    const definitions = services(selected, ["notification", "report"]);
+    expect(definitions.map((item) => item.name)).toEqual(["backend", "frontend", "worker:notification", "worker:report"]);
+    for (const definition of definitions) {
+      for (const key of keys) expect(definition.env[key], `${definition.name} ${key}`).toBeUndefined();
+      expect(JSON.stringify(definition.env)).not.toContain("backup-private-password");
+    }
+  } finally {
+    for (const key of keys) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  }
+});
+
 test("TOOL-003 configuration rejects overlapping worker ports and paths outside the repository", async () => {
   const root = await temporaryRoot();
   const selected = config();

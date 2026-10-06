@@ -74,6 +74,8 @@ Container pemindai berjalan tanpa jaringan, dengan filesystem hanya baca, user n
 
 Log keamanan mencatat kegagalan login, penolakan akses, perubahan hak, dan aksi sensitif menggunakan identitas serta correlation ID yang sesuai. Jangan merekam body/password/cookie/token mentah. Tentukan alert untuk lonjakan kegagalan atau penyalahgunaan, retensi data, backup yang dapat dipulihkan, dan langkah pencabutan secret/sesi ketika insiden terjadi.
 
+Backup database, restore, dan prosedur insiden mengikuti `docs/rules/backup.md` ([aturan backup](backup.md), spec 0013). Job backup memakai role `foundation_backup` yang tidak dapat menulis atau membuat objek, tetapi sesudah `SET ROLE pg_read_all_data` membaca seluruh data dan verifier password SCRAM semua role di `pg_authid`. Karena itu `.env.backup` dan file backup diperlakukan setingkat admin untuk kerahasiaan: file 0600 di folder 0700, enkripsi at rest, salinan di luar host dengan identitas terpisah untuk unggah, baca, dan hapus, serta password acak `openssl rand -hex 24` untuk setiap role. Restore selalu masuk ke target baru dengan password role baru dan menjalankan `pg_restore` sebagai superuser; checksum di samping dump hanya mendeteksi kerusakan, sehingga operator membandingkan sha256 dump dengan catatan independen sebelum restore. Script backup dan restore hanya mencetak pesan kategori tetap, karena libpq mencetak ulang potongan password pada connection string yang rusak. Kebocoran `.env.backup`, `.env.deploy`, atau backup memicu rotasi keempat role menurut prosedur insiden.
+
 Laporan release mencatat kontrol yang diuji, temuan yang belum selesai, batas pengujian, dan hasil pemulihan jika masuk cakupan. Jangan menyatakan tahan serangan hanya karena unit test atau build lulus.
 
 ## Referensi

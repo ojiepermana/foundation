@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { chmod, lstat, mkdir, readdir, readFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import ts from 'typescript';
+import { RESTORE_EVIDENCE } from '../../../scripts/lib/gate.ts';
 import { groupAlive } from '../../../scripts/lib/process-identity.ts';
 import { SIGNAL_CLEANUP_LIMIT_MS, signalCallTimeout } from '../../orchestration/signal-cleanup.ts';
 import { removeWorkspaces, workspace } from './workspace.ts';
@@ -270,6 +271,7 @@ test('GATE-009 every real bun:test file that runs Docker imports the signal clea
     }
   }
   expect(checked.sort()).toEqual([
+    'tests/integration/database/backup.test.ts',
     'tests/integration/database/health.test.ts',
     'tests/integration/database/migration.test.ts',
     'tests/integration/database/provision.test.ts',
@@ -278,12 +280,12 @@ test('GATE-009 every real bun:test file that runs Docker imports the signal clea
   ]);
 });
 
-/** `graceMs` of the object argument of a call, as a number; `undefined` when the call passes none. */
-function graceOf(call: ts.CallExpression): number | undefined {
+/** `option` (default `graceMs`) of the object argument of a call, as a number; `undefined` when the call passes none. */
+function graceOf(call: ts.CallExpression, option = 'graceMs'): number | undefined {
   for (const argument of call.arguments) {
     if (!ts.isObjectLiteralExpression(argument)) continue;
     for (const property of argument.properties) {
-      if (!ts.isPropertyAssignment(property) || property.name.getText() !== 'graceMs') continue;
+      if (!ts.isPropertyAssignment(property) || property.name.getText() !== option) continue;
       return ts.isNumericLiteral(property.initializer) ? Number(property.initializer.text.replaceAll('_', '')) : Number.NaN;
     }
   }
@@ -306,15 +308,23 @@ function callsWith(source: ts.SourceFile, marker: string): ts.CallExpression[] {
   return found;
 }
 
-test('GATE-009 test:database:real gives its bun test group 75000 ms after SIGTERM and keeps the default for the build', async () => {
+test('GATE-009 test:database:real gives its bun test group 75000 ms after SIGTERM and a 600000 ms limit, and keeps the defaults for the build', async () => {
   const file = 'tests/orchestration/database-real.ts';
   const source = ts.createSourceFile(file, await readFile(join(root, file), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const tests = callsWith(source, 'test');
   expect(tests).toHaveLength(1);
   expect(graceOf(tests[0]!)).toBe(75_000);
+  // Spec 0013 (*Perubahan database-real.ts*): bun test gets 600000 ms for the backup suite; the build keeps 300000 ms.
+  expect(graceOf(tests[0]!, 'timeoutMs')).toBe(600_000);
   const builds = callsWith(source, 'build:frontend');
   expect(builds).toHaveLength(1);
   expect(graceOf(builds[0]!)).toBeUndefined();
+  expect(graceOf(builds[0]!, 'timeoutMs')).toBeUndefined();
+  const text = source.getFullText();
+  expect(text).toContain('timeoutMs: options.timeoutMs ?? 300_000');
+  expect(text).toContain("throw new Error('Database integration tests exceeded 600 seconds')");
+  // The restore evidence it deletes, scans, and requires is the file the gate collects for this step.
+  expect(text).toContain(`const restoreEvidence = resolve(root, '${RESTORE_EVIDENCE}');`);
 });
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -435,7 +445,23 @@ test('GATE-009 SIGTERM to the provision, migration, readiness, and health suites
   }
 }, 120_000);
 
+test('GATE-009 SIGTERM to the backup suite removes every registered container and network by name in reverse order on both passes, then its folder', async () => {
+  // covers: AC-4 (Pembersihan sinyal suite nyata: backup.test.ts, spec 0013 *Perubahan GATE-009*)
+  const run = await interruptedSuite('tests/integration/database/backup.test.ts');
+  expectSuiteCleaned(run, /^foundation-backup-test-\w{6}$/);
+  // The fake docker waits on the first `docker run`: the source cluster, on the network of the same name created before.
+  const [, name, network] = /^run -d --name (foundation-backup-src-[0-9a-f]{8}) --network (foundation-backup-src-[0-9a-f]{8}) --network-alias postgres /.exec(run.created) ?? [];
+  expect(name).toBeDefined();
+  expect(network).toBe(name);
+  // Registered in the order network, then container, so each pass removes the container first, then the network, each
+  // by its explicit name, while the folder (registered first) still exists; the folder goes on pass 2, last.
+  const pass = [`rm -f ${name}`, `network rm ${network}`];
+  expect(run.after).toEqual([...pass, ...pass].map((line) => `${line}|${run.folder}`));
+}, 60_000);
+
 const REAL_SUITES = [
+  // Spec 0013 (*Perubahan GATE-009*): the backup and restore suite with its networks, clusters, Compose runs, and tools.
+  'tests/integration/database/backup.test.ts',
   'tests/integration/database/health.test.ts',
   'tests/integration/database/migration.test.ts',
   'tests/integration/database/provision.test.ts',
@@ -481,11 +507,15 @@ function callsBefore(call: ts.CallExpression): ts.CallExpression[] {
   return scope === undefined ? [] : allCalls(scope).filter((other) => other.getEnd() <= call.getStart());
 }
 
-/** A `docker run`, or a Compose call that creates (`up`, `build`, `run`, `create`, `start`), given as an argument array. */
+/**
+ * A `docker run`, a `docker network create` (spec 0013, *Perubahan GATE-009*), or a Compose call that creates (`up`,
+ * `build`, `run`, `create`, `start`), given as an argument array.
+ */
 function createsDockerResource(call: ts.CallExpression): boolean {
   const [first, second, ...rest] = arrayArgument(call);
   if (first !== 'docker') return false;
   if (second === 'run') return true;
+  if (second === 'network') return rest[0] === 'create';
   return second === 'compose' && !rest.includes('--help') && rest.some((item) => item !== null && ['up', 'build', 'run', 'create', 'start'].includes(item));
 }
 
@@ -496,8 +526,13 @@ function removes(call: ts.CallExpression): boolean {
   if (['rm', 'rmSync', 'kill', 'stopBackend', 'removeStack'].includes(name)) return true;
   if (name === 'guardedDocker') return ts.isStringLiteralLike(call.arguments[0]!) && (call.arguments[0] as ts.StringLiteral).text === 'rm';
   if (name === 'compose') return args[0] === 'down';
+  if (args[0] !== 'docker') return false;
   // `docker rm -f <name>`, or a `docker run --rm` in the foreground (no `-d`), whose container is gone once it returns.
-  return args[0] === 'docker' && (args[1] === 'rm' || (args[1] === 'run' && args.includes('--rm') && !args.includes('-d')));
+  if (args[1] === 'rm' || (args[1] === 'run' && args.includes('--rm') && !args.includes('-d'))) return true;
+  // Spec 0013 (*Perubahan GATE-009*): `docker network rm <name>`, and a `docker compose ... run --rm` in the foreground
+  // (neither `-d` nor `--detach`), which removes its container once it returns, like `docker run --rm`.
+  if (args[1] === 'network') return args[2] === 'rm';
+  return args[1] === 'compose' && args.includes('run') && args.includes('--rm') && !args.includes('-d') && !args.includes('--detach');
 }
 
 test('GATE-009 every real suite registers its cleanup before each Docker resource it creates and releases it only after the normal removal', async () => {

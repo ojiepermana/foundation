@@ -32,6 +32,7 @@ Saat menjalankan `/scope` atau `/architect`, agent menanyakan schema data fitur 
 - Role backend mendapat akses baca metadata migration untuk preflight; hanya runner migration yang menulis metadata dan mengubah struktur. Seed menggunakan role serta operasi yang diputuskan eksplisit.
 - Atur default privilege untuk objek baru sesuai role yang benar-benar membuatnya, lalu verifikasi permission setelah migration. Hindari grant semua privilege pada semua schema untuk mengatasi error akses.
 - Uji keberhasilan akses yang diizinkan dan kegagalan akses lintas domain yang dilarang. Detail role, grants, dan bila perlu RLS untuk tenant dicatat dalam specs; pemisahan schema tidak menggantikan otorisasi backend.
+- Role login `foundation_backup` (spec 0013) hanya untuk backup: dibuat provisioning bila `FOUNDATION_BACKUP_PASSWORD` diberikan, dengan satu membership `pg_read_all_data` (`SET TRUE`, `INHERIT FALSE`, `ADMIN FALSE`) dan `CONNECT` saja. `pg_dump` dan `database/fingerprint.ts` berjalan sesudah `SET ROLE pg_read_all_data` dengan `row_security` off, sehingga tabel ber RLS membuat backup gagal dengan jelas, tidak melewatkan baris. Fitur yang menyalakan row level security atau memakai large object wajib mengamandemen spec 0013 lebih dulu. Role ini tidak pernah diberikan ke backend, worker, atau runner migration, dan role worker tidak boleh menjadi anggota `pg_read_all_data`. Backup, retensi, dan restore mengikuti [aturan backup](backup.md).
 
 ## Struktur dan batas tanggung jawab
 
@@ -105,7 +106,7 @@ Migration dan seed tidak berada di `apps/`. Backend dan worker tidak menjalankan
 
 Runner database berjalan sekali lalu selesai. Runner bukan aplikasi worker yang terus hidup.
 
-Jalankan migration sebagai langkah deployment tersendiri sebelum aplikasi yang memerlukan skema baru dijalankan. Koordinasikan perubahan skema dengan kebutuhan backend dan worker dalam specs fitur.
+Jalankan migration sebagai langkah deployment tersendiri sebelum aplikasi yang memerlukan skema baru dijalankan. Pada database yang sudah berisi data, buat backup `pre-migration` lebih dulu menurut [aturan backup](backup.md). Riwayat migration sesudah restore hanya diverifikasi runner, tidak pernah disunting manual. Koordinasikan perubahan skema dengan kebutuhan backend dan worker dalam specs fitur.
 
 Script dikelola melalui `package.json` root. Jika menggunakan container, Dockerfile berada di `database/Dockerfile` dan build context tetap root monorepo. Runner tidak memiliki `package.json` terpisah.
 

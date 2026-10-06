@@ -1,0 +1,29 @@
+{
+  "source": "docs/specs/0013-backup-pemulihan-data/index.md",
+  "scenarios": [
+    { "id": "BKP-001", "criteria": ["AC-1", "AC-3", "AC-4", "AC-9"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/deployment/backup-static.test.ts", "testTag": "BKP-001", "script": "test:deployment:plan" }
+    ] },
+    { "id": "BKP-002", "criteria": ["AC-2"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/provision.test.ts", "testTag": "BKP-002", "script": "test:database:real" }
+    ] },
+    { "id": "BKP-003", "criteria": ["AC-3", "AC-4", "AC-8"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/backup.test.ts", "testTag": "BKP-003", "script": "test:database:real" }
+    ] },
+    { "id": "BKP-004", "criteria": ["AC-5", "AC-8"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/backup.test.ts", "testTag": "BKP-004", "script": "test:database:real" }
+    ] },
+    { "id": "BKP-005", "criteria": ["AC-6", "AC-8"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/backup.test.ts", "testTag": "BKP-005", "script": "test:database:real" }
+    ] },
+    { "id": "BKP-006", "criteria": ["AC-3", "AC-4", "AC-5", "AC-6", "AC-8"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/backup.test.ts", "testTag": "BKP-006", "script": "test:database:real" }
+    ] },
+    { "id": "BKP-007", "criteria": ["AC-7", "AC-8"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/backup.test.ts", "testTag": "BKP-007", "script": "test:database:real" }
+    ] },
+    { "id": "BKP-008", "criteria": ["AC-4"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "BKP-008", "script": "test:tooling" }
+    ] }
+  ]
+}

@@ -189,6 +189,12 @@ function performanceStep(profile: PerformanceProfile): TierStep {
   };
 }
 
+/**
+ * The restore evidence of spec 0013 (*Isi restore.json*), written by tests/integration/database/backup.test.ts inside
+ * `test:database:real` and checked by its orchestration before the step ends.
+ */
+export const RESTORE_EVIDENCE = '.local/feature-14/restore.json';
+
 /** Folder of the evidence of `test:deployment:real` and `test:deployment:plan` (spec 0012). */
 export const DEPLOYMENT_EVIDENCE_DIR = '.local/feature-13';
 
@@ -213,7 +219,8 @@ const deploymentStep: TierStep = {
  * start. The `security` tier runs the three pinned scanners through `check:security` in the workflow job `security`;
  * its 90 second grace holds the removal of the scanner containers. The gate report expects all of `TIER_NAMES`,
  * so a tier without a bundle reads as not run. Spec 0012 adds `test:deployment:plan` to the fast tier and
- * `test:deployment:real` to the real tier, before the k6 smoke; the step limit and the grace do not change.
+ * `test:deployment:real` to the real tier, before the k6 smoke; the step limit and the grace do not change. Spec 0013
+ * adds `restore.json` to the evidence of `test:database:real` without a new step, tier, or evidence kind.
  */
 export const TIERS: Readonly<Partial<Record<TierName, Tier>>> = {
   fast: {
@@ -260,7 +267,12 @@ export const TIERS: Readonly<Partial<Record<TierName, Tier>>> = {
       },
       {
         script: 'test:database:real',
-        evidence: [junit('.local/feature-5/database.xml', 'bun:test'), json('.local/feature-5/artifact-scan.json', 'scan')],
+        evidence: [
+          junit('.local/feature-5/database.xml', 'bun:test'),
+          json('.local/feature-5/artifact-scan.json', 'scan'),
+          // Spec 0013 (AC-8, *Isi restore.json*): the restore evidence of BKP-003 to BKP-007, required, of kind `data`.
+          json(RESTORE_EVIDENCE, 'data'),
+        ],
       },
       { script: 'test:database:migration', evidence: [junit('.local/feature-6/migration.xml', 'bun:test')] },
       {

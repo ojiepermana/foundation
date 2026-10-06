@@ -5,6 +5,7 @@ import { rmSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import { runDatabaseCommand } from '../../../database/runner';
 import { createDatabasePool } from '../../../libs/server/database/client';
 import { onSignalCleanup, type SignalCleanupCallback } from '../../orchestration/signal-cleanup';
 
@@ -59,15 +60,17 @@ function folderCleanup(path: string): SignalCleanupCallback {
 async function command(args: string[], env?: Record<string, string>) {
   const child = Bun.spawn(args, { cwd: root, env: env ?? process.env, stdout: 'pipe', stderr: 'pipe', timeout: 30000 });
   const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
-  return { code, output: out + err };
+  return { code, output: out + err, stdout: out, stderr: err };
 }
 
-async function runProvision(options: { passwords?: boolean; url?: string; flag?: boolean } = {}) {
+/** `backup` sets FOUNDATION_BACKUP_PASSWORD, also to an empty or short value; absent means the variable is not set. */
+async function runProvision(options: { passwords?: boolean; url?: string; flag?: boolean; backup?: string } = {}) {
   const env: Record<string, string> = { PATH: process.env.PATH ?? '', FOUNDATION_ADMIN_DATABASE_URL: options.url ?? adminUrl };
   if (options.passwords) {
     env.FOUNDATION_MIGRATOR_PASSWORD = migratorPassword;
     env.FOUNDATION_BACKEND_PASSWORD = backendPassword;
   }
+  if (options.backup !== undefined) env.FOUNDATION_BACKUP_PASSWORD = options.backup;
   return command([process.execPath, '--no-env-file', 'database/provision.ts', ...(options.flag === false ? [] : ['--apply'])], env);
 }
 
@@ -345,3 +348,349 @@ test('DATA-005 backend serves the base route without a database URL and stops on
     expect(await new Response(child.stdout).text()).toContain('Backend stopped');
   } finally { if (child.exitCode === null) { child.kill('SIGKILL'); await child.exited; } }
 }, 12000);
+
+// BKP-002 of spec 0013 (tabel *Kasus provisioning role backup* and the privilege boundaries of AC-2), after every DATA
+// test of this file and in the order of that table. The first test is the case without the backup role and without
+// FOUNDATION_BACKUP_PASSWORD, every drift case puts the state back in `finally`, and the last test removes the role
+// (REVOKE ALL ON DATABASE foundation FROM foundation_backup, then DROP ROLE foundation_backup), so the cluster of this
+// file ends as it was before BKP-002.
+const backupPassword = token('backup');
+/** A second valid password, random per run, to prove provisioning never replaces the password of an existing role. */
+const otherBackupPassword = randomBytes(24).toString('hex');
+const backupUrl = (password: string) => `postgres://foundation_backup:${password}@127.0.0.1:${port}/foundation`;
+
+/** The report of an already provisioned cluster before spec 0013: no foundation_backup line at all. */
+const REPORT_BEFORE = [
+  'foundation_owner: verified', 'foundation_migrator: verified', 'foundation_backend: verified', 'foundation_migrator membership: verified',
+  'common: verified', 'users: verified', 'auth: verified', 'common.schema_migrations: verified', 'database privileges: verified',
+];
+
+/** The report once the backup role exists: `backup`, `membership`, and `privileges` replace the three changing states. */
+function backupReport(backup: string, membership: string, privileges: string): string[] {
+  return [
+    'foundation_owner: verified', 'foundation_migrator: verified', 'foundation_backend: verified', `foundation_backup: ${backup}`,
+    'foundation_migrator membership: verified', `foundation_backup membership: ${membership}`,
+    'common: verified', 'users: verified', 'auth: verified', 'common.schema_migrations: verified', `database privileges: ${privileges}`,
+  ];
+}
+
+const lines = (text: string) => text.split('\n').filter((line) => line !== '');
+
+/**
+ * Everything provisioning can change: the foundation_* roles with their attributes and a hash of their password
+ * verifier (never the verifier itself), every membership that involves one of them, the ACL of the database, of the
+ * four schemas, and of the metadata table, and the role settings of the database. Equal before and after a failed
+ * case proves the case changed nothing.
+ */
+async function catalogState(admin: SQL): Promise<string> {
+  const [row] = await admin`SELECT pg_catalog.json_build_object(
+    'roles', (SELECT coalesce(pg_catalog.json_agg(pg_catalog.json_build_array(rolname, rolcanlogin, rolinherit, rolsuper, rolcreatedb, rolcreaterole,
+      rolreplication, rolbypassrls, pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(coalesce(rolpassword, ''), 'UTF8')), 'hex')) ORDER BY rolname), '[]')
+      FROM pg_catalog.pg_authid WHERE rolname LIKE 'foundation\\_%'),
+    'memberships', (SELECT coalesce(pg_catalog.json_agg(pg_catalog.json_build_array(member.rolname, granted.rolname, m.admin_option, m.inherit_option, m.set_option)
+      ORDER BY member.rolname, granted.rolname), '[]')
+      FROM pg_catalog.pg_auth_members m JOIN pg_catalog.pg_roles member ON member.oid = m.member JOIN pg_catalog.pg_roles granted ON granted.oid = m.roleid
+      WHERE member.rolname LIKE 'foundation\\_%' OR granted.rolname LIKE 'foundation\\_%'),
+    'database', (SELECT datacl::text FROM pg_catalog.pg_database WHERE datname = 'foundation'),
+    'schemas', (SELECT pg_catalog.json_agg(pg_catalog.json_build_array(nspname, nspacl::text) ORDER BY nspname)
+      FROM pg_catalog.pg_namespace WHERE nspname IN ('public', 'common', 'users', 'auth')),
+    'metadata', (SELECT relacl::text FROM pg_catalog.pg_class WHERE oid = 'common.schema_migrations'::regclass),
+    'settings', (SELECT coalesce(pg_catalog.json_agg(pg_catalog.json_build_array(r.rolname, s.setconfig) ORDER BY r.rolname), '[]')
+      FROM pg_catalog.pg_db_role_setting s JOIN pg_catalog.pg_roles r ON r.oid = s.setrole
+      WHERE s.setdatabase = (SELECT oid FROM pg_catalog.pg_database WHERE datname = 'foundation'))
+  )::text AS state`;
+  return String(row?.state);
+}
+
+/** A failed case: exit 1, exactly `message` on stderr, nothing on stdout, and no change to `catalogState`. */
+async function expectFailedCase(admin: SQL, message: string, options: { backup?: string } = {}): Promise<void> {
+  const before = await catalogState(admin);
+  const result = await runProvision(options);
+  expect(result.code).toBe(1);
+  expect(result.stderr).toBe(`${message}\n`);
+  expect(result.stdout).toBe('');
+  expect(await catalogState(admin)).toBe(before);
+  for (const secret of [adminPassword, backupPassword, otherBackupPassword]) expect(result.output).not.toContain(secret);
+}
+
+async function expectReport(options: { backup?: string }, report: string[]): Promise<void> {
+  const result = await runProvision(options);
+  expect(result.stderr).toBe('');
+  expect(result.code).toBe(0);
+  expect(lines(result.stdout)).toEqual(report);
+  for (const secret of [adminPassword, backupPassword, otherBackupPassword]) expect(result.output).not.toContain(secret);
+}
+
+async function rejects(run: () => Promise<unknown>): Promise<boolean> {
+  try {
+    await run();
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+/** Privilege types the database ACL gives foundation_backup, with `*` for a grant option. */
+async function backupDatabaseAcl(admin: SQL): Promise<string[]> {
+  const rows = await admin`SELECT x.privilege_type || CASE WHEN x.is_grantable THEN '*' ELSE '' END AS privilege
+    FROM pg_catalog.pg_database d, LATERAL pg_catalog.aclexplode(d.datacl) x
+    WHERE d.datname = 'foundation' AND x.grantee = (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'foundation_backup')
+    ORDER BY 1`;
+  return rows.map((row: { privilege: string }) => row.privilege);
+}
+
+async function backupSearchPath(admin: SQL): Promise<string[] | null> {
+  const [row] = await admin`SELECT s.setconfig FROM pg_catalog.pg_db_role_setting s
+    WHERE s.setrole = (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'foundation_backup')
+      AND s.setdatabase = (SELECT oid FROM pg_catalog.pg_database WHERE datname = 'foundation')`;
+  return (row?.setconfig as string[] | undefined) ?? null;
+}
+
+test('BKP-002 without the backup role and without FOUNDATION_BACKUP_PASSWORD provisioning prints exactly the report from before spec 0013', async () => {
+  const admin = new SQL(adminUrl);
+  try {
+    expect((await admin`SELECT count(*)::integer AS count FROM pg_catalog.pg_roles WHERE rolname = 'foundation_backup'`)[0]?.count).toBe(0);
+    await expectReport({}, REPORT_BEFORE);
+    expect((await admin`SELECT count(*)::integer AS count FROM pg_catalog.pg_roles WHERE rolname = 'foundation_backup'`)[0]?.count).toBe(0);
+  } finally { await admin.close(); }
+}, 20000);
+
+test('BKP-002 a valid FOUNDATION_BACKUP_PASSWORD creates foundation_backup with its pg_read_all_data membership, CONNECT only, and search_path', async () => {
+  const admin = new SQL(adminUrl);
+  try {
+    await expectReport({ backup: backupPassword }, backupReport('created', 'created', 'repaired'));
+    const [role] = await admin`SELECT rolcanlogin, rolinherit, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
+      FROM pg_catalog.pg_roles WHERE rolname = 'foundation_backup'`;
+    expect(role).toEqual({ rolcanlogin: true, rolinherit: false, rolsuper: false, rolcreatedb: false, rolcreaterole: false, rolreplication: false, rolbypassrls: false });
+    const memberships = await admin`SELECT member.rolname AS member, granted.rolname AS granted, m.admin_option, m.inherit_option, m.set_option
+      FROM pg_catalog.pg_auth_members m JOIN pg_catalog.pg_roles member ON member.oid = m.member JOIN pg_catalog.pg_roles granted ON granted.oid = m.roleid
+      WHERE member.rolname = 'foundation_backup' OR granted.rolname = 'foundation_backup'`;
+    expect([...memberships]).toEqual([{ member: 'foundation_backup', granted: 'pg_read_all_data', admin_option: false, inherit_option: false, set_option: true }]);
+    expect(await backupDatabaseAcl(admin)).toEqual(['CONNECT']);
+    expect(await backupSearchPath(admin)).toEqual(['search_path=pg_catalog']);
+  } finally { await admin.close(); }
+}, 20000);
+
+test('BKP-002 an existing foundation_backup is verified without the variable or with a valid password, and its password is never replaced', async () => {
+  await expectReport({}, backupReport('verified', 'verified', 'verified'));
+  await expectReport({ backup: backupPassword }, backupReport('verified', 'verified', 'verified'));
+  await expectReport({ backup: otherBackupPassword }, backupReport('verified', 'verified', 'verified'));
+  const original = new SQL({ url: backupUrl(backupPassword), max: 1, connectionTimeout: 3 });
+  try { expect((await original`SELECT current_user AS name`)[0]?.name).toBe('foundation_backup'); }
+  finally { await original.close(); }
+  const other = new SQL({ url: backupUrl(otherBackupPassword), max: 1, connectionTimeout: 3 });
+  try { expect(await rejects(() => other`SELECT 1`)).toBe(true); }
+  finally { await other.close(); }
+}, 30000);
+
+test('BKP-002 foundation_backup reads only through SET ROLE pg_read_all_data, cannot write, create, or take another role, and the runner still passes verifyIdentity', async () => {
+  const backup = new SQL({ url: backupUrl(backupPassword), max: 1 });
+  try {
+    expect(await rejects(() => backup`SELECT count(*) FROM common.schema_migrations`)).toBe(true);
+    await backup`SET ROLE pg_read_all_data`;
+    expect((await backup`SELECT count(*)::integer AS count FROM common.schema_migrations`)[0]?.count).toBe(0);
+    for (const statement of [
+      `INSERT INTO common.schema_migrations(name, checksum) VALUES ('x.sql', '${'a'.repeat(64)}')`,
+      `UPDATE common.schema_migrations SET checksum = '${'a'.repeat(64)}'`,
+      'DELETE FROM common.schema_migrations',
+      'TRUNCATE common.schema_migrations',
+      'CREATE TABLE users.x (id int)',
+      'CREATE TEMP TABLE backup_probe (id int)',
+    ]) expect(await rejects(() => backup.unsafe(statement)), statement).toBe(true);
+    expect(await rejects(() => backup`SET ROLE foundation_owner`)).toBe(true);
+    // The documented boundary: after SET ROLE pg_read_all_data the role reads the password verifiers in pg_authid. Only
+    // the count is read here, never a verifier.
+    expect((await backup`SELECT count(*)::integer AS count FROM pg_catalog.pg_authid WHERE rolname = 'foundation_admin'`)[0]?.count).toBe(1);
+    expect((await backup`SELECT current_user AS name`)[0]?.name).toBe('pg_read_all_data');
+  } finally { await backup.close(); }
+  const backend = new SQL({ url: backendUrl, max: 1 });
+  try { expect(await rejects(() => backend`SET ROLE pg_read_all_data`)).toBe(true); }
+  finally { await backend.close(); }
+  // The seed command of the runner checks identity and metadata first, then stops at the pending repository migration
+  // without a change: `Migrations pending` proves verifyIdentity passed with the backup role present.
+  const migrator = createDatabasePool(migratorUrl, { max: 1 });
+  let message = '';
+  try {
+    await runDatabaseCommand('seed', migrator, root);
+  } catch (error) {
+    message = (error as Error).message;
+  } finally { await migrator.close(); }
+  expect(message).toBe('Migrations pending');
+}, 20000);
+
+test('BKP-002 an empty or short FOUNDATION_BACKUP_PASSWORD fails while the role exists, without a change', async () => {
+  const admin = new SQL(adminUrl);
+  try {
+    await expectFailedCase(admin, 'Missing or invalid FOUNDATION_BACKUP_PASSWORD', { backup: '' });
+    await expectFailedCase(admin, 'Missing or invalid FOUNDATION_BACKUP_PASSWORD', { backup: 'a'.repeat(15) });
+  } finally { await admin.close(); }
+}, 20000);
+
+test('BKP-002 INHERIT, BYPASSRLS, CREATEDB, or NOLOGIN on foundation_backup fails Role drift: foundation_backup without a change', async () => {
+  const admin = new SQL(adminUrl);
+  try {
+    for (const attribute of ['INHERIT', 'BYPASSRLS', 'CREATEDB', 'NOLOGIN']) {
+      await admin.unsafe(`ALTER ROLE foundation_backup ${attribute}`);
+      try {
+        await expectFailedCase(admin, 'Role drift: foundation_backup');
+      } finally {
+        await admin`ALTER ROLE foundation_backup LOGIN NOINHERIT NOBYPASSRLS NOCREATEDB`;
+      }
+    }
+  } finally { await admin.close(); }
+  await expectReport({}, backupReport('verified', 'verified', 'verified'));
+}, 30000);
+
+test('BKP-002 SUPERUSER, CREATEROLE, or REPLICATION on foundation_backup fails Role drift: foundation_backup without a change', async () => {
+  // covers: AC-2 (tabel Matriks role backup, baris Atribut: rolsuper, rolcreaterole, dan rolreplication false)
+  const admin = new SQL(adminUrl);
+  try {
+    for (const attribute of ['SUPERUSER', 'CREATEROLE', 'REPLICATION']) {
+      await admin.unsafe(`ALTER ROLE foundation_backup ${attribute}`);
+      try {
+        await expectFailedCase(admin, 'Role drift: foundation_backup');
+      } finally {
+        await admin`ALTER ROLE foundation_backup NOSUPERUSER NOCREATEROLE NOREPLICATION`;
+      }
+    }
+  } finally { await admin.close(); }
+  await expectReport({}, backupReport('verified', 'verified', 'verified'));
+}, 30000);
+
+test('BKP-002 an extra membership or a changed pg_read_all_data option fails Role membership drift without a change', async () => {
+  const admin = new SQL(adminUrl);
+  const cases: Array<[string, string]> = [
+    ['GRANT pg_write_all_data TO foundation_backup', 'REVOKE pg_write_all_data FROM foundation_backup'],
+    ['GRANT foundation_owner TO foundation_backup', 'REVOKE foundation_owner FROM foundation_backup'],
+    ['GRANT pg_read_all_data TO foundation_backup WITH INHERIT TRUE', 'GRANT pg_read_all_data TO foundation_backup WITH INHERIT FALSE'],
+    ['GRANT pg_read_all_data TO foundation_backup WITH ADMIN TRUE', 'REVOKE ADMIN OPTION FOR pg_read_all_data FROM foundation_backup'],
+    ['GRANT pg_read_all_data TO foundation_backup WITH SET FALSE', 'GRANT pg_read_all_data TO foundation_backup WITH SET TRUE'],
+  ];
+  try {
+    const expected = await catalogState(admin);
+    for (const [drift, restore] of cases) {
+      await admin.unsafe(drift);
+      try {
+        expect(await catalogState(admin), drift).not.toBe(expected);
+        await expectFailedCase(admin, 'Role membership drift');
+      } finally {
+        await admin.unsafe(restore);
+      }
+      expect(await catalogState(admin), restore).toBe(expected);
+    }
+  } finally { await admin.close(); }
+  await expectReport({}, backupReport('verified', 'verified', 'verified'));
+}, 40000);
+
+test('BKP-002 a role holding membership in foundation_backup, a runtime role or one outside the matrix, fails Role membership drift without a change', async () => {
+  // covers: AC-2 (tabel Matriks role backup, baris Membership: tidak ada baris lain yang anggota atau role nya
+  // foundation_backup; jalur SET ROLE foundation_backup lalu pg_read_all_data tidak boleh terbuka bagi role lain)
+  const admin = new SQL(adminUrl);
+  try {
+    await admin`CREATE ROLE foundation_test_member NOLOGIN`;
+    try {
+      for (const member of ['foundation_backend', 'foundation_test_member']) {
+        await admin.unsafe(`GRANT foundation_backup TO ${member}`);
+        try {
+          await expectFailedCase(admin, 'Role membership drift');
+        } finally {
+          await admin.unsafe(`REVOKE foundation_backup FROM ${member}`);
+        }
+      }
+    } finally {
+      await admin`DROP ROLE foundation_test_member`;
+    }
+  } finally { await admin.close(); }
+  await expectReport({}, backupReport('verified', 'verified', 'verified'));
+}, 30000);
+
+test('BKP-002 a missing pg_read_all_data membership is created again', async () => {
+  const admin = new SQL(adminUrl);
+  try {
+    await admin`REVOKE pg_read_all_data FROM foundation_backup`;
+    await expectReport({}, backupReport('verified', 'created', 'verified'));
+    expect((await admin`SELECT pg_catalog.pg_has_role('foundation_backup', 'pg_read_all_data', 'SET') AS allowed`)[0]?.allowed).toBe(true);
+  } finally { await admin.close(); }
+  await expectReport({}, backupReport('verified', 'verified', 'verified'));
+}, 20000);
+
+test('BKP-002 CREATE or TEMPORARY on the database for foundation_backup is repaired to CONNECT only', async () => {
+  const admin = new SQL(adminUrl);
+  try {
+    for (const privilege of ['CREATE', 'TEMPORARY']) {
+      await admin.unsafe(`GRANT ${privilege} ON DATABASE foundation TO foundation_backup`);
+      expect(await backupDatabaseAcl(admin)).toContain(privilege);
+      await expectReport({}, backupReport('verified', 'verified', 'repaired'));
+      expect(await backupDatabaseAcl(admin)).toEqual(['CONNECT']);
+    }
+  } finally {
+    await admin`REVOKE CREATE, TEMPORARY ON DATABASE foundation FROM foundation_backup`;
+    await admin.close();
+  }
+  await expectReport({}, backupReport('verified', 'verified', 'verified'));
+}, 30000);
+
+test('BKP-002 CONNECT with grant option for foundation_backup fails Grant option drift without a change', async () => {
+  const admin = new SQL(adminUrl);
+  try {
+    await admin`GRANT CONNECT ON DATABASE foundation TO foundation_backup WITH GRANT OPTION`;
+    expect(await backupDatabaseAcl(admin)).toEqual(['CONNECT*']);
+    await expectFailedCase(admin, 'Grant option drift');
+  } finally {
+    await admin`REVOKE GRANT OPTION FOR CONNECT ON DATABASE foundation FROM foundation_backup`;
+    await admin.close();
+  }
+  await expectReport({}, backupReport('verified', 'verified', 'verified'));
+}, 20000);
+
+test('BKP-002 a direct grant to foundation_backup on public, common, users, auth, or common.schema_migrations fails Unknown privilege drift without a change', async () => {
+  const admin = new SQL(adminUrl);
+  try {
+    for (const object of ['SCHEMA public', 'SCHEMA common', 'SCHEMA users', 'SCHEMA auth', 'TABLE common.schema_migrations']) {
+      const privilege = object.startsWith('SCHEMA') ? 'USAGE' : 'SELECT';
+      await admin.unsafe(`GRANT ${privilege} ON ${object} TO foundation_backup`);
+      try {
+        await expectFailedCase(admin, 'Unknown privilege drift');
+      } finally {
+        await admin.unsafe(`REVOKE ${privilege} ON ${object} FROM foundation_backup`);
+      }
+    }
+  } finally { await admin.close(); }
+  await expectReport({}, backupReport('verified', 'verified', 'verified'));
+}, 40000);
+
+test('BKP-002 a changed or removed search_path of foundation_backup is repaired', async () => {
+  const admin = new SQL(adminUrl);
+  try {
+    for (const change of ['ALTER ROLE foundation_backup IN DATABASE foundation SET search_path = public', 'ALTER ROLE foundation_backup IN DATABASE foundation RESET search_path']) {
+      await admin.unsafe(change);
+      expect(await backupSearchPath(admin), change).not.toEqual(['search_path=pg_catalog']);
+      await expectReport({}, backupReport('verified', 'verified', 'repaired'));
+      expect(await backupSearchPath(admin)).toEqual(['search_path=pg_catalog']);
+    }
+  } finally { await admin.close(); }
+  await expectReport({}, backupReport('verified', 'verified', 'verified'));
+}, 30000);
+
+test('BKP-002 the last test removes foundation_backup; without it the report is the one from before, a bad password still fails, and an unknown database grantee still fails', async () => {
+  const admin = new SQL(adminUrl);
+  try {
+    await admin`REVOKE ALL ON DATABASE foundation FROM foundation_backup`;
+    await admin`DROP ROLE foundation_backup`;
+    expect((await admin`SELECT count(*)::integer AS count FROM pg_catalog.pg_roles WHERE rolname = 'foundation_backup'`)[0]?.count).toBe(0);
+    await expectReport({}, REPORT_BEFORE);
+    // Row 4 without the role: an empty or short password fails whether the role exists or not.
+    await expectFailedCase(admin, 'Missing or invalid FOUNDATION_BACKUP_PASSWORD', { backup: '' });
+    await expectFailedCase(admin, 'Missing or invalid FOUNDATION_BACKUP_PASSWORD', { backup: 'a'.repeat(15) });
+    // Last row: the unknown grantee check stays active without the backup role (no scalar subquery that turns NULL).
+    await admin`CREATE ROLE foundation_test_stranger NOLOGIN`;
+    try {
+      await admin`GRANT CONNECT ON DATABASE foundation TO foundation_test_stranger`;
+      await expectFailedCase(admin, 'Unknown privilege drift');
+    } finally {
+      await admin`REVOKE ALL ON DATABASE foundation FROM foundation_test_stranger`;
+      await admin`DROP ROLE foundation_test_stranger`;
+    }
+    await expectReport({}, REPORT_BEFORE);
+  } finally { await admin.close(); }
+}, 30000);

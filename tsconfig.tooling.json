@@ -16,6 +16,7 @@
     "tests/performance/helpers/plan.ts", "tests/performance/helpers/expectations.ts",
     "tests/integration/performance/plan.test.ts", "tests/integration/performance/signal.test.ts",
     "tests/integration/gate/capacity.test.ts", "tests/integration/gate/release.test.ts",
-    "tests/integration/deployment/static.test.ts", "tests/integration/deployment/signal.test.ts"
+    "tests/integration/deployment/static.test.ts", "tests/integration/deployment/signal.test.ts",
+    "tests/integration/deployment/backup-static.test.ts"
   ]
 }

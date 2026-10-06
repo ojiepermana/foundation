@@ -25,6 +25,7 @@ import {
 import { EVIDENCE_TEXT_LIMIT, JUnitError, junitCounts, junitResults, parseJUnit } from '../../../scripts/lib/junit.ts';
 import { runProcessGroup } from '../../../scripts/lib/process-group.ts';
 import { groupAlive } from '../../../scripts/lib/process-identity.ts';
+import { restoreEvidenceFailure, restorePassed } from '../../orchestration/restore-evidence.ts';
 import { lines, removeWorkspaces, workspace } from './workspace.ts';
 
 // GATE-004 (spec 0010, AC-4 and AC-8) and the skip rule of GATE-008 (AC-4): the tier runner on fixture workspaces with
@@ -331,7 +332,8 @@ test('GATE-008 the real tier runs the five real suites, the deployment step, and
   expect(real.stopGraceMs).toBe(180_000);
   expect(real.steps.map((item) => [item.script, item.evidence.map((evidence) => `${evidence.kind} ${evidence.path}${evidence.required ? '' : ' opsional'}`)])).toEqual([
     ['test:infrastructure', ['junit .local/feature-3/infrastructure.xml', 'image .local/feature-3/image.json']],
-    ['test:database:real', ['junit .local/feature-5/database.xml', 'scan .local/feature-5/artifact-scan.json']],
+    // Spec 0013 (AC-8): restore.json of the backup suite is required evidence of kind data on the same step.
+    ['test:database:real', ['junit .local/feature-5/database.xml', 'scan .local/feature-5/artifact-scan.json', 'data .local/feature-14/restore.json']],
     ['test:database:migration', ['junit .local/feature-6/migration.xml']],
     ['test:tooling:real', ['junit .local/feature-2/playwright-real.xml', 'scan .local/feature-2/artifact-scan.json', 'screenshots .local/feature-2/test-results/ opsional']],
     ['test:readiness:real', ['junit .local/feature-10/playwright-real.xml', 'scan .local/feature-10/artifact-scan.json', 'screenshots .local/feature-10/test-results/ opsional']],
@@ -357,6 +359,35 @@ test('GATE-008 the real tier runs the five real suites, the deployment step, and
       ],
     ],
   ]);
+});
+
+test('GATE-008 test:database:real accepts restore.json only as a JSON object with status passed and an empty secretScan.findings, and fails Restore evidence missing without the file', () => {
+  // covers: AC-4, spec 0013 AC-8 (*Perubahan database-real.ts*: `Restore evidence missing` atau `Restore evidence not
+  // passed` bila `status` bukan `passed` atau `secretScan.findings` tidak kosong)
+  const evidence = (value: unknown) => new TextEncoder().encode(typeof value === 'string' ? value : JSON.stringify(value));
+  const passed = { schema: 1, status: 'passed', failures: [], secretScan: { filesScanned: 9, valuesChecked: 30, findings: [] } };
+  expect(restoreEvidenceFailure(evidence(passed))).toBeUndefined();
+  expect(restorePassed(evidence(`${JSON.stringify(passed, null, 2)}\n`))).toBe(true);
+  expect(restoreEvidenceFailure(undefined)).toBe('Restore evidence missing');
+  const refused: Array<[string, unknown]> = [
+    ['status failed', { ...passed, status: 'failed', failures: ['restore'] }],
+    ['status missing', { ...passed, status: undefined }],
+    ['status Passed', { ...passed, status: 'Passed' }],
+    ['a finding', { ...passed, secretScan: { ...passed.secretScan, findings: ['restore stdout'] } }],
+    ['findings missing', { ...passed, secretScan: { filesScanned: 9 } }],
+    ['findings not an array', { ...passed, secretScan: { findings: 'none' } }],
+    ['secretScan missing', { ...passed, secretScan: undefined }],
+    ['secretScan null', { ...passed, secretScan: null }],
+    ['an array', [passed]],
+    ['null', null],
+    ['a string', '"passed"'],
+    ['malformed JSON', '{"status":"passed",'],
+    ['empty file', ''],
+  ];
+  for (const [label, value] of refused) {
+    expect(restorePassed(evidence(value)), label).toBe(false);
+    expect(restoreEvidenceFailure(evidence(value)), label).toBe('Restore evidence not passed');
+  }
 });
 
 test('GATE-008 the real tier fails, never passes, when its suites skip testcases because the container engine is missing', async () => {

@@ -2,6 +2,8 @@
 
 Frontend, backend, dan runner migration masing masing dibangun menjadi image sendiri dengan root monorepo sebagai build context ([spec 0012](../specs/0012-build-container-deployment-terpisah/index.md)). `deploy/compose.yaml` adalah topologi rujukan untuk satu host Docker yang netral terhadap penyedia: satu edge nginx melayani frontend statis, mengakhiri TLS, dan meneruskan `/api/` ke backend; backend dan PostgreSQL hanya berada di network internal; migration berjalan sebagai job sekali jalan. Aturan ini berlaku bersama [aturan keamanan](security.md), [aturan database](database.md), [aturan infrastruktur](infrastructure.md), dan [aturan testing](testing.md).
 
+Backup harian, backup sebelum migration, restore ke target terisolasi, dan prosedur insiden database ada di `docs/rules/backup.md` ([aturan backup](backup.md)).
+
 Kode proyek tidak mendorong image ke registry dan tidak melakukan deploy. Status kesiapan release dari `bun run test:report:release` adalah ringkasan bukti, bukan izin deploy; keputusan deploy dicatat terpisah oleh pemilik release. Pipeline deploy, registry, dan platform tujuan kelak memerlukan spec sendiri.
 
 ## Image
@@ -42,7 +44,7 @@ Salin `.env.deploy.example` ke `.env.deploy`, beri mode 0600, lalu isi nilainya.
 | `FOUNDATION_EDGE_TLS_CERT_FILE`, `FOUNDATION_EDGE_TLS_KEY_FILE` | Path host sertifikat (rantai lengkap) dan key TLS, secret file |
 | `FOUNDATION_EDGE_BIND`, `FOUNDATION_EDGE_HTTPS_PORT`, `FOUNDATION_EDGE_HTTP_PORT` | Alamat dan port host edge, default `0.0.0.0`, 443, dan 80 |
 
-`FOUNDATION_ADMIN_DATABASE_URL`, `FOUNDATION_MIGRATOR_PASSWORD`, dan `FOUNDATION_BACKEND_PASSWORD` hanya ada di shell operator untuk run provisioning dan tidak ditulis ke `.env.deploy`. Path relatif pada kedua variable TLS dibaca relatif terhadap folder `deploy/` (folder file Compose), jadi pakai path absolut. Siapa pun dengan akses Docker setara root di host dan dapat membaca environment container lewat `docker inspect`; karena itu setiap service hanya menerima credential miliknya, dan edge tidak menerima credential apa pun.
+`FOUNDATION_ADMIN_DATABASE_URL`, `FOUNDATION_MIGRATOR_PASSWORD`, `FOUNDATION_BACKEND_PASSWORD`, dan `FOUNDATION_BACKUP_PASSWORD` hanya ada di shell operator untuk run provisioning dan tidak ditulis ke `.env.deploy`. Path relatif pada kedua variable TLS dibaca relatif terhadap folder `deploy/` (folder file Compose), jadi pakai path absolut. Siapa pun dengan akses Docker setara root di host dan dapat membaca environment container lewat `docker inspect`; karena itu setiap service hanya menerima credential miliknya, dan edge tidak menerima credential apa pun.
 
 Aturan nilai `.env.deploy`:
 
@@ -62,15 +64,15 @@ Jalankan dari root checkout. Setiap langkah harus keluar 0 sebelum langkah berik
    docker compose --env-file .env.deploy -f deploy/compose.yaml up -d --wait postgres
    ```
 
-3. Provisioning sekali per database. Isi ketiga variable provisioning di shell dari secret manager Anda, tanpa menaruh nilainya di argumen perintah. `-e <NAMA>` tanpa nilai membuat Compose mengambil nilai dari environment perintah itu, dan `--rm` menghapus container begitu langkah selesai:
+3. Provisioning sekali per database. Isi keempat variable provisioning di shell dari secret manager Anda, tanpa menaruh nilainya di argumen perintah. `-e <NAMA>` tanpa nilai membuat Compose mengambil nilai dari environment perintah itu, dan `--rm` menghapus container begitu langkah selesai:
 
    ```sh
    docker compose --env-file .env.deploy -f deploy/compose.yaml --profile migrate run --rm \
-     -e FOUNDATION_ADMIN_DATABASE_URL -e FOUNDATION_MIGRATOR_PASSWORD -e FOUNDATION_BACKEND_PASSWORD \
+     -e FOUNDATION_ADMIN_DATABASE_URL -e FOUNDATION_MIGRATOR_PASSWORD -e FOUNDATION_BACKEND_PASSWORD -e FOUNDATION_BACKUP_PASSWORD \
      migrate database/provision.ts --apply
    ```
 
-   Hapus ketiga variable dari shell sesudahnya. Provisioning tidak membuat schema, role, atau grant di luar spec 0004, dan pengulangan tidak mengganti password role yang sudah ada.
+   `FOUNDATION_BACKUP_PASSWORD` (hasil `openssl rand -hex 24`) membuat role baca saja `foundation_backup` untuk job backup ([aturan backup](backup.md)). Tanpa variable itu role backup tidak dibuat, sedangkan variable yang ada tetapi kosong atau kurang dari 16 karakter selalu gagal. Hapus keempat variable dari shell sesudahnya. Provisioning tidak membuat schema, role, atau grant di luar spec 0004 dan amandemen spec 0013, dan pengulangan tidak mengganti password role yang sudah ada.
 4. Jalankan backend:
 
    ```sh
@@ -84,7 +86,14 @@ Jalankan dari root checkout. Setiap langkah harus keluar 0 sebelum langkah berik
      bun --no-env-file -e "fetch('http://127.0.0.1:8888/health/ready').then(async (r) => console.log(r.status, await r.text()))"
    ```
 
-6. Jalankan migration sebagai job sekali jalan. Runner hanya menerima `FOUNDATION_MIGRATOR_DATABASE_URL`, dan rerun mencetak `Migrations: 0 applied, <jumlah file> skipped`. Seed opsional memakai `database/seed.ts --apply` dengan bentuk perintah yang sama. Perintah bawaan image tanpa `--apply` keluar 1 dengan `Use --apply` tanpa mengubah database.
+6. Bila database sudah berisi data (paling sedikit satu baris di `common.schema_migrations`), buat backup `pre-migration` lalu periksa sebelum migration, menurut [aturan backup](backup.md). Deploy pertama, sebelum migration pertama, tidak membutuhkannya:
+
+   ```sh
+   docker compose --env-file .env.backup -f deploy/backup.yaml --profile backup run --rm backup create pre-migration
+   docker compose --env-file .env.backup -f deploy/backup.yaml --profile backup run --rm backup check
+   ```
+
+   Lalu jalankan migration sebagai job sekali jalan. Runner hanya menerima `FOUNDATION_MIGRATOR_DATABASE_URL`, dan rerun mencetak `Migrations: 0 applied, <jumlah file> skipped`. Seed opsional memakai `database/seed.ts --apply` dengan bentuk perintah yang sama. Perintah bawaan image tanpa `--apply` keluar 1 dengan `Use --apply` tanpa mengubah database.
 
    ```sh
    docker compose --env-file .env.deploy -f deploy/compose.yaml --profile migrate run --rm migrate database/migrate.ts --apply
@@ -144,6 +153,8 @@ nginx membaca sertifikat dan key saat start, dan secret file Compose adalah bind
 1. Buka koneksi admin, misalnya `docker compose --env-file .env.deploy -f deploy/compose.yaml exec postgres psql -h 127.0.0.1 -U foundation_admin -d foundation`, lalu jalankan `ALTER ROLE <role> PASSWORD ...` untuk `foundation_backend` atau `foundation_migrator`. Perintah `\password <role>` di psql mengirim `ALTER ROLE` dengan password yang sudah di hash, sehingga teks password tidak tersimpan di riwayat psql.
 2. Perbarui DSN di `.env.deploy` (`FOUNDATION_BACKEND_DATABASE_URL` atau `FOUNDATION_MIGRATOR_DATABASE_URL`), atau variable shell provisioning bila Anda menyimpannya di secret manager.
 3. Buat ulang backend agar memakai DSN baru: `docker compose --env-file .env.deploy -f deploy/compose.yaml up -d --force-recreate --no-deps backend`. Runner membaca DSN baru pada run berikutnya tanpa langkah tambahan.
+
+Untuk `foundation_backup`, jalankan `ALTER ROLE foundation_backup PASSWORD ...` dengan cara yang sama, lalu perbarui DSN di `.env.backup`; job backup membaca DSN baru pada run berikutnya. Kebocoran credential mana pun mengikuti *Prosedur insiden* di [aturan backup](backup.md), yang merotasi keempat role.
 
 Password `foundation_admin` hanya dipakai entrypoint saat cluster dibuat. Sesudah itu ganti lewat `ALTER ROLE foundation_admin PASSWORD ...` dengan koneksi admin, lalu perbarui `FOUNDATION_POSTGRES_PASSWORD` di `.env.deploy`, seperti aturan infrastruktur.
 

@@ -7,6 +7,7 @@ node_modules/
 !.env.example
 !.env.infrastructure.example
 !.env.deploy.example
+!.env.backup.example
 # Sertifikat dan key TLS disimpan di luar checkout (docs/rules/deployment.md); pola ini hanya pengaman.
 *.key
 *.pem

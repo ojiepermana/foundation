@@ -111,3 +111,14 @@ bun run test:report:release    # status kesiapan release dari bundle CI yang diu
 ```
 
 Langkah deployment berurutan (build, PostgreSQL, provisioning sekali, backend, readiness, migration, edge), kebijakan endpoint production, retensi log, rotasi password, pembaruan sertifikat TLS, pembaruan pin, dan prosedur mengunduh artifact CI untuk `test:report:release` ada di [aturan deployment](docs/rules/deployment.md). Status `ready` dari `test:report:release` adalah ringkasan bukti untuk pemilik release, bukan izin deploy.
+
+## Backup dan pemulihan (spec 0013)
+
+Database `foundation` dibackup dengan `pg_dump` dari image PostgreSQL proyek sebagai job Compose sekali jalan di `deploy/backup.yaml`, memakai role baca saja `foundation_backup`, dan dipulihkan hanya ke target baru yang terisolasi. Salin `.env.backup.example` ke `.env.backup` (mode 0600), lalu:
+
+```sh
+docker compose --env-file .env.backup -f deploy/backup.yaml --profile backup run --rm backup create scheduled
+docker compose --env-file .env.backup -f deploy/backup.yaml --profile backup run --rm backup check
+```
+
+Sasaran pemulihan (RPO 24 jam, RTO 4 jam), retensi 35 hari dengan 7 backup terbaru, penjadwal, runbook restore, prosedur insiden, dan latihan restore berkala ada di [aturan backup](docs/rules/backup.md) (`docs/rules/backup.md`). Bukti per push ada di `bun run test:database:real` (`.local/feature-14/restore.json`). Kode proyek tidak mengunggah backup ke mana pun; salinan di luar host dibuat alat platform.

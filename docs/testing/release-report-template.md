@@ -8,6 +8,8 @@ Bukti kapasitas k6 (spec 0011) berasal dari `.local/feature-12/report.md` dan `.
 
 Status kesiapan (spec 0012) dihitung `bun run test:report:release` pada checkout bersih commit kandidat, sesudah keempat artifact (`application-evidence`, `real-evidence`, `security-evidence`, dan `capacity-evidence`) diunduh ke folder bundle menurut prosedur di [aturan deployment](../rules/deployment.md). Salin status, alasan, identitas run per push dan run kapasitas, serta tabel image dari `.local/feature-13/release.md`, dan simpan `.local/feature-13/release.json` sebagai bukti. `grantsDeployment` selalu `false`: status `ready` berarti bukti wajib lengkap dan lulus, tidak memberi izin deploy, dan identitas run berasal dari manifest yang ditulis run itu sendiri tanpa diverifikasi ke GitHub. Keputusan deploy dicatat terpisah oleh pemilik release.
 
+Bukti backup dan pemulihan (spec 0013) berasal dari dua sumber: `.local/feature-14/restore.json` di bundle tier nyata run per push yang sama (artifact `real-evidence`), yang membuktikan backup kandidat dapat dipulihkan dengan data dan riwayat migration yang konsisten pada container lokal, dan catatan latihan restore terbaru environment tujuan di `docs/testing/restore-drills/`, yang ditulis manual dari [template latihan restore](restore-drill-template.md) menurut [aturan backup](../rules/backup.md). `test:report:release` tidak menghitung catatan latihan, jadi salin dan nilai keduanya di bagian *Backup dan pemulihan*.
+
 ## Identitas kandidat
 
 - Release:
@@ -53,7 +55,18 @@ SDK wajib berasal dari OpenAPI kandidat yang sama. Jelaskan hasil identik setela
 - Bukti validasi input, sesi/CSRF, limit, serta batas worker/upload yang relevan:
 - Hasil pemeriksaan secret/dependency/workflow dari `security.json` (versi dan digest pemindai, cakupan, jumlah temuan per kebijakan, pengecualian yang berlaku atau tidak terpakai) dan temuan yang belum diselesaikan:
 - Batas pengujian keamanan dan keputusan risiko yang dinyatakan:
-- Bukti backup/restore atau respons insiden bila termasuk cakupan:
+- Bukti backup/restore atau respons insiden bila termasuk cakupan (rincian di bagian *Backup dan pemulihan*):
+
+## Backup dan pemulihan
+
+- `.local/feature-14/restore.json` dari bundle tier nyata run kandidat: `status`, `failures`, `recordedAt`, `serverVersion`, ukuran dan `tocEntries` backup, `restore.durationMs` terhadap batas 300.000 ms, `restore.migrations`, `restore.readinessStatus`, `restore.oldPasswordsRejected`, `fingerprint.equal`, status kedua belas guard, `retention`, dan `secretScan` (jumlah sumber, jumlah nilai, temuan). Salin juga kalimat `boundary` apa adanya:
+- Hasil BKP-001 sampai BKP-008 dari tabel skenario `report.md`:
+- Catatan latihan restore terbaru environment tujuan (`docs/testing/restore-drills/<YYYY-MM-DD>-<environment>.md`): tanggal dan umur catatan terhadap batas 30 hari, commit dan ID image latihan dibandingkan dengan kandidat, RPO aktual terhadap 24 jam, RTO terukur terhadap 4 jam (atau RTO latihan sampai readiness 200 bila edge tidak dijalankan), hasil pemeriksaan isolasi, dan temuan yang belum selesai:
+- Perubahan `deploy/backup.yaml`, `deploy/backup/*.sh`, role provisioning, atau pin image PostgreSQL sejak latihan itu, yang mewajibkan latihan baru sebelum release:
+- Kewajiban operasi environment tujuan yang belum terbukti oleh kode: penjadwal dan alert backup serta `check`, salinan di luar host dengan versioning atau object lock, enkripsi at rest, dan log `Backup created:` yang disimpan 35 hari:
+- Batas bukti: `restore.json` memakai data fixture pada container lokal, bukan bukti RTO environment, ukuran data nyata, jadwal backup, salinan di luar host, atau enkripsi penyimpanan:
+
+Catatan latihan yang lebih tua dari 30 hari, latihan yang belum dijalankan sesudah perubahan alat backup, atau `restore.json` yang bukan `passed` dicatat sebagai bukti yang belum lengkap, tidak ditulis lulus.
 
 ## Hasil per skenario
 

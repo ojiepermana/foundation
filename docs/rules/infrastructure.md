@@ -6,6 +6,8 @@ Cache, broker antrean, object storage, atau layanan pendukung lain dapat ditamba
 
 Topologi deployment rujukan berada terpisah di `deploy/compose.yaml` (spec 0012, project `foundation-deploy`): edge, backend, PostgreSQL dari image `foundation-postgres:18-pinned`, dan job migration, dengan network internal, batas resource, dan credential per service dari `.env.deploy`. File itu tidak membangun image dan tidak dipakai untuk development; `docker-compose.yml` root tetap hanya infrastruktur pendukung development. Langkah build, provisioning, migration, rotasi password, dan pembaruan sertifikat ada di [aturan deployment](deployment.md).
 
+Backup dan restore database berada di file Compose sendiri `deploy/backup.yaml` (spec 0013, project `foundation-backup`): dua job sekali jalan, `backup` dan `restore`, dari image `foundation-postgres:18-pinned` yang masing masing hanya bergabung dengan satu network data project sebagai network external yang `internal: true` (`backup` dengan network sumber dari `.env.backup`, `restore` dengan network target yang hanya dinamai shell lewat `FOUNDATION_RESTORE_DATA_NETWORK`), tanpa port, build, atau container yang selalu hidup. File itu tidak digabung dengan `deploy/compose.yaml` dan tidak dipakai Compose root development. Folder backup, credential, jadwal, dan runbook restore ada di [aturan backup](backup.md).
+
 ## Image PostgreSQL proyek
 
 Server dibangun dari `infrastructure/postgres/Dockerfile` di atas `oraclelinux:10-slim` dengan paket `postgresql18-server` dari repository resmi PGDG. Image yang sama nanti menjadi dasar server database production, sehingga dev, CI, dan production memakai OS dan paket yang sama.
