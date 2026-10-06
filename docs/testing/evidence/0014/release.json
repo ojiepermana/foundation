@@ -1,0 +1,293 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-10-06T12:30:30.151Z",
+  "candidate": {
+    "commit": "4aa511abb738b43b06276091f18937aca10eedbd",
+    "sourceTree": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480"
+  },
+  "perPush": {
+    "gate": "passed",
+    "releaseCandidate": {
+      "value": false,
+      "reasons": [
+        {
+          "code": "not_clean",
+          "tier": "fast"
+        },
+        {
+          "code": "not_clean",
+          "tier": "real"
+        },
+        {
+          "code": "not_clean",
+          "tier": "security"
+        },
+        {
+          "code": "not_ci",
+          "tier": "fast"
+        },
+        {
+          "code": "not_ci",
+          "tier": "real"
+        },
+        {
+          "code": "not_ci",
+          "tier": "security"
+        },
+        {
+          "code": "not_ci",
+          "tier": null
+        }
+      ]
+    },
+    "ci": null
+  },
+  "capacity": {
+    "status": "incomplete",
+    "releaseCandidate": {
+      "value": false,
+      "reasons": [
+        {
+          "code": "gate_not_passed",
+          "tier": null
+        },
+        {
+          "code": "not_clean",
+          "tier": null
+        },
+        {
+          "code": "not_ci",
+          "tier": null
+        }
+      ]
+    },
+    "ci": null
+  },
+  "deployment": {
+    "status": "passed",
+    "evidence": ".local/feature-11/evidence/real/.local/feature-13/result.json",
+    "images": [
+      {
+        "name": "frontend",
+        "tag": "foundation-frontend:deploy-473534d66af6",
+        "imageId": "sha256:035a9474d81a5c1498c7f413d6bce999e063b45f05bd8802d9d612a5919399e7",
+        "sizeBytes": 93186771,
+        "user": "101:101",
+        "bases": [
+          "node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe",
+          "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61",
+          "nginx:1.30.5-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94"
+        ],
+        "revision": "4aa511abb738b43b06276091f18937aca10eedbd",
+        "sourceTree": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480"
+      },
+      {
+        "name": "backend",
+        "tag": "foundation-backend:deploy-473534d66af6",
+        "imageId": "sha256:b90e3e3d117e27c86f113d3eb32191322060ef373177a1638ac16cc3fe4c2556",
+        "sizeBytes": 275385011,
+        "user": "1000:1000",
+        "bases": [
+          "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61"
+        ],
+        "revision": "4aa511abb738b43b06276091f18937aca10eedbd",
+        "sourceTree": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480"
+      },
+      {
+        "name": "migrate",
+        "tag": "foundation-migrate:deploy-473534d66af6",
+        "imageId": "sha256:5cdee0ab065082a19b1698de86ef9978ce102a00cd9ed39bf81ba8c258d8bcf5",
+        "sizeBytes": 274710807,
+        "user": "1000:1000",
+        "bases": [
+          "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61"
+        ],
+        "revision": "4aa511abb738b43b06276091f18937aca10eedbd",
+        "sourceTree": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480"
+      }
+    ],
+    "checks": [
+      {
+        "name": "image_pins",
+        "status": "passed"
+      },
+      {
+        "name": "image_context_sentinels",
+        "status": "passed"
+      },
+      {
+        "name": "image_filesystem",
+        "status": "passed"
+      },
+      {
+        "name": "image_config",
+        "status": "passed"
+      },
+      {
+        "name": "provisioning_step",
+        "status": "passed"
+      },
+      {
+        "name": "readiness_before_migration",
+        "status": "passed"
+      },
+      {
+        "name": "migration_step",
+        "status": "passed"
+      },
+      {
+        "name": "readiness_after_migration",
+        "status": "passed"
+      },
+      {
+        "name": "auth_account_job",
+        "status": "passed"
+      },
+      {
+        "name": "tls_versions",
+        "status": "passed"
+      },
+      {
+        "name": "http_redirect",
+        "status": "passed"
+      },
+      {
+        "name": "document_headers",
+        "status": "passed"
+      },
+      {
+        "name": "static_cache_fallback",
+        "status": "passed"
+      },
+      {
+        "name": "api_forwarding",
+        "status": "passed"
+      },
+      {
+        "name": "api_headers",
+        "status": "passed"
+      },
+      {
+        "name": "api_stub_forwarding",
+        "status": "passed"
+      },
+      {
+        "name": "cors_absent",
+        "status": "passed"
+      },
+      {
+        "name": "edge_errors",
+        "status": "passed"
+      },
+      {
+        "name": "health_not_public",
+        "status": "passed"
+      },
+      {
+        "name": "published_ports",
+        "status": "passed"
+      },
+      {
+        "name": "network_isolation",
+        "status": "passed"
+      },
+      {
+        "name": "egress_blocked",
+        "status": "passed"
+      },
+      {
+        "name": "compose_declaration",
+        "status": "passed"
+      },
+      {
+        "name": "container_hardening",
+        "status": "passed"
+      },
+      {
+        "name": "container_environment",
+        "status": "passed"
+      },
+      {
+        "name": "browser_flow",
+        "status": "passed"
+      },
+      {
+        "name": "auth_session_cookie",
+        "status": "passed"
+      },
+      {
+        "name": "auth_origin_csrf",
+        "status": "passed"
+      },
+      {
+        "name": "auth_capacity",
+        "status": "passed"
+      },
+      {
+        "name": "auth_edge_rate_limit",
+        "status": "passed"
+      },
+      {
+        "name": "backend_shutdown_restart",
+        "status": "passed"
+      },
+      {
+        "name": "backend_recreate",
+        "status": "passed"
+      },
+      {
+        "name": "database_outage",
+        "status": "passed"
+      },
+      {
+        "name": "edge_shutdown",
+        "status": "passed"
+      },
+      {
+        "name": "log_structure",
+        "status": "passed"
+      },
+      {
+        "name": "log_correlation",
+        "status": "passed"
+      },
+      {
+        "name": "log_no_data",
+        "status": "passed"
+      },
+      {
+        "name": "postgres_log_policy",
+        "status": "passed"
+      },
+      {
+        "name": "topology_shutdown",
+        "status": "passed"
+      },
+      {
+        "name": "artifact_scan",
+        "status": "passed"
+      },
+      {
+        "name": "cleanup",
+        "status": "passed"
+      }
+    ],
+    "boundary": "Topologi rujukan satu host Docker dengan sertifikat dari CA sementara; bukan bukti platform deployment, kapasitas, image di registry, atau ketiadaan kerentanan paket OS di image (paket OS ketiga image tidak dipindai pemindai kerentanan)."
+  },
+  "status": "incomplete",
+  "reasons": [
+    {
+      "code": "capacity_incomplete"
+    },
+    {
+      "code": "gate_not_candidate"
+    },
+    {
+      "code": "capacity_not_candidate"
+    },
+    {
+      "code": "candidate_differs"
+    }
+  ],
+  "grantsDeployment": false
+}

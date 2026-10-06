@@ -1,0 +1,427 @@
+{
+  "schema": 1,
+  "tier": "fast",
+  "candidate": {
+    "commit": "4aa511abb738b43b06276091f18937aca10eedbd",
+    "clean": false,
+    "sourceTree": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480",
+    "sourceTreeAfter": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480",
+    "ci": null
+  },
+  "environment": {
+    "os": "darwin",
+    "arch": "arm64",
+    "bun": "1.4.2",
+    "node": "24.21.0"
+  },
+  "inputs": {
+    "package.json": "771df0a2fc1e86ea95601cd7f9b3829ac6b21c42a8d073a81b9a6ccdc2e64a13",
+    "bun.lock": "709aa822bcd149ec2967ed79fffefe1248ddd47e8cfeee2146d68384c32de656",
+    "openapi.json": "07536c3802337c07e7206e8554bb1a8cb991195c098f1bf875096fb4d1028f37",
+    "infrastructure/postgres/pins.json": "63fe647f7df56c5e94a0e5cb6483d845eeea548dcfdbe991c50e95c234f438c4",
+    "tests/security/scanners.json": "311f56a9f4cfc6e801069ac407fec4c37b55c2988f5ed7dc92248c17db243581",
+    "tests/security/exceptions.json": "0c1de1a21eb6b25b59576015d5fa5c9fbb2fd081a192ac0c221c37f5e562271f",
+    "tests/security/gitleaks.toml": "b2218eefd2c12a1a2f23d36735ac4aaae6965d917965a8ed5881d0a4e8669376",
+    "tests/security/actionlint.yaml": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".github/workflows/application.yml": "edda79e565b79b9a5d204e9aaf57df86d3eae11adb723f0bb31796e3eb0fe164",
+    "apps/frontend/sdk/": "bfebafca5383722977ce6358f579aa352800ba19e8a666b6611fc8c9a58a04ac",
+    "tests/scenarios/": "fb0d20873f914e99e1c795b91c5d4f65a377bf3fb327beccb956e1e70aed093d"
+  },
+  "outputs": {
+    "apps/frontend/dist/frontend/": "c9964376d0d59bede2667bf5d1609ef53a8b8efdd81cff56f60afb822a7aec01",
+    "dist/backend/index.js": "dd928a72763b42d1afef82917e0182d596850b45079ec1aeeaf8922112e8e799"
+  },
+  "steps": [
+    {
+      "script": "check:dependencies",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 83,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "test:scenarios",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 277,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "check:test-discovery",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 1601,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "check:workflow",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 49,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "api:check",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 1433,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "build:frontend",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 1906,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "check:frontend:bundle",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 151,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "typecheck:backend",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 823,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "typecheck:contract",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 1685,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "typecheck:e2e",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 772,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "typecheck:tooling",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 1764,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "build:backend",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 42,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": []
+    },
+    {
+      "script": "test:frontend",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 3475,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-4/frontend.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "125c4fa7c450b02bb147a0f7318c032bd31aadcdefc6822468ba0a877c16fc82",
+          "runner": "vitest",
+          "tests": 214,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:integration",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 90504,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-4/server.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "59fe8d4cb9e899b51e7fe2e85b0f3e0c3d380866889b81d22b644f82212f998a",
+          "runner": "bun:test",
+          "tests": 705,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:tooling",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 37733,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-4/tooling.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "7edd3ee3548f960b51a4f9d54f964fac636405ee53561bc26010f54f47167ab5",
+          "runner": "bun:test",
+          "tests": 55,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:gate",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 63534,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-11/gate.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "c4d2f88ae89a82ddc8e8281786eaa1e5c5ca3b6661f1745914a2af9a1d157480",
+          "runner": "bun:test",
+          "tests": 270,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:performance:plan",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 22872,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-12/plan.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "81d5cc5317f00a797341ca21db0d3a656419a7d07d4e3f40c3bbdac5fafb9263",
+          "runner": "bun:test",
+          "tests": 78,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:deployment:plan",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 31967,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-13/plan.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "8fef16f7d53cb9f684cf2d6ec8954b6622274866f1b28b8cd6a76769020b442d",
+          "runner": "bun:test",
+          "tests": 74,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:e2e",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 11178,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-4/playwright.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "37e7334196c34755ff9567496ad65c667839e8528e01e7b729de5f522be42f5b",
+          "runner": "playwright",
+          "tests": 15,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": "test-results/",
+          "kind": "screenshots",
+          "required": false,
+          "present": true,
+          "files": [
+            {
+              "path": "test-results/.last-run.json",
+              "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+            },
+            {
+              "path": "test-results/application-framework.e2e--68980--proxy-reaches-real-backend-chromium/test-finished-1.png",
+              "sha256": "486a0cb41f49ffabf1b1429e8b2c4173708c86abe3b80cff7cdabf752ccdd64f"
+            },
+            {
+              "path": "test-results/application-framework.e2e--97374--proxy-reaches-real-backend-chromium/test-finished-1.png",
+              "sha256": "86e4aaa4b28b7e3d2e049cd6153ecb0fa561158512b347789c4b83877a82f224"
+            },
+            {
+              "path": "test-results/auth-sign-in.e2e-AUTH-012--5abb4-e-submit-and-both-viewports-chromium/test-finished-1.png",
+              "sha256": "d5536d59c0017ff07a1cce64df3d5d6c88ffd3f2171b9b161e6ae71d2a4b2de2"
+            },
+            {
+              "path": "test-results/auth-sign-in.e2e-AUTH-012--ab490-ork-for-a-closed-connection-chromium/test-finished-1.png",
+              "sha256": "7c92d342d7d326b7dc6283ccff537a30252f6f1756cbdb254cbbd3a6037aa281"
+            },
+            {
+              "path": "test-results/auth-sign-in.e2e-AUTH-012--cb90d-keyboard-and-both-viewports-chromium/test-finished-1.png",
+              "sha256": "1d32d2b67d9eaa33ea1515815b24d7e5b376dbd3db50e9d6a9c6363391ef53d8"
+            },
+            {
+              "path": "test-results/readiness-readiness-produc-1c417--request-path-contains-api--chromium/test-finished-1.png",
+              "sha256": "9387e5f3f5a95c26dc65d1bcbda60de72c54bae690189b5d3ea8dcd1ab2ccfbd"
+            },
+            {
+              "path": "test-results/readiness-readiness-produc-3bce3--request-path-contains-api--chromium/test-finished-1.png",
+              "sha256": "e0a7bc73d74974d14c9d5194ca22c60dd55a5ccb0798e44a2025166b8277ffb0"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-5ea1b-rrent-known-library-defect--chromium/test-finished-1.png",
+              "sha256": "fe3ae3768e73dd41f49e22178124be71d875e0e7dec4cb00c47e8a22ced4cca1"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-63c8e--never-carries-aria-current-chromium/test-finished-1.png",
+              "sha256": "3466ddddabc18a8557b9967dc13b52cb481f57a3a79badc3652b2d3faa4dc519"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-96f39--never-carries-aria-current-chromium/test-finished-1.png",
+              "sha256": "020ff23c053c8ad7094762bdd5681977bee9265e1bc78c41ffa100c19e8deb69"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-982da-rrent-known-library-defect--chromium/test-finished-1.png",
+              "sha256": "7ea1a125cb799bd270ea362c2a8cb2d62887cfc2eae34420d61138ba61139241"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-98a91-e-proxy-layout-and-keyboard-chromium/readiness-unavailable-mobile.png",
+              "sha256": "b0e0d941d06dd5a89d57aab8621cb91cc850dc9823d676a906973ffdf512f6d0"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-98a91-e-proxy-layout-and-keyboard-chromium/test-finished-1.png",
+              "sha256": "df1338528e71f54769eea19c01f57f9f27dd45f8acf4fa9c67874728e7a4637c"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-f479d-e-proxy-layout-and-keyboard-chromium/readiness-unavailable-desktop.png",
+              "sha256": "385c7584d944e2e12e44bae0a0e567a1ae0e891b00b3331dc2f526d99635d808"
+            },
+            {
+              "path": "test-results/readiness-readiness.e2e-RE-f479d-e-proxy-layout-and-keyboard-chromium/test-finished-1.png",
+              "sha256": "53d2f276cac9c6aef66660cad13fc0e64bd0bf98fbf41f3d4aa923413655fdca"
+            },
+            {
+              "path": "test-results/ui-shell-foundation-shell.-2fd3d-layout-work-at-target-sizes-chromium/test-finished-1.png",
+              "sha256": "be60cffdc2c5abf8c90d7bea5a6fb172536042d3a0fce40e0285995d7545e08e"
+            },
+            {
+              "path": "test-results/ui-shell-foundation-shell.-2fd3d-layout-work-at-target-sizes-chromium/ui-shell-desktop.png",
+              "sha256": "99c19fa7ae800f2d8f90d342b3d30bde05c11ccd5f0e50aaa9778778f93aec5a"
+            },
+            {
+              "path": "test-results/ui-shell-foundation-shell.-2fd3d-layout-work-at-target-sizes-chromium/ui-shell-mobile.png",
+              "sha256": "2d95d93ab9961ef0b4ec99da60b0786cdcdf72a01ddac14dd666419b9f88b326"
+            },
+            {
+              "path": "test-results/ui-shell-foundation-shell.-a4de2-es-not-call-the-backend-API-chromium/test-finished-1.png",
+              "sha256": "7ea1a125cb799bd270ea362c2a8cb2d62887cfc2eae34420d61138ba61139241"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "startedAt": "2026-10-06T12:17:10.631Z",
+  "finishedAt": "2026-10-06T12:21:42.651Z"
+}

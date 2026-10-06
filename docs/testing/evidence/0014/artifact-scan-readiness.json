@@ -1,0 +1,33 @@
+{
+  "outputsScanned": [
+    "provision",
+    "migrate",
+    "accounts",
+    "accounts",
+    "playwright",
+    "frontend",
+    "backend"
+  ],
+  "filesScanned": [
+    ".local/feature-10/playwright-real.xml",
+    ".local/feature-10/test-results/.last-run.json",
+    ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-bfb6e-keyboard-sign-in-opens-akun-chromium/test-finished-1.png",
+    ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-33f91-ns-out-all-without-a-reload-chromium/test-finished-2.png",
+    ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-33f91-ns-out-all-without-a-reload-chromium/test-finished-1.png",
+    ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-82c14--in-script-readable-storage-chromium/test-finished-1.png",
+    ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-3.png",
+    ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-2.png",
+    ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-1.png",
+    ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-unavailable-stopped.png",
+    ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-mobile.png",
+    ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/test-finished-1.png",
+    ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-recovered.png",
+    ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-desktop.png",
+    ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-d10b0--only-in-AuthSession-bodies-chromium/test-finished-1.png"
+  ],
+  "secretsChecked": 8,
+  "tokenFingerprints": 18,
+  "tokenScanControl": true,
+  "junitSha256": "6e5a7270c453bd9d847fa317f86adf8adad24746bfe0fb6b93039dc3f6241265",
+  "findings": []
+}

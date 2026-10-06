@@ -1,0 +1,447 @@
+{
+  "schema": 1,
+  "tier": "real",
+  "candidate": {
+    "commit": "4aa511abb738b43b06276091f18937aca10eedbd",
+    "clean": false,
+    "sourceTree": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480",
+    "sourceTreeAfter": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480",
+    "ci": null
+  },
+  "environment": {
+    "os": "darwin",
+    "arch": "arm64",
+    "bun": "1.4.2",
+    "node": "24.21.0"
+  },
+  "inputs": {
+    "package.json": "771df0a2fc1e86ea95601cd7f9b3829ac6b21c42a8d073a81b9a6ccdc2e64a13",
+    "bun.lock": "709aa822bcd149ec2967ed79fffefe1248ddd47e8cfeee2146d68384c32de656",
+    "openapi.json": "07536c3802337c07e7206e8554bb1a8cb991195c098f1bf875096fb4d1028f37",
+    "infrastructure/postgres/pins.json": "63fe647f7df56c5e94a0e5cb6483d845eeea548dcfdbe991c50e95c234f438c4",
+    "tests/security/scanners.json": "311f56a9f4cfc6e801069ac407fec4c37b55c2988f5ed7dc92248c17db243581",
+    "tests/security/exceptions.json": "0c1de1a21eb6b25b59576015d5fa5c9fbb2fd081a192ac0c221c37f5e562271f",
+    "tests/security/gitleaks.toml": "b2218eefd2c12a1a2f23d36735ac4aaae6965d917965a8ed5881d0a4e8669376",
+    "tests/security/actionlint.yaml": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".github/workflows/application.yml": "edda79e565b79b9a5d204e9aaf57df86d3eae11adb723f0bb31796e3eb0fe164",
+    "apps/frontend/sdk/": "bfebafca5383722977ce6358f579aa352800ba19e8a666b6611fc8c9a58a04ac",
+    "tests/scenarios/": "fb0d20873f914e99e1c795b91c5d4f65a377bf3fb327beccb956e1e70aed093d"
+  },
+  "outputs": {
+    "apps/frontend/dist/frontend/": "c9964376d0d59bede2667bf5d1609ef53a8b8efdd81cff56f60afb822a7aec01",
+    "dist/backend/index.js": "dd928a72763b42d1afef82917e0182d596850b45079ec1aeeaf8922112e8e799"
+  },
+  "steps": [
+    {
+      "script": "test:infrastructure",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 52011,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-3/infrastructure.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "a818ecb4a671c84f38dbf5d74f4028278f7c2fd6720eaacb7c1e64dada883af5",
+          "runner": "bun:test",
+          "tests": 18,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-3/image.json",
+          "kind": "image",
+          "required": true,
+          "present": true,
+          "sha256": "b3c4d1ace2de15ebb497f7a2f1594a6f814115c16074aef48636072d9b92475a"
+        }
+      ]
+    },
+    {
+      "script": "test:database:real",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 169763,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-5/database.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "033c4350d6a94b1cc92b9653af103950c2c61c163b33436cce6eaa77415e6a59",
+          "runner": "bun:test",
+          "tests": 126,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-5/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "4bbb02945149f33fa25b320d3e0db4a49354b765e115ddc31f52f3526b1fb8bb"
+        },
+        {
+          "path": ".local/feature-14/restore.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "0abb991183ef99c3afaf5c70684953a77505f4d5a6e650828b8b106e70e258c8"
+        }
+      ]
+    },
+    {
+      "script": "test:database:migration",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 16901,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-6/migration.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "d269ed87f1ce348565cfd05edb8cfa8f49a46854a8a5f1e539358dc71367dbec",
+          "runner": "bun:test",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "script": "test:tooling:real",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 37955,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-2/playwright-real.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "1499b7d7f32844223200bd426ee1685248cb6b770146f91cf9a1a55d91cfb0fe",
+          "runner": "playwright",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-2/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "5c5d5c9462696b49a3b15cfdd9107a67debf09e1e0c51b50d1433943c130b040"
+        },
+        {
+          "path": ".local/feature-2/test-results/",
+          "kind": "screenshots",
+          "required": false,
+          "present": true,
+          "files": [
+            {
+              "path": ".local/feature-2/test-results/.last-run.json",
+              "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+            },
+            {
+              "path": ".local/feature-2/test-results/auth-auth.real.e2e-AUTH-01-33f91-ns-out-all-without-a-reload-chromium/test-finished-1.png",
+              "sha256": "74b2099f8926763e56dfba3858fd0b1daa134550f69bb4d6c2c755d97c68e62c"
+            },
+            {
+              "path": ".local/feature-2/test-results/auth-auth.real.e2e-AUTH-01-33f91-ns-out-all-without-a-reload-chromium/test-finished-2.png",
+              "sha256": "977dde3782d11d2d287d31dd83150a35feb31b7fea1749c492d178af05a66deb"
+            },
+            {
+              "path": ".local/feature-2/test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-1.png",
+              "sha256": "66c35d260f53a262a8045d010fbd854e5c666275bc9526718ee6b20934d56d56"
+            },
+            {
+              "path": ".local/feature-2/test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-2.png",
+              "sha256": "863480d4e7449e16ca4bade3e169fa6b563404c2bde96f2e44a56f86b439f332"
+            },
+            {
+              "path": ".local/feature-2/test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-3.png",
+              "sha256": "b4e83592f4403625afca364afcd7d98e04ba16f841e79ebe5332ef582334ca2f"
+            },
+            {
+              "path": ".local/feature-2/test-results/auth-auth.real.e2e-AUTH-01-82c14--in-script-readable-storage-chromium/test-finished-1.png",
+              "sha256": "f609b4556fce6172b510d8a86f8c9a79e5686ecc4b875b3cad5cf83dd4092155"
+            },
+            {
+              "path": ".local/feature-2/test-results/auth-auth.real.e2e-AUTH-01-bfb6e-keyboard-sign-in-opens-akun-chromium/test-finished-1.png",
+              "sha256": "ceff101a64a4e022a7d5e9fe2b260f03e7dbe5b32818a3f7a1e9adb0a1921efe"
+            },
+            {
+              "path": ".local/feature-2/test-results/auth-auth.real.e2e-AUTH-01-d10b0--only-in-AuthSession-bodies-chromium/test-finished-1.png",
+              "sha256": "23967d8b0640d054e47f9dc66258cdd54d93f07a48b5aadab99e6a9ff0c425ac"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-desktop.png",
+              "sha256": "2c0bb16c91b176db97a5d5840f2810e2e47c5031d4c8d2a8cda4061120295529"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-mobile.png",
+              "sha256": "22d287010a918cc1312023bb416be67675930485cc393e7815562d62aa2f24dd"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-recovered.png",
+              "sha256": "0612eff22fab23ccdbb6a5f256b6ef7aa03488adaf009cad8dcd10eac2263f1d"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-unavailable-stopped.png",
+              "sha256": "ea240224fde8ba5ee502fa5706eb9428acb5a94f9f8c47e5e3d92a7171dc9ef1"
+            },
+            {
+              "path": ".local/feature-2/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/test-finished-1.png",
+              "sha256": "0612eff22fab23ccdbb6a5f256b6ef7aa03488adaf009cad8dcd10eac2263f1d"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "script": "test:readiness:real",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 13421,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-10/playwright-real.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "6e5a7270c453bd9d847fa317f86adf8adad24746bfe0fb6b93039dc3f6241265",
+          "runner": "playwright",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-10/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "c7e76828bce11c7d04aafe7f836ec7f11b437d750e383d2803bc1d17aedf51c7"
+        },
+        {
+          "path": ".local/feature-10/test-results/",
+          "kind": "screenshots",
+          "required": false,
+          "present": true,
+          "files": [
+            {
+              "path": ".local/feature-10/test-results/.last-run.json",
+              "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+            },
+            {
+              "path": ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-33f91-ns-out-all-without-a-reload-chromium/test-finished-1.png",
+              "sha256": "74b2099f8926763e56dfba3858fd0b1daa134550f69bb4d6c2c755d97c68e62c"
+            },
+            {
+              "path": ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-33f91-ns-out-all-without-a-reload-chromium/test-finished-2.png",
+              "sha256": "d12e7b0ad87e6fd7b7830a592561bb862e90b5f0b38e139bfa4d4d5862e40097"
+            },
+            {
+              "path": ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-1.png",
+              "sha256": "18b2505a77e0585fa4cba211a9ea67702be9a6e3515e594e15e58ab67dd6b9e5"
+            },
+            {
+              "path": ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-2.png",
+              "sha256": "100ff1a6603e96be325aaec8c67813be9d82048de4f3d9750daa2fc40fa0dec9"
+            },
+            {
+              "path": ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-3.png",
+              "sha256": "f822e5fc3cd57d34c65c276d610c16794696e75b227953a1c356d9a8f1493e51"
+            },
+            {
+              "path": ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-82c14--in-script-readable-storage-chromium/test-finished-1.png",
+              "sha256": "3db980448ea7412a4d1f4d827d6bf7485e4458945e5a4fbeed375b604eca85d0"
+            },
+            {
+              "path": ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-bfb6e-keyboard-sign-in-opens-akun-chromium/test-finished-1.png",
+              "sha256": "9f855222130aa1f240749432436dcd5ee6330bae6367add228087a92cc6b5294"
+            },
+            {
+              "path": ".local/feature-10/test-results/auth-auth.real.e2e-AUTH-01-d10b0--only-in-AuthSession-bodies-chromium/test-finished-1.png",
+              "sha256": "b2c5cd1aef7769f4fb99d83f7bbfc3d665f3c9f3a0d81c6b060cbe4d8ed7af15"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-desktop.png",
+              "sha256": "f760ade7ef2237dd3aa0535820f42d167e1ee1fddeb4848c877cb0a706bc47da"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-available-mobile.png",
+              "sha256": "a7363050d33ea10db57478c29386a1c8d9f29988e35dbc393dd9b5bff80b02a0"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-recovered.png",
+              "sha256": "caf690e6e391ea72414267775c68b9d72daf0095f020f4841f06cb38658669a4"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/readiness-unavailable-stopped.png",
+              "sha256": "bc9672db7c28ce19dcea4ddf5a20000c801fa71cfbc3f628896399ab344eea65"
+            },
+            {
+              "path": ".local/feature-10/test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/test-finished-1.png",
+              "sha256": "771b0fe0e76b75c4251db6e28aaae86a8d59bd47949a129110e6e92f3f15e859"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "script": "test:deployment:real",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 91503,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-13/result.json",
+          "kind": "deployment",
+          "required": true,
+          "present": true,
+          "sha256": "884588f4bf74153d6eb8aaee383397d13a6cb1227e3a117259c727d7b08f0692"
+        },
+        {
+          "path": ".local/feature-13/images.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "5eae52275b7b8da53a5b87d42c3ac4768fa326d54cc1dbd5c978e2e59b0fb4ce"
+        },
+        {
+          "path": ".local/feature-13/playwright-deployment.xml",
+          "kind": "junit",
+          "required": true,
+          "present": true,
+          "sha256": "485da316a9bf907e83e6f992acf2168658f7f12dbaca9740f4663173aaadbebe",
+          "runner": "playwright",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "path": ".local/feature-13/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "c93657343dcdce500233b4c0abcbcf7d7a610a613a3131db591a37bdef48ab3f"
+        },
+        {
+          "path": ".local/feature-13/test-results/",
+          "kind": "screenshots",
+          "required": false,
+          "present": true,
+          "files": [
+            {
+              "path": ".local/feature-13/test-results/.last-run.json",
+              "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-auth.deployment-4c26b-and-Keluar-ends-the-session-chromium/test-finished-1.png",
+              "sha256": "9db2bd4860e67082bbf6b443c4bcdac1b52411008d4b35f2571607f082c14be0"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-2483c--Akun-and-kesiapan-ends-at--chromium/attachments/requested-origins-687fbc5b256211e0f7b5c4c4c54c2867bbe8204f.json",
+              "sha256": "f54b731057756d02c91f9ea7e915a3f3822c4bd98472171082c68ea873d7640e"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-2483c--Akun-and-kesiapan-ends-at--chromium/requested-origins.json",
+              "sha256": "f54b731057756d02c91f9ea7e915a3f3822c4bd98472171082c68ea873d7640e"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-2483c--Akun-and-kesiapan-ends-at--chromium/test-finished-1.png",
+              "sha256": "e0a7bc73d74974d14c9d5194ca22c60dd55a5ccb0798e44a2025166b8277ffb0"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-4acde--Akun-and-kesiapan-ends-at--chromium/attachments/requested-origins-65fb8677775ffa24283d7d6413270320217296b8.json",
+              "sha256": "f54b731057756d02c91f9ea7e915a3f3822c4bd98472171082c68ea873d7640e"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-4acde--Akun-and-kesiapan-ends-at--chromium/requested-origins.json",
+              "sha256": "f54b731057756d02c91f9ea7e915a3f3822c4bd98472171082c68ea873d7640e"
+            },
+            {
+              "path": ".local/feature-13/test-results/deployment-edge.deployment-4acde--Akun-and-kesiapan-ends-at--chromium/test-finished-1.png",
+              "sha256": "9387e5f3f5a95c26dc65d1bcbda60de72c54bae690189b5d3ea8dcd1ab2ccfbd"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "script": "test:performance:smoke",
+      "status": "passed",
+      "reasons": [],
+      "exitCode": 0,
+      "durationMs": 106279,
+      "timedOut": false,
+      "signal": null,
+      "leftoverPorts": [],
+      "evidence": [
+        {
+          "path": ".local/feature-12/smoke/result.json",
+          "kind": "performance",
+          "required": true,
+          "present": true,
+          "sha256": "5a3c45fc9994d56b0e5cb8ebb6b442486c1a7b3fb6b437f41b1fed766fabb6c4"
+        },
+        {
+          "path": ".local/feature-12/smoke/k6/summary.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "1902502dc9064a4584812c1a52423b65b05c9fbe70c9f38ec37128377a76c3f7"
+        },
+        {
+          "path": ".local/feature-12/smoke/observation.json",
+          "kind": "data",
+          "required": true,
+          "present": true,
+          "sha256": "7b89d1b9b61780e3f116a5e3d3598fffc6bdd9e6d13905a33e1ce610f3a0d97a"
+        },
+        {
+          "path": ".local/feature-12/smoke/artifact-scan.json",
+          "kind": "scan",
+          "required": true,
+          "present": true,
+          "sha256": "88263f582ada65f08e8766d53b1b8615e9ab76c3b1878979eaeec6a91b99a891"
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "startedAt": "2026-10-06T12:21:52.738Z",
+  "finishedAt": "2026-10-06T12:30:00.744Z"
+}

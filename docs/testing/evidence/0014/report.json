@@ -1,0 +1,4703 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-10-06T12:30:24.965Z",
+  "candidate": {
+    "commit": "4aa511abb738b43b06276091f18937aca10eedbd",
+    "sourceTree": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480",
+    "ci": null
+  },
+  "binding": {
+    "valid": true,
+    "problems": []
+  },
+  "tiers": {
+    "fast": {
+      "status": "passed",
+      "runAttempt": null,
+      "environment": {
+        "os": "darwin",
+        "arch": "arm64",
+        "bun": "1.4.2",
+        "node": "24.21.0"
+      },
+      "inputs": {
+        "package.json": "771df0a2fc1e86ea95601cd7f9b3829ac6b21c42a8d073a81b9a6ccdc2e64a13",
+        "bun.lock": "709aa822bcd149ec2967ed79fffefe1248ddd47e8cfeee2146d68384c32de656",
+        "openapi.json": "07536c3802337c07e7206e8554bb1a8cb991195c098f1bf875096fb4d1028f37",
+        "infrastructure/postgres/pins.json": "63fe647f7df56c5e94a0e5cb6483d845eeea548dcfdbe991c50e95c234f438c4",
+        "tests/security/scanners.json": "311f56a9f4cfc6e801069ac407fec4c37b55c2988f5ed7dc92248c17db243581",
+        "tests/security/exceptions.json": "0c1de1a21eb6b25b59576015d5fa5c9fbb2fd081a192ac0c221c37f5e562271f",
+        "tests/security/gitleaks.toml": "b2218eefd2c12a1a2f23d36735ac4aaae6965d917965a8ed5881d0a4e8669376",
+        "tests/security/actionlint.yaml": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".github/workflows/application.yml": "edda79e565b79b9a5d204e9aaf57df86d3eae11adb723f0bb31796e3eb0fe164",
+        "apps/frontend/sdk/": "bfebafca5383722977ce6358f579aa352800ba19e8a666b6611fc8c9a58a04ac",
+        "tests/scenarios/": "fb0d20873f914e99e1c795b91c5d4f65a377bf3fb327beccb956e1e70aed093d"
+      },
+      "outputs": {
+        "apps/frontend/dist/frontend/": "c9964376d0d59bede2667bf5d1609ef53a8b8efdd81cff56f60afb822a7aec01",
+        "dist/backend/index.js": "dd928a72763b42d1afef82917e0182d596850b45079ec1aeeaf8922112e8e799"
+      },
+      "steps": [
+        {
+          "script": "check:dependencies",
+          "status": "passed",
+          "durationMs": 83,
+          "reasons": []
+        },
+        {
+          "script": "test:scenarios",
+          "status": "passed",
+          "durationMs": 277,
+          "reasons": []
+        },
+        {
+          "script": "check:test-discovery",
+          "status": "passed",
+          "durationMs": 1601,
+          "reasons": []
+        },
+        {
+          "script": "check:workflow",
+          "status": "passed",
+          "durationMs": 49,
+          "reasons": []
+        },
+        {
+          "script": "api:check",
+          "status": "passed",
+          "durationMs": 1433,
+          "reasons": []
+        },
+        {
+          "script": "build:frontend",
+          "status": "passed",
+          "durationMs": 1906,
+          "reasons": []
+        },
+        {
+          "script": "check:frontend:bundle",
+          "status": "passed",
+          "durationMs": 151,
+          "reasons": []
+        },
+        {
+          "script": "typecheck:backend",
+          "status": "passed",
+          "durationMs": 823,
+          "reasons": []
+        },
+        {
+          "script": "typecheck:contract",
+          "status": "passed",
+          "durationMs": 1685,
+          "reasons": []
+        },
+        {
+          "script": "typecheck:e2e",
+          "status": "passed",
+          "durationMs": 772,
+          "reasons": []
+        },
+        {
+          "script": "typecheck:tooling",
+          "status": "passed",
+          "durationMs": 1764,
+          "reasons": []
+        },
+        {
+          "script": "build:backend",
+          "status": "passed",
+          "durationMs": 42,
+          "reasons": []
+        },
+        {
+          "script": "test:frontend",
+          "status": "passed",
+          "durationMs": 3475,
+          "reasons": []
+        },
+        {
+          "script": "test:integration",
+          "status": "passed",
+          "durationMs": 90504,
+          "reasons": []
+        },
+        {
+          "script": "test:tooling",
+          "status": "passed",
+          "durationMs": 37733,
+          "reasons": []
+        },
+        {
+          "script": "test:gate",
+          "status": "passed",
+          "durationMs": 63534,
+          "reasons": []
+        },
+        {
+          "script": "test:performance:plan",
+          "status": "passed",
+          "durationMs": 22872,
+          "reasons": []
+        },
+        {
+          "script": "test:deployment:plan",
+          "status": "passed",
+          "durationMs": 31967,
+          "reasons": []
+        },
+        {
+          "script": "test:e2e",
+          "status": "passed",
+          "durationMs": 11178,
+          "reasons": []
+        }
+      ]
+    },
+    "real": {
+      "status": "passed",
+      "runAttempt": null,
+      "environment": {
+        "os": "darwin",
+        "arch": "arm64",
+        "bun": "1.4.2",
+        "node": "24.21.0"
+      },
+      "inputs": {
+        "package.json": "771df0a2fc1e86ea95601cd7f9b3829ac6b21c42a8d073a81b9a6ccdc2e64a13",
+        "bun.lock": "709aa822bcd149ec2967ed79fffefe1248ddd47e8cfeee2146d68384c32de656",
+        "openapi.json": "07536c3802337c07e7206e8554bb1a8cb991195c098f1bf875096fb4d1028f37",
+        "infrastructure/postgres/pins.json": "63fe647f7df56c5e94a0e5cb6483d845eeea548dcfdbe991c50e95c234f438c4",
+        "tests/security/scanners.json": "311f56a9f4cfc6e801069ac407fec4c37b55c2988f5ed7dc92248c17db243581",
+        "tests/security/exceptions.json": "0c1de1a21eb6b25b59576015d5fa5c9fbb2fd081a192ac0c221c37f5e562271f",
+        "tests/security/gitleaks.toml": "b2218eefd2c12a1a2f23d36735ac4aaae6965d917965a8ed5881d0a4e8669376",
+        "tests/security/actionlint.yaml": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".github/workflows/application.yml": "edda79e565b79b9a5d204e9aaf57df86d3eae11adb723f0bb31796e3eb0fe164",
+        "apps/frontend/sdk/": "bfebafca5383722977ce6358f579aa352800ba19e8a666b6611fc8c9a58a04ac",
+        "tests/scenarios/": "fb0d20873f914e99e1c795b91c5d4f65a377bf3fb327beccb956e1e70aed093d"
+      },
+      "outputs": {
+        "apps/frontend/dist/frontend/": "c9964376d0d59bede2667bf5d1609ef53a8b8efdd81cff56f60afb822a7aec01",
+        "dist/backend/index.js": "dd928a72763b42d1afef82917e0182d596850b45079ec1aeeaf8922112e8e799"
+      },
+      "steps": [
+        {
+          "script": "test:infrastructure",
+          "status": "passed",
+          "durationMs": 52011,
+          "reasons": []
+        },
+        {
+          "script": "test:database:real",
+          "status": "passed",
+          "durationMs": 169763,
+          "reasons": []
+        },
+        {
+          "script": "test:database:migration",
+          "status": "passed",
+          "durationMs": 16901,
+          "reasons": []
+        },
+        {
+          "script": "test:tooling:real",
+          "status": "passed",
+          "durationMs": 37955,
+          "reasons": []
+        },
+        {
+          "script": "test:readiness:real",
+          "status": "passed",
+          "durationMs": 13421,
+          "reasons": []
+        },
+        {
+          "script": "test:deployment:real",
+          "status": "passed",
+          "durationMs": 91503,
+          "reasons": []
+        },
+        {
+          "script": "test:performance:smoke",
+          "status": "passed",
+          "durationMs": 106279,
+          "reasons": []
+        }
+      ]
+    },
+    "security": {
+      "status": "passed",
+      "runAttempt": null,
+      "environment": {
+        "os": "darwin",
+        "arch": "arm64",
+        "bun": "1.4.2",
+        "node": "24.21.0"
+      },
+      "inputs": {
+        "package.json": "771df0a2fc1e86ea95601cd7f9b3829ac6b21c42a8d073a81b9a6ccdc2e64a13",
+        "bun.lock": "709aa822bcd149ec2967ed79fffefe1248ddd47e8cfeee2146d68384c32de656",
+        "openapi.json": "07536c3802337c07e7206e8554bb1a8cb991195c098f1bf875096fb4d1028f37",
+        "infrastructure/postgres/pins.json": "63fe647f7df56c5e94a0e5cb6483d845eeea548dcfdbe991c50e95c234f438c4",
+        "tests/security/scanners.json": "311f56a9f4cfc6e801069ac407fec4c37b55c2988f5ed7dc92248c17db243581",
+        "tests/security/exceptions.json": "0c1de1a21eb6b25b59576015d5fa5c9fbb2fd081a192ac0c221c37f5e562271f",
+        "tests/security/gitleaks.toml": "b2218eefd2c12a1a2f23d36735ac4aaae6965d917965a8ed5881d0a4e8669376",
+        "tests/security/actionlint.yaml": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".github/workflows/application.yml": "edda79e565b79b9a5d204e9aaf57df86d3eae11adb723f0bb31796e3eb0fe164",
+        "apps/frontend/sdk/": "bfebafca5383722977ce6358f579aa352800ba19e8a666b6611fc8c9a58a04ac",
+        "tests/scenarios/": "fb0d20873f914e99e1c795b91c5d4f65a377bf3fb327beccb956e1e70aed093d"
+      },
+      "outputs": {
+        "apps/frontend/dist/frontend/": "c9964376d0d59bede2667bf5d1609ef53a8b8efdd81cff56f60afb822a7aec01",
+        "dist/backend/index.js": "dd928a72763b42d1afef82917e0182d596850b45079ec1aeeaf8922112e8e799"
+      },
+      "steps": [
+        {
+          "script": "check:security",
+          "status": "passed",
+          "durationMs": 12677,
+          "reasons": []
+        }
+      ]
+    }
+  },
+  "postgres": {
+    "image": "foundation-postgres:18-pinned",
+    "imageId": "sha256:9f5becc780eb7c629845f46b0f1a8cac904e1e616d5defb49fe7f5fbdb639a14",
+    "os": "linux",
+    "architecture": "arm64",
+    "baseImage": "oraclelinux:10-slim@sha256:0660af1f1bb56559b299d99d3b71d0ff51f9d593cecbd3154a46914704ec34d6",
+    "baseIndexDigest": "sha256:0660af1f1bb56559b299d99d3b71d0ff51f9d593cecbd3154a46914704ec34d6",
+    "serverVersion": "18.6",
+    "packageVersion": "18.6-4PGDG.rhel10.2",
+    "evidence": ".local/feature-11/evidence/real/.local/feature-3/image.json"
+  },
+  "discovery": {
+    "status": "passed",
+    "problems": []
+  },
+  "scenarios": [
+    {
+      "id": "APP-001",
+      "registry": "tests/scenarios/application.json",
+      "source": "docs/specs/0001-struktur-aplikasi-dependency/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "command",
+          "script": "check:dependencies",
+          "file": "package.json",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        },
+        {
+          "runner": "command",
+          "script": "build:frontend",
+          "file": "package.json",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        },
+        {
+          "runner": "command",
+          "script": "typecheck:backend",
+          "file": "package.json",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        },
+        {
+          "runner": "command",
+          "script": "build:backend",
+          "file": "package.json",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "APP-002",
+      "registry": "tests/scenarios/application.json",
+      "source": "docs/specs/0001-struktur-aplikasi-dependency/index.md",
+      "criteria": [
+        "AC-2",
+        "AC-4"
+      ],
+      "critical": true,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "vitest",
+          "script": "test:frontend",
+          "file": "apps/frontend/src/app/app.spec.ts",
+          "testTag": "APP-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/frontend.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/application.test.ts",
+          "testTag": "APP-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "playwright",
+          "script": "test:e2e",
+          "file": "tests/e2e/application/framework.e2e.spec.ts",
+          "testTag": "APP-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/playwright.xml"
+        }
+      ]
+    },
+    {
+      "id": "APP-003",
+      "registry": "tests/scenarios/application.json",
+      "source": "docs/specs/0001-struktur-aplikasi-dependency/index.md",
+      "criteria": [
+        "AC-3",
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/application.test.ts",
+          "testTag": "APP-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi.test.ts",
+          "testTag": "APP-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 48,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "api:check",
+          "file": "package.json",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "APP-004",
+      "registry": "tests/scenarios/application.json",
+      "source": "docs/specs/0001-struktur-aplikasi-dependency/index.md",
+      "criteria": [
+        "AC-4",
+        "AC-6"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/application.test.ts",
+          "testTag": "APP-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "AUTH-001",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-1"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/auth.test.ts",
+          "testTag": "AUTH-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "AUTH-002",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-2"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/auth.test.ts",
+          "testTag": "AUTH-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "AUTH-003",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-3"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/auth.test.ts",
+          "testTag": "AUTH-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/auth.test.ts",
+          "testTag": "AUTH-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 4,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:deployment:real",
+          "file": "tests/orchestration/deployment-real.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "AUTH-004",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-4"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/auth.test.ts",
+          "testTag": "AUTH-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/auth.test.ts",
+          "testTag": "AUTH-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "AUTH-005",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/auth.test.ts",
+          "testTag": "AUTH-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/auth.test.ts",
+          "testTag": "AUTH-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "AUTH-006",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-6"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/auth.test.ts",
+          "testTag": "AUTH-006",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/auth.test.ts",
+          "testTag": "AUTH-006",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:deployment:real",
+          "file": "tests/orchestration/deployment-real.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "AUTH-007",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/auth.test.ts",
+          "testTag": "AUTH-007",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/auth.test.ts",
+          "testTag": "AUTH-007",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "AUTH-008",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/auth.test.ts",
+          "testTag": "AUTH-008",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "AUTH-009",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-9"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/auth.test.ts",
+          "testTag": "AUTH-009",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 9,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/application.test.ts",
+          "testTag": "AUTH-009",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/auth.test.ts",
+          "testTag": "AUTH-009",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:deployment:real",
+          "file": "tests/orchestration/deployment-real.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "AUTH-010",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-10"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/auth.test.ts",
+          "testTag": "AUTH-010",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/auth.test.ts",
+          "testTag": "AUTH-010",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "playwright",
+          "script": "test:readiness:real",
+          "file": "tests/e2e/auth/auth.real.e2e.spec.ts",
+          "testTag": "AUTH-010",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-10/playwright-real.xml"
+        },
+        {
+          "runner": "playwright",
+          "script": "test:tooling:real",
+          "file": "tests/e2e/auth/auth.real.e2e.spec.ts",
+          "testTag": "AUTH-010",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-2/playwright-real.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:deployment:real",
+          "file": "tests/orchestration/deployment-real.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "AUTH-011",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-11"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi-contract.test.ts",
+          "testTag": "AUTH-011",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "vitest",
+          "script": "test:frontend",
+          "file": "apps/frontend/src/app/features/auth/auth-api.integration.spec.ts",
+          "testTag": "AUTH-011",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 78,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/frontend.xml"
+        }
+      ]
+    },
+    {
+      "id": "AUTH-012",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-10",
+        "AC-12"
+      ],
+      "critical": true,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "playwright",
+          "script": "test:readiness:real",
+          "file": "tests/e2e/auth/auth.real.e2e.spec.ts",
+          "testTag": "AUTH-012",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 4,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-10/playwright-real.xml"
+        },
+        {
+          "runner": "playwright",
+          "script": "test:tooling:real",
+          "file": "tests/e2e/auth/auth.real.e2e.spec.ts",
+          "testTag": "AUTH-012",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 4,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-2/playwright-real.xml"
+        },
+        {
+          "runner": "playwright",
+          "script": "test:e2e",
+          "file": "tests/e2e/auth/sign-in.e2e.spec.ts",
+          "testTag": "AUTH-012",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/playwright.xml"
+        },
+        {
+          "runner": "vitest",
+          "script": "test:frontend",
+          "file": "apps/frontend/src/app/features/auth/sign-in-page.spec.ts",
+          "testTag": "AUTH-012",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 16,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/frontend.xml"
+        },
+        {
+          "runner": "vitest",
+          "script": "test:frontend",
+          "file": "apps/frontend/src/app/features/auth/account-page.spec.ts",
+          "testTag": "AUTH-012",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 31,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/frontend.xml"
+        },
+        {
+          "runner": "vitest",
+          "script": "test:frontend",
+          "file": "apps/frontend/src/app/core/session/session-state.spec.ts",
+          "testTag": "AUTH-012",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 7,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/frontend.xml"
+        }
+      ]
+    },
+    {
+      "id": "AUTH-013",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-12",
+        "AC-13"
+      ],
+      "critical": true,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "playwright",
+          "script": "test:deployment:real",
+          "file": "tests/e2e/deployment/auth.deployment.e2e.spec.ts",
+          "testTag": "AUTH-013",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-13/playwright-deployment.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:deployment:real",
+          "file": "tests/orchestration/deployment-real.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "AUTH-014",
+      "registry": "tests/scenarios/auth.json",
+      "source": "docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md",
+      "criteria": [
+        "AC-15"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:deployment:plan",
+          "file": "tests/integration/deployment/auth-static.test.ts",
+          "testTag": "AUTH-014",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-13/plan.xml"
+        }
+      ]
+    },
+    {
+      "id": "BKP-001",
+      "registry": "tests/scenarios/backup.json",
+      "source": "docs/specs/0013-backup-pemulihan-data/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-3",
+        "AC-4",
+        "AC-9"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:deployment:plan",
+          "file": "tests/integration/deployment/backup-static.test.ts",
+          "testTag": "BKP-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 16,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-13/plan.xml"
+        }
+      ]
+    },
+    {
+      "id": "BKP-002",
+      "registry": "tests/scenarios/backup.json",
+      "source": "docs/specs/0013-backup-pemulihan-data/index.md",
+      "criteria": [
+        "AC-2"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/provision.test.ts",
+          "testTag": "BKP-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 15,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "BKP-003",
+      "registry": "tests/scenarios/backup.json",
+      "source": "docs/specs/0013-backup-pemulihan-data/index.md",
+      "criteria": [
+        "AC-3",
+        "AC-4",
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/backup.test.ts",
+          "testTag": "BKP-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 4,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "BKP-004",
+      "registry": "tests/scenarios/backup.json",
+      "source": "docs/specs/0013-backup-pemulihan-data/index.md",
+      "criteria": [
+        "AC-5",
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/backup.test.ts",
+          "testTag": "BKP-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "BKP-005",
+      "registry": "tests/scenarios/backup.json",
+      "source": "docs/specs/0013-backup-pemulihan-data/index.md",
+      "criteria": [
+        "AC-6",
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/backup.test.ts",
+          "testTag": "BKP-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 15,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "BKP-006",
+      "registry": "tests/scenarios/backup.json",
+      "source": "docs/specs/0013-backup-pemulihan-data/index.md",
+      "criteria": [
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/backup.test.ts",
+          "testTag": "BKP-006",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 10,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "BKP-007",
+      "registry": "tests/scenarios/backup.json",
+      "source": "docs/specs/0013-backup-pemulihan-data/index.md",
+      "criteria": [
+        "AC-7",
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/backup.test.ts",
+          "testTag": "BKP-007",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "BKP-008",
+      "registry": "tests/scenarios/backup.json",
+      "source": "docs/specs/0013-backup-pemulihan-data/index.md",
+      "criteria": [
+        "AC-4"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:tooling",
+          "file": "tests/integration/tooling/development.test.ts",
+          "testTag": "BKP-008",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/tooling.xml"
+        }
+      ]
+    },
+    {
+      "id": "BKP-009",
+      "registry": "tests/scenarios/backup.json",
+      "source": "docs/specs/0013-backup-pemulihan-data/index.md",
+      "criteria": [
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/backup.test.ts",
+          "testTag": "BKP-009",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "GATE-001",
+      "registry": "tests/scenarios/ci-gate.json",
+      "source": "docs/specs/0010-pengujian-skenario-gate-ci/index.md",
+      "criteria": [
+        "AC-1"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:gate",
+          "file": "tests/integration/gate/discovery.test.ts",
+          "testTag": "GATE-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 15,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-11/gate.xml"
+        },
+        {
+          "runner": "command",
+          "script": "check:test-discovery",
+          "file": "scripts/check-test-discovery.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "GATE-002",
+      "registry": "tests/scenarios/ci-gate.json",
+      "source": "docs/specs/0010-pengujian-skenario-gate-ci/index.md",
+      "criteria": [
+        "AC-2"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:gate",
+          "file": "tests/integration/gate/registry.test.ts",
+          "testTag": "GATE-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 8,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-11/gate.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:scenarios",
+          "file": "scripts/validate-scenarios.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "GATE-003",
+      "registry": "tests/scenarios/ci-gate.json",
+      "source": "docs/specs/0010-pengujian-skenario-gate-ci/index.md",
+      "criteria": [
+        "AC-3",
+        "AC-8",
+        "AC-9"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:gate",
+          "file": "tests/integration/gate/workflow.test.ts",
+          "testTag": "GATE-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 82,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-11/gate.xml"
+        },
+        {
+          "runner": "command",
+          "script": "check:workflow",
+          "file": "scripts/check-workflow.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "GATE-004",
+      "registry": "tests/scenarios/ci-gate.json",
+      "source": "docs/specs/0010-pengujian-skenario-gate-ci/index.md",
+      "criteria": [
+        "AC-4",
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:gate",
+          "file": "tests/integration/gate/tier.test.ts",
+          "testTag": "GATE-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 26,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-11/gate.xml"
+        }
+      ]
+    },
+    {
+      "id": "GATE-005",
+      "registry": "tests/scenarios/ci-gate.json",
+      "source": "docs/specs/0010-pengujian-skenario-gate-ci/index.md",
+      "criteria": [
+        "AC-6"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:gate",
+          "file": "tests/integration/gate/report.test.ts",
+          "testTag": "GATE-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 17,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-11/gate.xml"
+        }
+      ]
+    },
+    {
+      "id": "GATE-006",
+      "registry": "tests/scenarios/ci-gate.json",
+      "source": "docs/specs/0010-pengujian-skenario-gate-ci/index.md",
+      "criteria": [
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:gate",
+          "file": "tests/integration/gate/report.test.ts",
+          "testTag": "GATE-006",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-11/gate.xml"
+        }
+      ]
+    },
+    {
+      "id": "GATE-007",
+      "registry": "tests/scenarios/ci-gate.json",
+      "source": "docs/specs/0010-pengujian-skenario-gate-ci/index.md",
+      "criteria": [
+        "AC-5",
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:gate",
+          "file": "tests/integration/gate/security-policy.test.ts",
+          "testTag": "GATE-007",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 21,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-11/gate.xml"
+        },
+        {
+          "runner": "command",
+          "script": "check:security",
+          "file": "tests/orchestration/security-scan.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "GATE-008",
+      "registry": "tests/scenarios/ci-gate.json",
+      "source": "docs/specs/0010-pengujian-skenario-gate-ci/index.md",
+      "criteria": [
+        "AC-4"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:gate",
+          "file": "tests/integration/gate/tier.test.ts",
+          "testTag": "GATE-008",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-11/gate.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:ci:real",
+          "file": "scripts/gate.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": null,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "GATE-009",
+      "registry": "tests/scenarios/ci-gate.json",
+      "source": "docs/specs/0010-pengujian-skenario-gate-ci/index.md",
+      "criteria": [
+        "AC-4",
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:gate",
+          "file": "tests/integration/gate/signal-cleanup.test.ts",
+          "testTag": "GATE-009",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 11,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-11/gate.xml"
+        }
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "registry": "tests/scenarios/database.json",
+      "source": "docs/specs/0004-model-data-akses-database/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/provision.test.ts",
+          "testTag": "DATA-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "registry": "tests/scenarios/database.json",
+      "source": "docs/specs/0004-model-data-akses-database/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/provision.test.ts",
+          "testTag": "DATA-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "DATA-003",
+      "registry": "tests/scenarios/database.json",
+      "source": "docs/specs/0004-model-data-akses-database/index.md",
+      "criteria": [
+        "AC-3",
+        "AC-4",
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/provision.test.ts",
+          "testTag": "DATA-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "DATA-004",
+      "registry": "tests/scenarios/database.json",
+      "source": "docs/specs/0004-model-data-akses-database/index.md",
+      "criteria": [
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/provision.test.ts",
+          "testTag": "DATA-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "DATA-005",
+      "registry": "tests/scenarios/database.json",
+      "source": "docs/specs/0004-model-data-akses-database/index.md",
+      "criteria": [
+        "AC-6",
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/provision.test.ts",
+          "testTag": "DATA-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "DEP-001",
+      "registry": "tests/scenarios/deployment.json",
+      "source": "docs/specs/0012-build-container-deployment-terpisah/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-10",
+        "AC-11",
+        "AC-12"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:deployment:plan",
+          "file": "tests/integration/deployment/static.test.ts",
+          "testTag": "DEP-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 34,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-13/plan.xml"
+        }
+      ]
+    },
+    {
+      "id": "DEP-002",
+      "registry": "tests/scenarios/deployment.json",
+      "source": "docs/specs/0012-build-container-deployment-terpisah/index.md",
+      "criteria": [
+        "AC-4"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/health.test.ts",
+          "testTag": "DEP-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 16,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "DEP-003",
+      "registry": "tests/scenarios/deployment.json",
+      "source": "docs/specs/0012-build-container-deployment-terpisah/index.md",
+      "criteria": [
+        "AC-4"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi-contract.test.ts",
+          "testTag": "DEP-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/readiness-contract.test.ts",
+          "testTag": "DEP-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "vitest",
+          "script": "test:frontend",
+          "file": "apps/frontend/src/app/sdk-contract.integration.spec.ts",
+          "testTag": "DEP-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/frontend.xml"
+        },
+        {
+          "runner": "command",
+          "script": "api:check",
+          "file": "scripts/check-api.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "DEP-004",
+      "registry": "tests/scenarios/deployment.json",
+      "source": "docs/specs/0012-build-container-deployment-terpisah/index.md",
+      "criteria": [
+        "AC-11",
+        "AC-12"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:gate",
+          "file": "tests/integration/gate/release.test.ts",
+          "testTag": "DEP-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 15,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-11/gate.xml"
+        }
+      ]
+    },
+    {
+      "id": "DEP-005",
+      "registry": "tests/scenarios/deployment.json",
+      "source": "docs/specs/0012-build-container-deployment-terpisah/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-9",
+        "AC-10",
+        "AC-11"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "command",
+          "script": "test:deployment:real",
+          "file": "tests/orchestration/deployment-real.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "DEP-006",
+      "registry": "tests/scenarios/deployment.json",
+      "source": "docs/specs/0012-build-container-deployment-terpisah/index.md",
+      "criteria": [
+        "AC-6"
+      ],
+      "critical": true,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "playwright",
+          "script": "test:deployment:real",
+          "file": "tests/e2e/deployment/edge.deployment.e2e.spec.ts",
+          "testTag": "DEP-006",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-13/playwright-deployment.xml"
+        }
+      ]
+    },
+    {
+      "id": "DEP-007",
+      "registry": "tests/scenarios/deployment.json",
+      "source": "docs/specs/0012-build-container-deployment-terpisah/index.md",
+      "criteria": [
+        "AC-9",
+        "AC-10"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/logging.test.ts",
+          "testTag": "DEP-007",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 18,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "DEP-008",
+      "registry": "tests/scenarios/deployment.json",
+      "source": "docs/specs/0012-build-container-deployment-terpisah/index.md",
+      "criteria": [
+        "AC-8",
+        "AC-11"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:deployment:plan",
+          "file": "tests/integration/deployment/signal.test.ts",
+          "testTag": "DEP-008",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 22,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-13/plan.xml"
+        }
+      ]
+    },
+    {
+      "id": "DEP-009",
+      "registry": "tests/scenarios/deployment.json",
+      "source": "docs/specs/0012-build-container-deployment-terpisah/index.md",
+      "criteria": [
+        "AC-4"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/health.test.ts",
+          "testTag": "DEP-009",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 8,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "TOOL-001",
+      "registry": "tests/scenarios/development-tooling.json",
+      "source": "docs/specs/0003-doctor-serve-aplikasi-nyata/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:tooling",
+          "file": "tests/integration/tooling/development.test.ts",
+          "testTag": "TOOL-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 4,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/tooling.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:tooling:real",
+          "file": "tests/integration/tooling-real/doctor-smoke.ts",
+          "testTag": "TOOL-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "TOOL-002",
+      "registry": "tests/scenarios/development-tooling.json",
+      "source": "docs/specs/0003-doctor-serve-aplikasi-nyata/index.md",
+      "criteria": [
+        "AC-6"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:tooling",
+          "file": "tests/integration/tooling/development.test.ts",
+          "testTag": "TOOL-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 7,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/tooling.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:tooling:real",
+          "file": "tests/integration/tooling-real/doctor-smoke.ts",
+          "testTag": "TOOL-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "TOOL-003",
+      "registry": "tests/scenarios/development-tooling.json",
+      "source": "docs/specs/0003-doctor-serve-aplikasi-nyata/index.md",
+      "criteria": [
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:tooling",
+          "file": "tests/integration/tooling/development.test.ts",
+          "testTag": "TOOL-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 10,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/tooling.xml"
+        }
+      ]
+    },
+    {
+      "id": "TOOL-004",
+      "registry": "tests/scenarios/development-tooling.json",
+      "source": "docs/specs/0003-doctor-serve-aplikasi-nyata/index.md",
+      "criteria": [
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:tooling",
+          "file": "tests/integration/tooling/development.test.ts",
+          "testTag": "TOOL-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 4,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/tooling.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:tooling:real",
+          "file": "tests/integration/tooling-real/doctor-smoke.ts",
+          "testTag": "TOOL-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "TOOL-005",
+      "registry": "tests/scenarios/development-tooling.json",
+      "source": "docs/specs/0003-doctor-serve-aplikasi-nyata/index.md",
+      "criteria": [
+        "AC-6",
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:tooling",
+          "file": "tests/integration/tooling/development.test.ts",
+          "testTag": "TOOL-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 16,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/tooling.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:tooling:real",
+          "file": "tests/integration/tooling-real/doctor-smoke.ts",
+          "testTag": "TOOL-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "TOOL-006",
+      "registry": "tests/scenarios/development-tooling.json",
+      "source": "docs/specs/0003-doctor-serve-aplikasi-nyata/index.md",
+      "criteria": [
+        "AC-4",
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:tooling",
+          "file": "tests/integration/tooling/development.test.ts",
+          "testTag": "TOOL-006",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 10,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/tooling.xml"
+        }
+      ]
+    },
+    {
+      "id": "TOOL-007",
+      "registry": "tests/scenarios/development-tooling.json",
+      "source": "docs/specs/0003-doctor-serve-aplikasi-nyata/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-9"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "command",
+          "script": "test:tooling:real",
+          "file": "tests/integration/tooling-real/doctor-smoke.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        },
+        {
+          "runner": "playwright",
+          "script": "test:tooling:real",
+          "file": "tests/e2e/readiness/readiness.real.e2e.spec.ts",
+          "testTag": "READY-009",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-2/playwright-real.xml"
+        }
+      ]
+    },
+    {
+      "id": "TOOL-008",
+      "registry": "tests/scenarios/development-tooling.json",
+      "source": "docs/specs/0003-doctor-serve-aplikasi-nyata/index.md",
+      "criteria": [
+        "AC-3",
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:tooling",
+          "file": "tests/integration/tooling/development.test.ts",
+          "testTag": "TOOL-008",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/tooling.xml"
+        }
+      ]
+    },
+    {
+      "id": "INFRA-001",
+      "registry": "tests/scenarios/infrastructure.json",
+      "source": "docs/specs/0002-infrastruktur-postgresql-development/index.md",
+      "criteria": [
+        "AC-4",
+        "AC-6",
+        "AC-7",
+        "AC-9"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:infrastructure",
+          "file": "tests/integration/infrastructure/postgres.test.ts",
+          "testTag": "INFRA-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-3/infrastructure.xml"
+        }
+      ]
+    },
+    {
+      "id": "INFRA-002",
+      "registry": "tests/scenarios/infrastructure.json",
+      "source": "docs/specs/0002-infrastruktur-postgresql-development/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:infrastructure",
+          "file": "tests/integration/infrastructure/postgres.test.ts",
+          "testTag": "INFRA-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 4,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-3/infrastructure.xml"
+        }
+      ]
+    },
+    {
+      "id": "INFRA-003",
+      "registry": "tests/scenarios/infrastructure.json",
+      "source": "docs/specs/0002-infrastruktur-postgresql-development/index.md",
+      "criteria": [
+        "AC-3",
+        "AC-4",
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:infrastructure",
+          "file": "tests/integration/infrastructure/postgres.test.ts",
+          "testTag": "INFRA-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 4,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-3/infrastructure.xml"
+        }
+      ]
+    },
+    {
+      "id": "INFRA-004",
+      "registry": "tests/scenarios/infrastructure.json",
+      "source": "docs/specs/0002-infrastruktur-postgresql-development/index.md",
+      "criteria": [
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:infrastructure",
+          "file": "tests/integration/infrastructure/postgres.test.ts",
+          "testTag": "INFRA-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-3/infrastructure.xml"
+        }
+      ]
+    },
+    {
+      "id": "INFRA-005",
+      "registry": "tests/scenarios/infrastructure.json",
+      "source": "docs/specs/0002-infrastruktur-postgresql-development/index.md",
+      "criteria": [
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:infrastructure",
+          "file": "tests/integration/infrastructure/postgres.test.ts",
+          "testTag": "INFRA-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-3/infrastructure.xml"
+        }
+      ]
+    },
+    {
+      "id": "INFRA-006",
+      "registry": "tests/scenarios/infrastructure.json",
+      "source": "docs/specs/0002-infrastruktur-postgresql-development/index.md",
+      "criteria": [
+        "AC-3"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:infrastructure",
+          "file": "tests/integration/infrastructure/postgres.test.ts",
+          "testTag": "INFRA-006",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 4,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-3/infrastructure.xml"
+        }
+      ]
+    },
+    {
+      "id": "MIG-001",
+      "registry": "tests/scenarios/migration.json",
+      "source": "docs/specs/0005-migration-seed-terpisah/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:migration",
+          "file": "tests/integration/database/migration.test.ts",
+          "testTag": "MIG-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-6/migration.xml"
+        }
+      ]
+    },
+    {
+      "id": "MIG-002",
+      "registry": "tests/scenarios/migration.json",
+      "source": "docs/specs/0005-migration-seed-terpisah/index.md",
+      "criteria": [
+        "AC-2",
+        "AC-3",
+        "AC-6",
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:migration",
+          "file": "tests/integration/database/migration.test.ts",
+          "testTag": "MIG-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-6/migration.xml"
+        }
+      ]
+    },
+    {
+      "id": "MIG-003",
+      "registry": "tests/scenarios/migration.json",
+      "source": "docs/specs/0005-migration-seed-terpisah/index.md",
+      "criteria": [
+        "AC-4",
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:migration",
+          "file": "tests/integration/database/migration.test.ts",
+          "testTag": "MIG-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-6/migration.xml"
+        }
+      ]
+    },
+    {
+      "id": "MIG-004",
+      "registry": "tests/scenarios/migration.json",
+      "source": "docs/specs/0005-migration-seed-terpisah/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-4",
+        "AC-6",
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:migration",
+          "file": "tests/integration/database/migration.test.ts",
+          "testTag": "MIG-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-6/migration.xml"
+        }
+      ]
+    },
+    {
+      "id": "MIG-005",
+      "registry": "tests/scenarios/migration.json",
+      "source": "docs/specs/0005-migration-seed-terpisah/index.md",
+      "criteria": [
+        "AC-5",
+        "AC-6",
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:migration",
+          "file": "tests/integration/database/migration.test.ts",
+          "testTag": "MIG-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-6/migration.xml"
+        }
+      ]
+    },
+    {
+      "id": "OPENAPI-001",
+      "registry": "tests/scenarios/openapi-contract.json",
+      "source": "docs/specs/0008-ekspor-pemeriksaan-kontrak-openapi/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi-contract.test.ts",
+          "testTag": "OPENAPI-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "api:check",
+          "file": "package.json",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "OPENAPI-002",
+      "registry": "tests/scenarios/openapi-contract.json",
+      "source": "docs/specs/0008-ekspor-pemeriksaan-kontrak-openapi/index.md",
+      "criteria": [
+        "AC-3"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi-contract.test.ts",
+          "testTag": "OPENAPI-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 155,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "OPENAPI-003",
+      "registry": "tests/scenarios/openapi-contract.json",
+      "source": "docs/specs/0008-ekspor-pemeriksaan-kontrak-openapi/index.md",
+      "criteria": [
+        "AC-4"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi-contract.test.ts",
+          "testTag": "OPENAPI-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 143,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "OPENAPI-004",
+      "registry": "tests/scenarios/openapi-contract.json",
+      "source": "docs/specs/0008-ekspor-pemeriksaan-kontrak-openapi/index.md",
+      "criteria": [
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi-contract.test.ts",
+          "testTag": "OPENAPI-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 51,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "OPENAPI-005",
+      "registry": "tests/scenarios/openapi-contract.json",
+      "source": "docs/specs/0008-ekspor-pemeriksaan-kontrak-openapi/index.md",
+      "criteria": [
+        "AC-6"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi-contract.test.ts",
+          "testTag": "OPENAPI-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 26,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "OPENAPI-006",
+      "registry": "tests/scenarios/openapi-contract.json",
+      "source": "docs/specs/0008-ekspor-pemeriksaan-kontrak-openapi/index.md",
+      "criteria": [
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi-contract.test.ts",
+          "testTag": "OPENAPI-006",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 11,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "OPENAPI-007",
+      "registry": "tests/scenarios/openapi-contract.json",
+      "source": "docs/specs/0008-ekspor-pemeriksaan-kontrak-openapi/index.md",
+      "criteria": [
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi-contract.test.ts",
+          "testTag": "OPENAPI-007",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "check:dependencies",
+          "file": "package.json",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "PERF-001",
+      "registry": "tests/scenarios/performance.json",
+      "source": "docs/specs/0011-kapasitas-pemulihan-beban-meningkat/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-10"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:performance:plan",
+          "file": "tests/integration/performance/plan.test.ts",
+          "testTag": "PERF-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 58,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-12/plan.xml"
+        }
+      ]
+    },
+    {
+      "id": "PERF-002",
+      "registry": "tests/scenarios/performance.json",
+      "source": "docs/specs/0011-kapasitas-pemulihan-beban-meningkat/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-10"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "command",
+          "script": "test:performance:smoke",
+          "file": "tests/performance/profiles/smoke.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "PERF-008",
+      "registry": "tests/scenarios/performance.json",
+      "source": "docs/specs/0011-kapasitas-pemulihan-beban-meningkat/index.md",
+      "criteria": [
+        "AC-9",
+        "AC-10"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:gate",
+          "file": "tests/integration/gate/capacity.test.ts",
+          "testTag": "PERF-008",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 58,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-11/gate.xml"
+        },
+        {
+          "runner": "command",
+          "script": "check:workflow",
+          "file": "scripts/check-workflow.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "PERF-009",
+      "registry": "tests/scenarios/performance.json",
+      "source": "docs/specs/0011-kapasitas-pemulihan-beban-meningkat/index.md",
+      "criteria": [
+        "AC-2",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-10"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:performance:plan",
+          "file": "tests/integration/performance/signal.test.ts",
+          "testTag": "PERF-009",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-12/plan.xml"
+        }
+      ]
+    },
+    {
+      "id": "READY-001",
+      "registry": "tests/scenarios/readiness.json",
+      "source": "docs/specs/0006-alur-pemeriksaan-kesiapan/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-3",
+        "AC-4"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/readiness.test.ts",
+          "testTag": "READY-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 13,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "READY-002",
+      "registry": "tests/scenarios/readiness.json",
+      "source": "docs/specs/0006-alur-pemeriksaan-kesiapan/index.md",
+      "criteria": [
+        "AC-3",
+        "AC-4"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/backend/readiness.test.ts",
+          "testTag": "READY-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "READY-003",
+      "registry": "tests/scenarios/readiness.json",
+      "source": "docs/specs/0006-alur-pemeriksaan-kesiapan/index.md",
+      "criteria": [
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/readiness-contract.test.ts",
+          "testTag": "READY-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "api:check",
+          "file": "scripts/check-api.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "READY-004",
+      "registry": "tests/scenarios/readiness.json",
+      "source": "docs/specs/0006-alur-pemeriksaan-kesiapan/index.md",
+      "criteria": [
+        "AC-6"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "vitest",
+          "script": "test:frontend",
+          "file": "apps/frontend/src/app/features/readiness/readiness-api.integration.spec.ts",
+          "testTag": "READY-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 49,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/frontend.xml"
+        }
+      ]
+    },
+    {
+      "id": "READY-005",
+      "registry": "tests/scenarios/readiness.json",
+      "source": "docs/specs/0006-alur-pemeriksaan-kesiapan/index.md",
+      "criteria": [
+        "AC-7",
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "vitest",
+          "script": "test:frontend",
+          "file": "apps/frontend/src/app/features/readiness/readiness-page.spec.ts",
+          "testTag": "READY-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 23,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/frontend.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/readiness-contract.test.ts",
+          "testTag": "READY-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "READY-006",
+      "registry": "tests/scenarios/readiness.json",
+      "source": "docs/specs/0006-alur-pemeriksaan-kesiapan/index.md",
+      "criteria": [
+        "AC-3",
+        "AC-7",
+        "AC-8"
+      ],
+      "critical": true,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "playwright",
+          "script": "test:e2e",
+          "file": "tests/e2e/readiness/readiness.e2e.spec.ts",
+          "testTag": "READY-006",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/playwright.xml"
+        }
+      ]
+    },
+    {
+      "id": "READY-007",
+      "registry": "tests/scenarios/readiness.json",
+      "source": "docs/specs/0006-alur-pemeriksaan-kesiapan/index.md",
+      "criteria": [
+        "AC-9"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "playwright",
+          "script": "test:e2e",
+          "file": "tests/e2e/readiness/readiness-production.e2e.spec.ts",
+          "testTag": "READY-007",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/playwright.xml"
+        },
+        {
+          "runner": "command",
+          "script": "check:frontend:bundle",
+          "file": "scripts/check-frontend-bundle.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "READY-008",
+      "registry": "tests/scenarios/readiness.json",
+      "source": "docs/specs/0006-alur-pemeriksaan-kesiapan/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-10"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:database:real",
+          "file": "tests/integration/database/readiness.test.ts",
+          "testTag": "READY-008",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-5/database.xml"
+        }
+      ]
+    },
+    {
+      "id": "READY-009",
+      "registry": "tests/scenarios/readiness.json",
+      "source": "docs/specs/0006-alur-pemeriksaan-kesiapan/index.md",
+      "criteria": [
+        "AC-2",
+        "AC-7",
+        "AC-8",
+        "AC-10"
+      ],
+      "critical": true,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "playwright",
+          "script": "test:readiness:real",
+          "file": "tests/e2e/readiness/readiness.real.e2e.spec.ts",
+          "testTag": "READY-009",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/real/.local/feature-10/playwright-real.xml"
+        }
+      ]
+    },
+    {
+      "id": "READY-010",
+      "registry": "tests/scenarios/readiness.json",
+      "source": "docs/specs/0006-alur-pemeriksaan-kesiapan/index.md",
+      "criteria": [
+        "AC-10"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/readiness-container.test.ts",
+          "testTag": "READY-010",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 9,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "SDK-001",
+      "registry": "tests/scenarios/sdk-contract.json",
+      "source": "docs/specs/0009-sdk-sesuai-kontrak-backend/index.md",
+      "criteria": [
+        "AC-1"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/sdk.test.ts",
+          "testTag": "SDK-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi.test.ts",
+          "testTag": "APP-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 48,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "SDK-002",
+      "registry": "tests/scenarios/sdk-contract.json",
+      "source": "docs/specs/0009-sdk-sesuai-kontrak-backend/index.md",
+      "criteria": [
+        "AC-2"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/sdk.test.ts",
+          "testTag": "SDK-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "build:frontend",
+          "file": "package.json",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "SDK-003",
+      "registry": "tests/scenarios/sdk-contract.json",
+      "source": "docs/specs/0009-sdk-sesuai-kontrak-backend/index.md",
+      "criteria": [
+        "AC-3"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/frontend-bundle.test.ts",
+          "testTag": "SDK-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 49,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "check:frontend:bundle",
+          "file": "scripts/check-frontend-bundle.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "SDK-004",
+      "registry": "tests/scenarios/sdk-contract.json",
+      "source": "docs/specs/0009-sdk-sesuai-kontrak-backend/index.md",
+      "criteria": [
+        "AC-4"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "vitest",
+          "script": "test:frontend",
+          "file": "apps/frontend/src/app/sdk-contract.integration.spec.ts",
+          "testTag": "SDK-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/frontend.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/sdk.test.ts",
+          "testTag": "SDK-004",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 11,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "SDK-005",
+      "registry": "tests/scenarios/sdk-contract.json",
+      "source": "docs/specs/0009-sdk-sesuai-kontrak-backend/index.md",
+      "criteria": [
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/sdk.test.ts",
+          "testTag": "SDK-005",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "SDK-006",
+      "registry": "tests/scenarios/sdk-contract.json",
+      "source": "docs/specs/0009-sdk-sesuai-kontrak-backend/index.md",
+      "criteria": [
+        "AC-6"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/sdk.test.ts",
+          "testTag": "SDK-006",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/openapi.test.ts",
+          "testTag": "APP-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 48,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "api:check",
+          "file": "scripts/check-api.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "SDK-007",
+      "registry": "tests/scenarios/sdk-contract.json",
+      "source": "docs/specs/0009-sdk-sesuai-kontrak-backend/index.md",
+      "criteria": [
+        "AC-7"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/sdk.test.ts",
+          "testTag": "SDK-007",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "api:check",
+          "file": "scripts/check-api.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "SDK-008",
+      "registry": "tests/scenarios/sdk-contract.json",
+      "source": "docs/specs/0009-sdk-sesuai-kontrak-backend/index.md",
+      "criteria": [
+        "AC-8"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/sdk.test.ts",
+          "testTag": "SDK-008",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "test:ci",
+          "file": ".github/workflows/application.yml",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": null,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "SDK-009",
+      "registry": "tests/scenarios/sdk-contract.json",
+      "source": "docs/specs/0009-sdk-sesuai-kontrak-backend/index.md",
+      "criteria": [
+        "AC-9"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/sdk.test.ts",
+          "testTag": "SDK-009",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 7,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        },
+        {
+          "runner": "command",
+          "script": "check:dependencies",
+          "file": "package.json",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "SDK-010",
+      "registry": "tests/scenarios/sdk-contract.json",
+      "source": "docs/specs/0009-sdk-sesuai-kontrak-backend/index.md",
+      "criteria": [
+        "AC-10"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/sdk.test.ts",
+          "testTag": "SDK-010",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    },
+    {
+      "id": "UI-001",
+      "registry": "tests/scenarios/ui-shell.json",
+      "source": "docs/specs/0007-kerangka-ui-navigasi/index.md",
+      "criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-6"
+      ],
+      "critical": true,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "playwright",
+          "script": "test:e2e",
+          "file": "tests/e2e/ui-shell/foundation-shell.e2e.spec.ts",
+          "testTag": "UI-001",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/playwright.xml"
+        }
+      ]
+    },
+    {
+      "id": "UI-002",
+      "registry": "tests/scenarios/ui-shell.json",
+      "source": "docs/specs/0007-kerangka-ui-navigasi/index.md",
+      "criteria": [
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "playwright",
+          "script": "test:e2e",
+          "file": "tests/e2e/ui-shell/foundation-shell.e2e.spec.ts",
+          "testTag": "UI-002",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/playwright.xml"
+        },
+        {
+          "runner": "command",
+          "script": "check:frontend:bundle",
+          "file": "scripts/check-frontend-bundle.ts",
+          "testTag": null,
+          "status": "passed",
+          "reasons": [],
+          "counts": null,
+          "exitCode": 0,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "UI-003",
+      "registry": "tests/scenarios/ui-shell.json",
+      "source": "docs/specs/0007-kerangka-ui-navigasi/index.md",
+      "criteria": [
+        "AC-5"
+      ],
+      "critical": false,
+      "status": "passed",
+      "checks": [
+        {
+          "runner": "bun:test",
+          "script": "test:integration",
+          "file": "tests/integration/contract/frontend-bundle.test.ts",
+          "testTag": "UI-003",
+          "status": "passed",
+          "reasons": [],
+          "counts": {
+            "passed": 13,
+            "failed": 0,
+            "skipped": 0
+          },
+          "exitCode": null,
+          "evidence": ".local/feature-11/evidence/fast/.local/feature-4/server.xml"
+        }
+      ]
+    }
+  ],
+  "critical": [
+    {
+      "id": "APP-002",
+      "status": "passed"
+    },
+    {
+      "id": "AUTH-012",
+      "status": "passed"
+    },
+    {
+      "id": "AUTH-013",
+      "status": "passed"
+    },
+    {
+      "id": "DEP-006",
+      "status": "passed"
+    },
+    {
+      "id": "READY-006",
+      "status": "passed"
+    },
+    {
+      "id": "READY-009",
+      "status": "passed"
+    },
+    {
+      "id": "UI-001",
+      "status": "passed"
+    }
+  ],
+  "scanners": {
+    "scannedAt": "2026-10-06T12:30:08.675Z",
+    "workingTreeClean": false,
+    "status": "passed",
+    "scanners": [
+      {
+        "name": "gitleaks",
+        "version": "v8.30.1",
+        "image": "ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f",
+        "status": "passed",
+        "reason": null,
+        "coverage": {
+          "head": "4aa511abb738b43b06276091f18937aca10eedbd",
+          "commitsReachable": 57,
+          "shallow": false
+        },
+        "counts": {
+          "failed": 0,
+          "excepted": 0,
+          "reported": 0
+        }
+      },
+      {
+        "name": "bun audit",
+        "version": "1.4.2",
+        "image": null,
+        "status": "passed",
+        "reason": null,
+        "coverage": {
+          "packages": 487
+        },
+        "counts": {
+          "failed": 0,
+          "excepted": 0,
+          "reported": 0
+        }
+      },
+      {
+        "name": "actionlint",
+        "version": "1.7.12",
+        "image": "rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667",
+        "status": "passed",
+        "reason": null,
+        "coverage": {
+          "files": [
+            ".github/workflows/application.yml",
+            ".github/workflows/capacity.yml"
+          ]
+        },
+        "counts": {
+          "failed": 0,
+          "excepted": 0,
+          "reported": 0
+        }
+      }
+    ]
+  },
+  "gate": "passed",
+  "releaseCandidate": {
+    "value": false,
+    "reasons": [
+      {
+        "code": "not_clean",
+        "tier": "fast"
+      },
+      {
+        "code": "not_clean",
+        "tier": "real"
+      },
+      {
+        "code": "not_clean",
+        "tier": "security"
+      },
+      {
+        "code": "not_ci",
+        "tier": "fast"
+      },
+      {
+        "code": "not_ci",
+        "tier": "real"
+      },
+      {
+        "code": "not_ci",
+        "tier": "security"
+      },
+      {
+        "code": "not_ci",
+        "tier": null
+      }
+    ]
+  },
+  "outOfScope": [
+    {
+      "area": "capacity_profiles",
+      "feature": 12
+    }
+  ],
+  "performance": [
+    {
+      "tier": "real",
+      "script": "test:performance:smoke",
+      "profile": "smoke",
+      "status": "passed",
+      "evidence": ".local/feature-11/evidence/real/.local/feature-12/smoke/result.json",
+      "model": {
+        "iterationIsOneRequest": true,
+        "phases": [
+          {
+            "phase": "warmup",
+            "shape": "constant",
+            "seconds": 10,
+            "load": "S0",
+            "rates": {
+              "status": {
+                "startRate": 100,
+                "endRate": 100
+              },
+              "readiness": {
+                "startRate": 10,
+                "endRate": 10
+              }
+            }
+          },
+          {
+            "phase": "steady",
+            "shape": "constant",
+            "seconds": 30,
+            "load": "S0",
+            "rates": {
+              "status": {
+                "startRate": 100,
+                "endRate": 100
+              },
+              "readiness": {
+                "startRate": 10,
+                "endRate": 10
+              }
+            }
+          }
+        ]
+      },
+      "actual": {
+        "scenarios": [
+          {
+            "name": "status_warmup",
+            "endpoint": "status",
+            "phase": "warmup",
+            "executor": "constant-arrival-rate",
+            "startRate": 100,
+            "endRate": 100,
+            "seconds": 10,
+            "plannedIterations": 1000,
+            "iterations": 1001,
+            "rate": 100.1
+          },
+          {
+            "name": "readiness_warmup",
+            "endpoint": "readiness",
+            "phase": "warmup",
+            "executor": "constant-arrival-rate",
+            "startRate": 10,
+            "endRate": 10,
+            "seconds": 10,
+            "plannedIterations": 100,
+            "iterations": 101,
+            "rate": 10.1
+          },
+          {
+            "name": "status_steady",
+            "endpoint": "status",
+            "phase": "steady",
+            "executor": "constant-arrival-rate",
+            "startRate": 100,
+            "endRate": 100,
+            "seconds": 30,
+            "plannedIterations": 3000,
+            "iterations": 3001,
+            "rate": 100.03333333333333
+          },
+          {
+            "name": "readiness_steady",
+            "endpoint": "readiness",
+            "phase": "steady",
+            "executor": "constant-arrival-rate",
+            "startRate": 10,
+            "endRate": 10,
+            "seconds": 30,
+            "plannedIterations": 300,
+            "iterations": 301,
+            "rate": 10.033333333333333
+          }
+        ],
+        "iterations": 4404,
+        "httpReqs": 4404,
+        "droppedIterations": 0,
+        "vusMax": 40,
+        "scenarioStartLateMs": 8
+      },
+      "latency": [
+        {
+          "endpoint": "status",
+          "phase": "warmup",
+          "outcome": "all",
+          "count": 1001,
+          "p50": 0.736,
+          "p95": 2.322084,
+          "p99": 3.834833,
+          "max": 9.868959
+        },
+        {
+          "endpoint": "readiness",
+          "phase": "warmup",
+          "outcome": "available",
+          "count": 101,
+          "p50": 3.676083,
+          "p95": 6.648916,
+          "p99": 7.606875,
+          "max": 9.894791
+        },
+        {
+          "endpoint": "readiness",
+          "phase": "warmup",
+          "outcome": "busy",
+          "count": 0,
+          "p50": null,
+          "p95": null,
+          "p99": null,
+          "max": null
+        },
+        {
+          "endpoint": "readiness",
+          "phase": "warmup",
+          "outcome": "unavailable",
+          "count": 0,
+          "p50": null,
+          "p95": null,
+          "p99": null,
+          "max": null
+        },
+        {
+          "endpoint": "status",
+          "phase": "steady",
+          "outcome": "all",
+          "count": 3001,
+          "p50": 0.670541,
+          "p95": 2.0935,
+          "p99": 3.599958,
+          "max": 10.291375
+        },
+        {
+          "endpoint": "readiness",
+          "phase": "steady",
+          "outcome": "available",
+          "count": 300,
+          "p50": 3.2094375,
+          "p95": 5.719752749999999,
+          "p99": 6.625835329999999,
+          "max": 8.785375
+        },
+        {
+          "endpoint": "readiness",
+          "phase": "steady",
+          "outcome": "busy",
+          "count": 1,
+          "p50": 2.742583,
+          "p95": 2.742583,
+          "p99": 2.742583,
+          "max": 2.742583
+        },
+        {
+          "endpoint": "readiness",
+          "phase": "steady",
+          "outcome": "unavailable",
+          "count": 0,
+          "p50": null,
+          "p95": null,
+          "p99": null,
+          "max": null
+        }
+      ],
+      "readiness": {
+        "phases": [
+          {
+            "phase": "warmup",
+            "available": 101,
+            "busy": 0,
+            "unavailable": 0,
+            "availableRatio": 1
+          },
+          {
+            "phase": "steady",
+            "available": 300,
+            "busy": 1,
+            "unavailable": 0,
+            "availableRatio": 0.9966777408637874
+          }
+        ],
+        "recoveryMs": null
+      },
+      "thresholds": [
+        {
+          "metric": "unexpected_responses",
+          "expression": "count==0",
+          "ok": true
+        },
+        {
+          "metric": "dropped_iterations",
+          "expression": "count==0",
+          "ok": true
+        },
+        {
+          "metric": "checks",
+          "expression": "rate==1",
+          "ok": true
+        },
+        {
+          "metric": "iterations{scenario:status_warmup}",
+          "expression": "count>=990",
+          "ok": true
+        },
+        {
+          "metric": "iterations{scenario:readiness_warmup}",
+          "expression": "count>=90",
+          "ok": true
+        },
+        {
+          "metric": "iterations{scenario:status_steady}",
+          "expression": "count>=2990",
+          "ok": true
+        },
+        {
+          "metric": "iterations{scenario:readiness_steady}",
+          "expression": "count>=290",
+          "ok": true
+        },
+        {
+          "metric": "http_req_duration{endpoint:status,phase:warmup}",
+          "expression": "max>=0",
+          "ok": true
+        },
+        {
+          "metric": "readiness_available_duration{phase:warmup}",
+          "expression": "max>=0",
+          "ok": true
+        },
+        {
+          "metric": "readiness_busy_duration{phase:warmup}",
+          "expression": "max>=0",
+          "ok": true
+        },
+        {
+          "metric": "readiness_unavailable_duration{phase:warmup}",
+          "expression": "max>=0",
+          "ok": true
+        },
+        {
+          "metric": "http_req_duration{endpoint:status,phase:steady}",
+          "expression": "p(95)<10",
+          "ok": true
+        },
+        {
+          "metric": "http_req_duration{endpoint:status,phase:steady}",
+          "expression": "p(99)<25",
+          "ok": true
+        },
+        {
+          "metric": "readiness_available_duration{phase:steady}",
+          "expression": "p(95)<25",
+          "ok": true
+        },
+        {
+          "metric": "readiness_available_duration{phase:steady}",
+          "expression": "p(99)<50",
+          "ok": true
+        },
+        {
+          "metric": "readiness_busy_duration{phase:steady}",
+          "expression": "max>=0",
+          "ok": true
+        },
+        {
+          "metric": "readiness_unavailable_duration{phase:steady}",
+          "expression": "max>=0",
+          "ok": true
+        },
+        {
+          "metric": "readiness_available{phase:steady}",
+          "expression": "rate>=0.98",
+          "ok": true
+        }
+      ],
+      "observation": {
+        "containers": {
+          "postgres": {
+            "cpuMean": 1.19,
+            "cpuMax": 6.21,
+            "memoryMeanMiB": 43.36,
+            "memoryMaxMiB": 44.81,
+            "memoryGrowthMiB": null,
+            "restarts": null,
+            "oomKilled": null,
+            "stderrBytes": null
+          },
+          "backend": {
+            "cpuMean": 5.62,
+            "cpuMax": 7.71,
+            "memoryMeanMiB": 23.11,
+            "memoryMaxMiB": 24.54,
+            "memoryGrowthMiB": null,
+            "restarts": 0,
+            "oomKilled": false,
+            "stderrBytes": 0
+          },
+          "k6": {
+            "cpuMean": 16.43,
+            "cpuMax": 21.91,
+            "memoryMeanMiB": 38.49,
+            "memoryMaxMiB": 41.3,
+            "memoryGrowthMiB": null,
+            "restarts": null,
+            "oomKilled": null,
+            "stderrBytes": null
+          }
+        },
+        "pool": {
+          "sessions": 5,
+          "nonIdle": 1,
+          "total": 6,
+          "samples": 55,
+          "failedSamples": 0
+        },
+        "checks": [
+          {
+            "name": "backend_running",
+            "rule": "sesudah k6 keluar, backend berjalan, RestartCount 0, dan tidak OOMKilled",
+            "actual": {
+              "running": true,
+              "restarts": 0,
+              "oomKilled": false
+            },
+            "ok": true
+          },
+          {
+            "name": "backend_output",
+            "rule": "stderr 0 byte; stdout tepat baris listening lalu Backend stopped",
+            "actual": {
+              "stderrBytes": 0,
+              "stdoutExpected": true
+            },
+            "ok": true
+          },
+          {
+            "name": "backend_memory_peak",
+            "rule": "memory backend maksimum <= 128 MiB",
+            "actual": 24.54,
+            "ok": true
+          },
+          {
+            "name": "pool_sessions",
+            "rule": "setiap sampel mencatat paling banyak 5 sesi foundation_backend",
+            "actual": 5,
+            "ok": true
+          },
+          {
+            "name": "pool_non_idle",
+            "rule": "setiap sampel mencatat paling banyak 1 sesi foundation_backend yang tidak idle",
+            "actual": 1,
+            "ok": true
+          },
+          {
+            "name": "generator_cpu",
+            "rule": "rata rata CPU k6 pada setiap fase terukur <= 240 persen satu CPU",
+            "actual": 16.8,
+            "ok": true
+          },
+          {
+            "name": "generator_memory",
+            "rule": "memory k6 maksimum <= 1638 MiB",
+            "actual": 41.3,
+            "ok": true
+          },
+          {
+            "name": "observation_coverage",
+            "rule": "sampel cukup dan celah dalam batas pada setiap container dan fase terukur, serta pada pg_stat_activity",
+            "actual": [],
+            "ok": true
+          },
+          {
+            "name": "clock_offset",
+            "rule": "selisih jam container dengan host <= 1000 ms sebelum T0 dan sesudah k6 keluar",
+            "actual": {
+              "before": 18,
+              "after": 6
+            },
+            "ok": true
+          }
+        ]
+      },
+      "outage": null,
+      "environment": {
+        "os": "Darwin 27.0.0",
+        "arch": "arm64",
+        "cpuModel": "Apple M1 Max",
+        "cpuCount": 10,
+        "memoryBytes": 34359738368,
+        "containerEngine": {
+          "serverVersion": "29.8.0",
+          "os": "Docker Desktop",
+          "ncpu": 10,
+          "memTotal": 8319504384
+        },
+        "otherContainersRunning": 8,
+        "ci": false,
+        "images": {
+          "k6": "grafana/k6:2.3.0@sha256:9c2dee7f8ed74d317e4027c06a10f169b625638189de8d4555d0b3486a5aeb34",
+          "bun": "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61",
+          "postgres": {
+            "image": "foundation-postgres:18-pinned",
+            "imageId": "sha256:9f5becc780eb7c629845f46b0f1a8cac904e1e616d5defb49fe7f5fbdb639a14",
+            "baseImage": "oraclelinux:10-slim@sha256:0660af1f1bb56559b299d99d3b71d0ff51f9d593cecbd3154a46914704ec34d6",
+            "serverVersion": "18.6"
+          }
+        },
+        "limits": {
+          "postgres": {
+            "cpus": "2",
+            "memory": "1g",
+            "shmSize": "128m",
+            "pids": "256"
+          },
+          "backend": {
+            "cpus": "1",
+            "memory": "512m",
+            "pids": "256"
+          },
+          "k6": {
+            "cpus": "3",
+            "memory": "2g",
+            "pids": "512"
+          },
+          "inspect": {
+            "cpus": "1",
+            "memory": "512m",
+            "pids": "512"
+          }
+        },
+        "pool": {
+          "max": 5,
+          "connectionTimeoutSeconds": 3
+        },
+        "data": {
+          "appliedMigrations": 10
+        },
+        "clockOffsetMs": {
+          "before": 18,
+          "after": 6
+        }
+      },
+      "limits": [
+        "Alur yang diukur adalah diagnostik komposisi development, `GET /api/status` dan `GET /api/readiness`; komposisi production tidak memasang route apa pun dan belum ada endpoint bisnis.",
+        "Backend berjalan sebagai satu container dengan 1 CPU dan 512 MiB dari image Bun slim dengan source yang di mount, bukan image deployment fitur 13.",
+        "k6 dan backend berbagi network namespace loopback; tidak ada reverse proxy, TLS, atau latency jaringan nyata.",
+        "Data hanya riwayat migration (10 baris); tidak ada tabel bisnis.",
+        "Mesin dipakai bersama (Docker Desktop di macOS bersama container lain, atau runner GitHub hosted); hasil hanya sebanding dengan run pada kelas environment yang sama.",
+        "Batas kapasitas (breakpoint) tidak dicari; hasil membuktikan beban yang disepakati, bukan titik jenuh."
+      ]
+    }
+  ],
+  "deployment": {
+    "status": "passed",
+    "evidence": ".local/feature-11/evidence/real/.local/feature-13/result.json",
+    "images": [
+      {
+        "name": "frontend",
+        "tag": "foundation-frontend:deploy-473534d66af6",
+        "imageId": "sha256:035a9474d81a5c1498c7f413d6bce999e063b45f05bd8802d9d612a5919399e7",
+        "sizeBytes": 93186771,
+        "user": "101:101",
+        "bases": [
+          "node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe",
+          "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61",
+          "nginx:1.30.5-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94"
+        ],
+        "revision": "4aa511abb738b43b06276091f18937aca10eedbd",
+        "sourceTree": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480"
+      },
+      {
+        "name": "backend",
+        "tag": "foundation-backend:deploy-473534d66af6",
+        "imageId": "sha256:b90e3e3d117e27c86f113d3eb32191322060ef373177a1638ac16cc3fe4c2556",
+        "sizeBytes": 275385011,
+        "user": "1000:1000",
+        "bases": [
+          "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61"
+        ],
+        "revision": "4aa511abb738b43b06276091f18937aca10eedbd",
+        "sourceTree": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480"
+      },
+      {
+        "name": "migrate",
+        "tag": "foundation-migrate:deploy-473534d66af6",
+        "imageId": "sha256:5cdee0ab065082a19b1698de86ef9978ce102a00cd9ed39bf81ba8c258d8bcf5",
+        "sizeBytes": 274710807,
+        "user": "1000:1000",
+        "bases": [
+          "oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61"
+        ],
+        "revision": "4aa511abb738b43b06276091f18937aca10eedbd",
+        "sourceTree": "4cfa7461363c455bb3a2e2f67c2a6a18be5f8347e3cb9ffb662dda392027b480"
+      }
+    ],
+    "checks": [
+      {
+        "name": "image_pins",
+        "status": "passed"
+      },
+      {
+        "name": "image_context_sentinels",
+        "status": "passed"
+      },
+      {
+        "name": "image_filesystem",
+        "status": "passed"
+      },
+      {
+        "name": "image_config",
+        "status": "passed"
+      },
+      {
+        "name": "provisioning_step",
+        "status": "passed"
+      },
+      {
+        "name": "readiness_before_migration",
+        "status": "passed"
+      },
+      {
+        "name": "migration_step",
+        "status": "passed"
+      },
+      {
+        "name": "readiness_after_migration",
+        "status": "passed"
+      },
+      {
+        "name": "auth_account_job",
+        "status": "passed"
+      },
+      {
+        "name": "tls_versions",
+        "status": "passed"
+      },
+      {
+        "name": "http_redirect",
+        "status": "passed"
+      },
+      {
+        "name": "document_headers",
+        "status": "passed"
+      },
+      {
+        "name": "static_cache_fallback",
+        "status": "passed"
+      },
+      {
+        "name": "api_forwarding",
+        "status": "passed"
+      },
+      {
+        "name": "api_headers",
+        "status": "passed"
+      },
+      {
+        "name": "api_stub_forwarding",
+        "status": "passed"
+      },
+      {
+        "name": "cors_absent",
+        "status": "passed"
+      },
+      {
+        "name": "edge_errors",
+        "status": "passed"
+      },
+      {
+        "name": "health_not_public",
+        "status": "passed"
+      },
+      {
+        "name": "published_ports",
+        "status": "passed"
+      },
+      {
+        "name": "network_isolation",
+        "status": "passed"
+      },
+      {
+        "name": "egress_blocked",
+        "status": "passed"
+      },
+      {
+        "name": "compose_declaration",
+        "status": "passed"
+      },
+      {
+        "name": "container_hardening",
+        "status": "passed"
+      },
+      {
+        "name": "container_environment",
+        "status": "passed"
+      },
+      {
+        "name": "browser_flow",
+        "status": "passed"
+      },
+      {
+        "name": "auth_session_cookie",
+        "status": "passed"
+      },
+      {
+        "name": "auth_origin_csrf",
+        "status": "passed"
+      },
+      {
+        "name": "auth_capacity",
+        "status": "passed"
+      },
+      {
+        "name": "auth_edge_rate_limit",
+        "status": "passed"
+      },
+      {
+        "name": "backend_shutdown_restart",
+        "status": "passed"
+      },
+      {
+        "name": "backend_recreate",
+        "status": "passed"
+      },
+      {
+        "name": "database_outage",
+        "status": "passed"
+      },
+      {
+        "name": "edge_shutdown",
+        "status": "passed"
+      },
+      {
+        "name": "log_structure",
+        "status": "passed"
+      },
+      {
+        "name": "log_correlation",
+        "status": "passed"
+      },
+      {
+        "name": "log_no_data",
+        "status": "passed"
+      },
+      {
+        "name": "postgres_log_policy",
+        "status": "passed"
+      },
+      {
+        "name": "topology_shutdown",
+        "status": "passed"
+      },
+      {
+        "name": "artifact_scan",
+        "status": "passed"
+      },
+      {
+        "name": "cleanup",
+        "status": "passed"
+      }
+    ],
+    "boundary": "Topologi rujukan satu host Docker dengan sertifikat dari CA sementara; bukan bukti platform deployment, kapasitas, image di registry, atau ketiadaan kerentanan paket OS di image (paket OS ketiga image tidak dipindai pemindai kerentanan)."
+  }
+}

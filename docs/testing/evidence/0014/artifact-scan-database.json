@@ -1,0 +1,9 @@
+{
+  "filesScanned": 22,
+  "secretsChecked": 274,
+  "tokenFingerprints": 164,
+  "tokenScanControl": true,
+  "junitSha256": "033c4350d6a94b1cc92b9653af103950c2c61c163b33436cce6eaa77415e6a59",
+  "frontendBundleFiles": 20,
+  "findings": []
+}

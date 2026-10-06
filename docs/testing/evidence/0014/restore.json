@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "failures": [],
+  "recordedAt": "2026-10-06T12:25:33.792Z",
+  "serverVersion": "18.6",
+  "backup": {
+    "name": "foundation-20261006T122358Z-manual",
+    "reason": "manual",
+    "sizeBytes": 19314,
+    "tocEntries": 51,
+    "durationMs": 64,
+    "checksumVerified": true
+  },
+  "restore": {
+    "durationMs": 607,
+    "provisioning": "verified",
+    "migrations": "Migrations: 0 applied, 11 skipped",
+    "readinessStatus": 200,
+    "oldPasswordsRejected": [
+      "foundation_migrator",
+      "foundation_backend",
+      "foundation_backup"
+    ]
+  },
+  "fingerprint": {
+    "equal": true,
+    "tables": [
+      {
+        "schema": "auth",
+        "name": "password_credentials",
+        "rows": "1"
+      },
+      {
+        "schema": "auth",
+        "name": "sessions",
+        "rows": "1"
+      },
+      {
+        "schema": "auth",
+        "name": "sign_in_attempts",
+        "rows": "0"
+      },
+      {
+        "schema": "common",
+        "name": "schema_migrations",
+        "rows": "11"
+      },
+      {
+        "schema": "users",
+        "name": "restore_fixture",
+        "rows": "3"
+      },
+      {
+        "schema": "users",
+        "name": "users",
+        "rows": "1"
+      }
+    ],
+    "sequences": [
+      {
+        "schema": "users",
+        "name": "restore_fixture_id_seq",
+        "lastValue": "3",
+        "isCalled": true
+      }
+    ],
+    "migrations": {
+      "count": 11,
+      "last": "0011-users-restore-fixture.sql"
+    }
+  },
+  "guards": [
+    {
+      "name": "invalid_name",
+      "status": "passed"
+    },
+    {
+      "name": "incomplete_backup",
+      "status": "passed"
+    },
+    {
+      "name": "checksum_mismatch",
+      "status": "passed"
+    },
+    {
+      "name": "checksum_wrong_file",
+      "status": "passed"
+    },
+    {
+      "name": "archive_invalid",
+      "status": "passed"
+    },
+    {
+      "name": "missing_admin_url",
+      "status": "passed"
+    },
+    {
+      "name": "invalid_target",
+      "status": "passed"
+    },
+    {
+      "name": "target_not_provisioned",
+      "status": "passed"
+    },
+    {
+      "name": "target_not_empty",
+      "status": "passed"
+    },
+    {
+      "name": "major_mismatch",
+      "status": "passed"
+    },
+    {
+      "name": "restore_failed",
+      "status": "passed"
+    },
+    {
+      "name": "history_drift",
+      "status": "passed"
+    }
+  ],
+  "retention": {
+    "kept": [
+      "foundation-20261006T122528Z-manual",
+      "foundation-20261005T122527Z-pre-migration",
+      "foundation-20260902T122527Z-manual",
+      "foundation-20260831T122527Z-scheduled",
+      "foundation-20260830T122527Z-scheduled",
+      "foundation-20260829T122527Z-scheduled",
+      "foundation-20260828T122527Z-scheduled"
+    ],
+    "removed": [
+      "foundation-20260827T122527Z-scheduled",
+      "foundation-20260826T122527Z-scheduled",
+      "foundation-20260825T122527Z-scheduled",
+      "foundation-20260824T122527Z-scheduled",
+      "foundation-20260823T122527Z-scheduled",
+      "foundation-20260822T122527Z-scheduled"
+    ],
+    "leftovers": [
+      ".foundation-20261004T122527Z-manual.dump.partial",
+      "foundation-20261004T122527Z-scheduled.dump",
+      "foundation-20261004T122527Z-scheduled.dump.sha256"
+    ],
+    "untouched": [
+      "archive",
+      "latest",
+      "notes.txt"
+    ]
+  },
+  "sessions": {
+    "beforeRevokeStatus": 200,
+    "afterRevokeStatus": 401,
+    "revoked": 1,
+    "rerunRevoked": 0
+  },
+  "secretScan": {
+    "filesScanned": 190,
+    "valuesChecked": 42,
+    "findings": []
+  },
+  "boundary": "Backup dan restore pada dua cluster PostgreSQL 18 terisolasi milik run dengan data fixture; bukan bukti RTO environment, ukuran data nyata, jadwal backup, salinan di luar host, atau enkripsi penyimpanan."
+}

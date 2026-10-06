@@ -1,0 +1,26 @@
+{
+  "outputsScanned": [
+    "logs backend sebelum recreate",
+    "logs edge",
+    "logs backend",
+    "logs postgres",
+    "logs migrate"
+  ],
+  "filesScanned": [
+    ".local/feature-13/images.json",
+    ".local/feature-13/playwright-deployment.xml",
+    ".local/feature-13/test-results/.last-run.json",
+    ".local/feature-13/test-results/deployment-auth.deployment-4c26b-and-Keluar-ends-the-session-chromium/test-finished-1.png",
+    ".local/feature-13/test-results/deployment-edge.deployment-2483c--Akun-and-kesiapan-ends-at--chromium/attachments/requested-origins-687fbc5b256211e0f7b5c4c4c54c2867bbe8204f.json",
+    ".local/feature-13/test-results/deployment-edge.deployment-2483c--Akun-and-kesiapan-ends-at--chromium/requested-origins.json",
+    ".local/feature-13/test-results/deployment-edge.deployment-2483c--Akun-and-kesiapan-ends-at--chromium/test-finished-1.png",
+    ".local/feature-13/test-results/deployment-edge.deployment-4acde--Akun-and-kesiapan-ends-at--chromium/attachments/requested-origins-65fb8677775ffa24283d7d6413270320217296b8.json",
+    ".local/feature-13/test-results/deployment-edge.deployment-4acde--Akun-and-kesiapan-ends-at--chromium/requested-origins.json",
+    ".local/feature-13/test-results/deployment-edge.deployment-4acde--Akun-and-kesiapan-ends-at--chromium/test-finished-1.png"
+  ],
+  "secretsChecked": 45,
+  "tokenFingerprints": 4,
+  "tokenScanControl": true,
+  "junitSha256": "485da316a9bf907e83e6f992acf2168658f7f12dbaca9740f4663173aaadbebe",
+  "findings": []
+}

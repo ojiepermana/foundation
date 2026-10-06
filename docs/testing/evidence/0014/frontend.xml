@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="214" failures="0" errors="0" time="1.097425541">
+    <testsuite name="src/app/app.spec.ts" timestamp="2026-10-06T12:17:24.673Z" tests="2" failures="0" errors="0" skipped="0" time="0.034498375">
+        <testcase classname="src/app/app.spec.ts" name="APP-002 framework page &gt; renders the static home page through the root route" time="0.031668875">
+        </testcase>
+        <testcase classname="src/app/app.spec.ts" name="APP-002 framework page &gt; lists Beranda, Akun, and Kesiapan in order and takes the wrapper user from the session state" time="0.002021375">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/sdk-contract.integration.spec.ts" timestamp="2026-10-06T12:17:24.673Z" tests="8" failures="0" errors="0" skipped="0" time="0.072601333">
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 request shape with the application config &gt; uses the same origin root URL and sends one GET /api/status without credentials" time="0.015023958">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; returns the development status through DevelopmentService" time="0.01483675">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; returns the development status through FoundationApi.invoke$Response" time="0.011914584">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; returns only the DevelopmentStatus body through getDevelopmentStatus and FoundationApi.invoke" time="0.006444875">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; fails with HttpErrorResponse 404 and the backend error body for an unknown path" time="0.005928125">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="SDK-004 responses from the real backend &gt; fails with HttpErrorResponse status 0 when nothing listens on the port" time="0.003074125">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="DEP-003 HealthService against the real backend &gt; returns {&quot;status&quot;:&quot;live&quot;} with status 200 and Cache-Control no-store through getHealthLive" time="0.007692667">
+        </testcase>
+        <testcase classname="src/app/sdk-contract.integration.spec.ts" name="DEP-003 HealthService against the real backend &gt; fails getHealthReady with HttpErrorResponse 503 and {&quot;status&quot;:&quot;unavailable&quot;} when the backend has no database" time="0.006757834">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/core/session/session-state.spec.ts" timestamp="2026-10-06T12:17:24.674Z" tests="7" failures="0" errors="0" skipped="0" time="0.017026292">
+        <testcase classname="src/app/core/session/session-state.spec.ts" name="AUTH-012 session state in memory &gt; starts unknown, without a user, a CSRF token, or a notice" time="0.009856417">
+        </testcase>
+        <testcase classname="src/app/core/session/session-state.spec.ts" name="AUTH-012 session state in memory &gt; signedIn fills the user and the CSRF token only in memory, never in localStorage or sessionStorage" time="0.001957167">
+        </testcase>
+        <testcase classname="src/app/core/session/session-state.spec.ts" name="AUTH-012 session state in memory &gt; clear empties the user and the CSRF token and keeps the notice for /masuk" time="0.001309791">
+        </testcase>
+        <testcase classname="src/app/core/session/session-state.spec.ts" name="AUTH-012 session state in memory &gt; clear without a notice leaves none" time="0.000885958">
+        </testcase>
+        <testcase classname="src/app/core/session/session-state.spec.ts" name="AUTH-012 session state in memory &gt; takeNotice reads the notice expired once and empties it, so it never shows twice" time="0.000828667">
+        </testcase>
+        <testcase classname="src/app/core/session/session-state.spec.ts" name="AUTH-012 session state in memory &gt; takeNotice reads the notice signed-out once and empties it, so it never shows twice" time="0.000592625">
+        </testcase>
+        <testcase classname="src/app/core/session/session-state.spec.ts" name="AUTH-012 session state in memory &gt; a later sign in replaces the user and the CSRF token, and does not bring back a notice that was taken" time="0.000704083">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/features/auth/account-page.spec.ts" timestamp="2026-10-06T12:17:24.675Z" tests="31" failures="0" errors="0" skipped="0" time="0.372585333">
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; reads the identity first and shows the loading text without the profile or session sections" time="0.038218292">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; reads the list only after the identity, fills the session state from it, and stays loading until the list answers" time="0.007857167">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; shows Profil with the name and email, then Sesi aktif with the times of the API, Sesi ini on the caller, Akhiri sesi on the others, and Keluar" time="0.021731042">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; when the identity read is unauthenticated, empties the state, sets the notice expired, and replaces /akun with /masuk" time="0.00540075">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; when the list read is unauthenticated, empties the state it just filled and replaces /akun with /masuk" time="0.004262416">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; when the identity read is unavailable, shows its text with Coba lagi, which repeats both calls" time="0.011799166">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; when the list read is unavailable, shows its text with Coba lagi and no profile, and Coba lagi reads the identity again" time="0.008705292">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; when the identity read is network, shows its text with Coba lagi, which repeats both calls" time="0.013477667">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; when the list read is network, shows its text with Coba lagi and no profile, and Coba lagi reads the identity again" time="0.007290292">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; when the identity read is failed, shows its text with Coba lagi, which repeats both calls" time="0.012630542">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; when the list read is failed, shows its text with Coba lagi and no profile, and Coba lagi reads the identity again" time="0.008413333">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun loading &gt; stops listening to the running load when the page is destroyed" time="0.003479166">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Akhiri sesi &gt; revoked: sends one DELETE with the CSRF token of the state, disables only that button while it runs, then says Sesi diakhiri. and reads the list again" time="0.016734833">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Akhiri sesi &gt; not-found: says Sesi sudah berakhir. in the alert region and reads the list again" time="0.01292225">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Akhiri sesi &gt; failed: shows its text in the alert region, keeps the list without reading it again, and makes the button active again" time="0.009677416">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Akhiri sesi &gt; forbidden: shows its text in the alert region, keeps the list without reading it again, and makes the button active again" time="0.011089458">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Akhiri sesi &gt; unavailable: shows its text in the alert region, keeps the list without reading it again, and makes the button active again" time="0.011007042">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Akhiri sesi &gt; network: shows its text in the alert region, keeps the list without reading it again, and makes the button active again" time="0.010769083">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Akhiri sesi &gt; unauthenticated: empties the state, sets the notice expired, and replaces /akun with /masuk" time="0.010458333">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Akhiri sesi &gt; keeps one text per region: a newer alert empties an older status text" time="0.013904584">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Akhiri sesi &gt; when the list read after a revocation fails, shows its text with Coba lagi, which repeats both calls" time="0.012769917">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Akhiri sesi &gt; when the list read after a revocation is unauthenticated, replaces /akun with /masuk" time="0.010306167">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Keluar &gt; signed-out: sends one DELETE with the CSRF token, disables Keluar while it runs, then empties the state, sets the notice signed-out, and moves to /masuk" time="0.012396333">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Keluar &gt; forbidden: shows its text in the alert region, keeps the session state and the list, and makes Keluar active again" time="0.012887834">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Keluar &gt; unavailable: shows its text in the alert region, keeps the session state and the list, and makes Keluar active again" time="0.012134667">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Keluar &gt; network: shows its text in the alert region, keeps the session state and the list, and makes Keluar active again" time="0.013944166">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 account page /akun Keluar &gt; failed: shows its text in the alert region, keeps the session state and the list, and makes Keluar active again" time="0.011682834">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 /masuk and /akun through the application routes &gt; the routes masuk and akun load the two pages lazily, and opening /masuk calls no API" time="0.017019583">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 /masuk and /akun through the application routes &gt; a sign in on /masuk moves to /akun, which reads the identity and then the list" time="0.012710416">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 /masuk and /akun through the application routes &gt; /akun without a session moves to /masuk, which shows the session ended text once" time="0.005139625">
+        </testcase>
+        <testcase classname="src/app/features/auth/account-page.spec.ts" name="AUTH-012 /masuk and /akun through the application routes &gt; Keluar on /akun moves to /masuk without a reload, which shows the signed out text" time="0.008974542">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/features/auth/auth-api.integration.spec.ts" timestamp="2026-10-06T12:17:24.677Z" tests="78" failures="0" errors="0" skipped="0" time="0.1151">
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 request shape of every AuthApi method with the application config &gt; signIn is cold, then sends one POST /api/auth/session with the JSON body and no credentials flag or Authorization" time="0.020242208">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 request shape of every AuthApi method with the application config &gt; session and sessions send one GET each, without query, body, or CSRF header" time="0.002455417">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 request shape of every AuthApi method with the application config &gt; signOut sends one DELETE /api/auth/session with x-csrf-token and no body" time="0.001948208">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 request shape of every AuthApi method with the application config &gt; revoke sends one DELETE /api/auth/sessions/&lt;id&gt; with x-csrf-token and no body" time="0.001480209">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 200 with an AuthSession to signed-in and completes without error" time="0.001477458">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 200 without csrfToken to failed and completes without error" time="0.001203708">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 200 with a malformed csrfToken to failed and completes without error" time="0.001173167">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 200 with a session time that is no date to failed and completes without error" time="0.0011635">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 200 with a null body to failed and completes without error" time="0.001144417">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 401 to invalid and completes without error" time="0.001326958">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 429 to limited and completes without error" time="0.000965375">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 403 to forbidden and completes without error" time="0.000828084">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 503 to unavailable and completes without error" time="0.000863666">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 415 to failed and completes without error" time="0.0008105">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 404 to failed and completes without error" time="0.0007285">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps status 0 to network and completes without error" time="0.000897792">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 502 with an empty text body to network and completes without error" time="0.000839417">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 504 to network and completes without error" time="0.000771041">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 500 to failed and completes without error" time="0.000750375">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 400 to failed and completes without error" time="0.000770667">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signIn mapping table &gt; maps 413 from Bun or the edge to failed and completes without error" time="0.000717875">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 200 with an AuthSession to signed-in and completes without error" time="0.000699625">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 200 with a user without displayName to failed and completes without error" time="0.000684709">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 200 with an array body to failed and completes without error" time="0.00059475">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 401 to unauthenticated and completes without error" time="0.000634542">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 503 to unavailable and completes without error" time="0.000677333">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 403 to failed and completes without error" time="0.000632791">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 429 to failed and completes without error" time="0.000652">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps status 0 to network and completes without error" time="0.000711042">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 502 with an empty text body to network and completes without error" time="0.000727959">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 504 to network and completes without error" time="0.000672208">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 500 to failed and completes without error" time="0.000572958">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 400 to failed and completes without error" time="0.000633708">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session mapping table &gt; maps 413 from Bun or the edge to failed and completes without error" time="0.000658791">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 200 with a list to listed and completes without error" time="0.000655209">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 200 with an empty list to listed and completes without error" time="0.000601458">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 200 with an item whose current is a string to failed and completes without error" time="0.000567834">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 200 without sessions to failed and completes without error" time="0.000589083">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 401 to unauthenticated and completes without error" time="0.000629042">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 503 to unavailable and completes without error" time="0.000652084">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 403 to failed and completes without error" time="0.000637875">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps status 0 to network and completes without error" time="0.000659583">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 502 with an empty text body to network and completes without error" time="0.000767917">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 504 to network and completes without error" time="0.000734791">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 500 to failed and completes without error" time="0.000794">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 400 to failed and completes without error" time="0.000635333">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 sessions mapping table &gt; maps 413 from Bun or the edge to failed and completes without error" time="0.000642791">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps 204 to signed-out and completes without error" time="0.00076375">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps 200 instead of 204 to failed and completes without error" time="0.00069675">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps 403 to forbidden and completes without error" time="0.000706708">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps 503 to unavailable and completes without error" time="0.000633083">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps 401 to failed and completes without error" time="0.000670708">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps 404 to failed and completes without error" time="0.000640125">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps status 0 to network and completes without error" time="0.000837375">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps 502 with an empty text body to network and completes without error" time="0.001452959">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps 504 to network and completes without error" time="0.000906458">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps 500 to failed and completes without error" time="0.000769792">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps 400 to failed and completes without error" time="0.001545833">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 signOut mapping table &gt; maps 413 from Bun or the edge to failed and completes without error" time="0.000943709">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 204 to revoked and completes without error" time="0.000825959">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 200 instead of 204 to failed and completes without error" time="0.000769583">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 401 to unauthenticated and completes without error" time="0.000808625">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 404 to not-found and completes without error" time="0.000691375">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 403 to forbidden and completes without error" time="0.000699292">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 503 to unavailable and completes without error" time="0.000781">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 429 to failed and completes without error" time="0.000702">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps status 0 to network and completes without error" time="0.00074">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 502 with an empty text body to network and completes without error" time="0.000719792">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 504 to network and completes without error" time="0.00076725">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 500 to failed and completes without error" time="0.000741042">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 400 to failed and completes without error" time="0.000724958">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 revoke mapping table &gt; maps 413 from Bun or the edge to failed and completes without error" time="0.000752">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 a 200 body is rebuilt, never passed through &gt; drops fields outside the model from AuthSession and from each listed session" time="0.001208834">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 a 200 body is rebuilt, never passed through &gt; each subscription sends a new request and a failure leaves no state behind" time="0.000945583">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 a 200 body is rebuilt, never passed through &gt; cancels the running request when the subscriber unsubscribes" time="0.000804292">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 an error that is not HttpErrorResponse maps to failed for every method &gt; maps it to failed and completes without error" time="0.00102675">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session and sessions against the real backend harness &gt; become unavailable, since the backend without a database answers 503 on the GET routes, which check no origin" time="0.023107">
+        </testcase>
+        <testcase classname="src/app/features/auth/auth-api.integration.spec.ts" name="AUTH-011 session and sessions against the real backend harness &gt; become network when nothing listens on the port" time="0.006515875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/features/auth/sign-in-page.spec.ts" timestamp="2026-10-06T12:17:24.681Z" tests="16" failures="0" errors="0" skipped="0" time="0.235426041">
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; opens without an API call and shows the form of table Halaman with empty alert and status regions" time="0.044004625">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; shows the notice expired once in the status region and empties it, so the next visit shows nothing" time="0.017690875">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; shows the notice signed-out once in the status region and empties it, so the next visit shows nothing" time="0.015888959">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; with both fields empty shows the empty fields text in the alert region without a request" time="0.0110665">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; with only the email shows the empty fields text in the alert region without a request" time="0.009938709">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; with only the password shows the empty fields text in the alert region without a request" time="0.009878417">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; with an email of spaces only shows the empty fields text in the alert region without a request" time="0.01288675">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; sends the trimmed email and the password as typed, sends one request while it runs, then fills the session state and moves to /akun" time="0.016701917">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; empties the notice text from the status region when the form is sent" time="0.010166458">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; after invalid shows its text in the alert region, keeps the email, empties the password, and makes the button active again" time="0.015377375">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; after limited shows its text in the alert region, keeps the email, empties the password, and makes the button active again" time="0.014567">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; after forbidden shows its text in the alert region, keeps the email, empties the password, and makes the button active again" time="0.012147958">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; after unavailable shows its text in the alert region, keeps the email, empties the password, and makes the button active again" time="0.0110525">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; after network shows its text in the alert region, keeps the email, empties the password, and makes the button active again" time="0.012440208">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; after failed shows its text in the alert region, keeps the email, empties the password, and makes the button active again" time="0.013356958">
+        </testcase>
+        <testcase classname="src/app/features/auth/sign-in-page.spec.ts" name="AUTH-012 sign in page /masuk &gt; stops listening to the running sign in when the page is destroyed" time="0.007231458">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/features/readiness/readiness-api.integration.spec.ts" timestamp="2026-10-06T12:17:24.682Z" tests="49" failures="0" errors="0" skipped="0" time="0.080282125">
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 request shape with the application config &gt; is cold, then sends exactly one GET /api/readiness without query, body, Authorization, or credentials" time="0.016677042">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with a valid body to available and completes without error" time="0.002089292">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with zero migrations to available and completes without error" time="0.001454792">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with another status to failed and completes without error" time="0.001256292">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with appliedMigrations -1 to failed and completes without error" time="0.001286458">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with appliedMigrations 1.5 to failed and completes without error" time="0.001010417">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with appliedMigrations &quot;3&quot; to failed and completes without error" time="0.000986583">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 without appliedMigrations to failed and completes without error" time="0.000889791">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with checkedAt not-a-date to failed and completes without error" time="0.00094675">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 200 with a body that is not an object to failed and completes without error" time="0.00105575">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 503 with a valid body to unavailable and completes without error" time="0.001029208">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 503 with another body to failed and completes without error" time="0.000792667">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 503 with checkedAt not-a-date to failed and completes without error" time="0.000772125">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 429 with a valid body to busy and completes without error" time="0.000740375">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 429 with another body to failed and completes without error" time="0.000719333">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 400 to failed and completes without error" time="0.000711834">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 404 to failed and completes without error" time="0.00065025">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 500 to failed and completes without error" time="0.000651709">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 502 with an empty text/plain body to network and completes without error" time="0.000761041">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps 504 to network and completes without error" time="0.000684291">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; drops fields outside the model from a 200 body" time="0.000719459">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping table &gt; maps a network error with status 0 to network and completes without error" time="0.000778208">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with a null body to failed and completes without error" time="0.000756417">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with an array body to failed and completes without error" time="0.000621291">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with appliedMigrations above the safe integer range to failed and completes without error" time="0.000605167">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with appliedMigrations null to failed and completes without error" time="0.000622791">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with checkedAt as a number to failed and completes without error" time="0.000581459">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with an empty checkedAt to failed and completes without error" time="0.000617709">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 without checkedAt to failed and completes without error" time="0.000645042">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 200 with the unavailable body to failed and completes without error" time="0.000665083">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 503 with a null body to failed and completes without error" time="0.000593125">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 503 with checkedAt as a number to failed and completes without error" time="0.000655792">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 503 without checkedAt to failed and completes without error" time="0.000631333">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 503 with the busy body to failed and completes without error" time="0.000574708">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 429 with a text body to failed and completes without error" time="0.000602917">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 429 with a null body to failed and completes without error" time="0.000640875">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 401 to failed and completes without error" time="0.000687875">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 403 to failed and completes without error" time="0.000691">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 502 with a body that looks like unavailable to network and completes without error" time="0.0006825">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; maps 504 with a body that looks like busy to network and completes without error" time="0.000645334">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; builds a new unavailable result with only status and checkedAt from a 503 body with extra fields" time="0.000760291">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; builds a new busy result with only status from a 429 body with extra fields" time="0.000828083">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping edge cases &gt; keeps checkedAt as the exact server string, without converting it" time="0.000681375">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 the check observable is cold and cancellable &gt; sends one new GET for every subscription to the same observable" time="0.0008755">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 the check observable is cold and cancellable &gt; cancels the running request when the subscriber unsubscribes, and emits nothing" time="0.000676583">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 the check observable is cold and cancellable &gt; holds no state between checks: a failure does not change the next result" time="0.000704416">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 adapter mapping for an error that is not HttpErrorResponse &gt; maps it to failed and completes without error" time="0.000810833">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 results from the real backend &gt; returns unavailable with an ISO checkedAt from the backend that runs without a database" time="0.022040166">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-api.integration.spec.ts" name="READY-004 results from the real backend &gt; returns network when nothing listens on the port" time="0.003525667">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/features/readiness/readiness-page.spec.ts" timestamp="2026-10-06T12:17:24.686Z" tests="23" failures="0" errors="0" skipped="0" time="0.169906042">
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; sends exactly one check when created and shows the loading state inside the AC-8 composition" time="0.047293208">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; keeps the same status node through loading, available, then loading again, and hides the old result" time="0.013259334">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; ignores activation while loading: the button is aria-disabled and no second request starts" time="0.006746083">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the unavailable text after a successful check without the old migration count" time="0.008113625">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the busy text after a successful check without the old migration count" time="0.007326625">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the network text after a successful check without the old migration count" time="0.00722775">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the failed text after a successful check without the old migration count" time="0.007210209">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own after a available result while fake time advances 60 seconds" time="0.005337792">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own after a unavailable result while fake time advances 60 seconds" time="0.004143042">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own after a busy result while fake time advances 60 seconds" time="0.00364075">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own after a network result while fake time advances 60 seconds" time="0.002989375">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own after a failed result while fake time advances 60 seconds" time="0.004559459">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not check again on its own while a check stays pending for 60 seconds of fake time" time="0.002848583">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; cancels the running check when the page is destroyed" time="0.002407167">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the failed text without the old count or time when a check errors instead of answering" time="0.008554208">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; shows the count exactly as String() gives it, with no thousands separator, for a large count" time="0.003956542">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; keeps the button focused and its accessible name while the state changes" time="0.00677075">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 readiness page states &gt; does not report a finished check as cancelled when the page is destroyed later" time="0.00374675">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 development route and navigation &gt; runs in development mode, where the page and its navigation item exist" time="0.000085917">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 development route and navigation &gt; registers kesiapan as a lazy route between the auth routes and the fallback" time="0.00232175">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 development route and navigation &gt; App.navItems holds exactly Beranda, Akun, then Kesiapan in the AC-7 shape" time="0.000810042">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 development route and navigation &gt; leaving /kesiapan through the router cancels the running check, and coming back sends exactly one new check" time="0.015087917">
+        </testcase>
+        <testcase classname="src/app/features/readiness/readiness-page.spec.ts" name="READY-005 development route and navigation &gt; opening /kesiapan loads the page through the router with the h1 Kesiapan and one check" time="0.004351791">
+        </testcase>
+    </testsuite>
+</testsuites>

@@ -1,0 +1,54 @@
+<testsuites id="" name="" tests="6" failures="0" skipped="0" errors="0" time="9.345558">
+<testsuite name="auth/auth.real.e2e.spec.ts" timestamp="2026-10-06T12:26:08.135Z" tests="5" failures="0" skipped="0" time="7.451" errors="0">
+<testcase name="AUTH-012 sign in through /masuk opens /akun with the name and email of the account, without auth values in script readable storage" classname="auth/auth.real.e2e.spec.ts" time="1.835">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/auth-auth.real.e2e-AUTH-01-82c14--in-script-readable-storage-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="AUTH-012 the account page lists the active sessions, ends another session of the account, and signs out, all without a reload" classname="auth/auth.real.e2e.spec.ts" time="1.177">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/auth-auth.real.e2e-AUTH-01-33f91-ns-out-all-without-a-reload-chromium/test-finished-1.png]]
+
+[[ATTACHMENT|test-results/auth-auth.real.e2e-AUTH-01-33f91-ns-out-all-without-a-reload-chromium/test-finished-2.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="AUTH-012 /masuk with a real database: a wrong password is invalid, the eleventh attempt for one email is limited, and a keyboard sign in opens /akun" classname="auth/auth.real.e2e.spec.ts" time="1.289">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/auth-auth.real.e2e-AUTH-01-bfb6e-keyboard-sign-in-opens-akun-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="AUTH-012 /akun actions: forbidden, failed, network, and unavailable keep the state, not-found reloads the list, unauthenticated moves to /masuk, and the session of another user stays out of reach through the API" classname="auth/auth.real.e2e.spec.ts" time="2.425">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-1.png]]
+
+[[ATTACHMENT|test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-2.png]]
+
+[[ATTACHMENT|test-results/auth-auth.real.e2e-AUTH-01-77452-ut-of-reach-through-the-API-chromium/test-finished-3.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="AUTH-010 through a sign in, a reload, and a sign out the session lives only in an HttpOnly SameSite=Strict cookie: no auth value in storage or document.cookie, no token or password in an API body, and the CSRF token only in AuthSession bodies" classname="auth/auth.real.e2e.spec.ts" time="0.725">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/auth-auth.real.e2e-AUTH-01-d10b0--only-in-AuthSession-bodies-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="readiness/readiness.real.e2e.spec.ts" timestamp="2026-10-06T12:26:08.135Z" tests="1" failures="0" skipped="0" time="1.313" errors="0">
+<testcase name="READY-009 real database: available with the exact count at 1280×812 and 375×812, recheck, a stopped database without the old count, and recovery after docker start without a restart" classname="readiness/readiness.real.e2e.spec.ts" time="1.313">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/readiness-readiness.real.e-d580c-ker-start-without-a-restart-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

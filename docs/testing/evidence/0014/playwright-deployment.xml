@@ -1,0 +1,33 @@
+<testsuites id="" name="" tests="3" failures="0" skipped="0" errors="0" time="4.387974">
+<testsuite name="deployment/auth.deployment.e2e.spec.ts" timestamp="2026-10-06T12:27:37.998Z" tests="1" failures="0" skipped="0" time="1.16" errors="0">
+<testcase name="AUTH-013 production through the edge: sign in sets the __Host- session cookie, /akun shows the account under the final CSP, the navigation holds Beranda and Akun, and Keluar ends the session" classname="deployment/auth.deployment.e2e.spec.ts" time="1.16">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/deployment-auth.deployment-4c26b-and-Keluar-ends-the-session-chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="deployment/edge.deployment.e2e.spec.ts" timestamp="2026-10-06T12:27:37.998Z" tests="2" failures="0" skipped="0" time="2.806" errors="0">
+<testcase name="DEP-006 edge at 1280×812: the production build runs under the final CSP, the navigation holds Beranda and Akun, and /kesiapan ends at /" classname="deployment/edge.deployment.e2e.spec.ts" time="1.321">
+<system-out>
+<![CDATA[requested-origins ["https://fonts.googleapis.com"]
+
+[[ATTACHMENT|test-results/deployment-edge.deployment-4acde--Akun-and-kesiapan-ends-at--chromium/attachments/requested-origins-65fb8677775ffa24283d7d6413270320217296b8.json]]
+
+[[ATTACHMENT|test-results/deployment-edge.deployment-4acde--Akun-and-kesiapan-ends-at--chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="DEP-006 edge at 375×812: the production build runs under the final CSP, the navigation drawer holds Beranda and Akun, and /kesiapan ends at /" classname="deployment/edge.deployment.e2e.spec.ts" time="1.485">
+<system-out>
+<![CDATA[requested-origins ["https://fonts.googleapis.com"]
+
+[[ATTACHMENT|test-results/deployment-edge.deployment-2483c--Akun-and-kesiapan-ends-at--chromium/attachments/requested-origins-687fbc5b256211e0f7b5c4c4c54c2867bbe8204f.json]]
+
+[[ATTACHMENT|test-results/deployment-edge.deployment-2483c--Akun-and-kesiapan-ends-at--chromium/test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>
