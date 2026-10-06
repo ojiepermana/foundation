@@ -28,6 +28,20 @@ export function requestTarget(url: string): URL {
 }
 
 /**
+ * The path Elysia 1.4.30 routes a request on when Bun's own router did not match it: `request.url` from the first `/`
+ * at index 11 or later, up to the first `?` after it (`dynamic-handle.js` and `adapter/bun/compose.js`, with
+ * `standardHostname` at its default). Index 11 assumes `http://` plus a Host of at least 4 characters, so with a Host of
+ * 3 or fewer characters, or with the bare target Bun writes for a Host such as `a b`, this path differs from the
+ * pathname of requestTarget (`Host: abc` with the target `//api/auth/session` is routed as `/api/auth/session`). A guard
+ * that decides on a path must refuse when the two differ, never decide on only one of them.
+ */
+export function routedPath(url: string): string {
+  const start = url.indexOf('/', 11);
+  const query = url.indexOf('?', start + 1);
+  return query === -1 ? url.substring(start) : url.substring(start, query);
+}
+
+/**
  * Elysia 1.4.30 hands `HEAD <path>` and `GET <path>/` to the GET handler of `<path>`. 404 is not in the response map,
  * so the handler answers with a fixed Response; Bun sends a HEAD answer without its body.
  */

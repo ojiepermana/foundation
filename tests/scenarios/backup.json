@@ -24,6 +24,9 @@
     ] },
     { "id": "BKP-008", "criteria": ["AC-4"], "checks": [
       { "runner": "bun:test", "file": "tests/integration/tooling/development.test.ts", "testTag": "BKP-008", "script": "test:tooling" }
+    ] },
+    { "id": "BKP-009", "criteria": ["AC-8"], "checks": [
+      { "runner": "bun:test", "file": "tests/integration/database/backup.test.ts", "testTag": "BKP-009", "script": "test:database:real" }
     ] }
   ]
 }

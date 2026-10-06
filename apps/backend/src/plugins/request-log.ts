@@ -31,10 +31,14 @@ export type LifecycleEvent = keyof typeof LIFECYCLE_EVENTS;
 /** Writes one lifecycle line with the exact keys `time`, `level`, and `event`. A sink that throws is ignored. */
 export function writeLifecycle(sink: RequestLogSink, event: LifecycleEvent, now: () => Date = () => new Date()): void {
   const level = LIFECYCLE_EVENTS[event];
-  write(sink, level, JSON.stringify({ time: now().toISOString(), level, event }));
+  writeLogLine(sink, level, JSON.stringify({ time: now().toISOString(), level, event }));
 }
 
-function write(sink: RequestLogSink, level: LogLevel, line: string): void {
+/**
+ * Writes one finished line to the stream of its level. Shared by the request and lifecycle lines here and the `auth`
+ * event lines of spec 0014 (features/auth/auth.log.ts), so every line goes through the same rule.
+ */
+export function writeLogLine(sink: RequestLogSink, level: LogLevel, line: string): void {
   try {
     if (level === 'info') sink.info(line);
     else sink.error(line);
@@ -87,34 +91,69 @@ function statusOf(response: unknown, status: unknown): number {
 type Started = { at: number; id: string };
 
 /**
+ * Start time and request id per request (spec 0014, *Log keamanan*). One map at module level, not one per plugin
+ * instance, so the guard of the auth plugin and an `auth` event read the same id as the request line of the same request.
+ * Entries go away with their Request object.
+ */
+const started = new WeakMap<Request, Started>();
+
+/**
+ * The request id recorded for `request` by the `onRequest` hook of the log plugin, or a new one (the header rule of
+ * requestIdOf) that is recorded at once, so every later reader of the same request gets the same id.
+ */
+export function requestIdFor(request: Request): string {
+  const entry = started.get(request);
+  if (entry !== undefined) return entry.id;
+  const id = requestIdOf(request.headers);
+  started.set(request, { at: performance.now(), id });
+  return id;
+}
+
+/** Builds and writes one request line; health answers below 500 write nothing (spec 0012). */
+function writeLine(sink: RequestLogSink, request: Request, status: number, entry: Started | undefined): void {
+  const path = logPath(request.url);
+  if (status < 500 && HEALTH_PATHS.has(path)) return;
+  const level: LogLevel = status < 500 ? 'info' : 'error';
+  writeLogLine(sink, level, JSON.stringify({
+    time: new Date().toISOString(),
+    level,
+    event: 'request',
+    requestId: entry?.id ?? requestIdOf(request.headers),
+    method: logMethod(request.method),
+    path,
+    status,
+    durationMs: entry === undefined ? 0 : Math.round(performance.now() - entry.at),
+  }));
+}
+
+/**
+ * Writes the request line of `request` with `status` from its recorded entry, then removes the entry, so the
+ * `onAfterResponse` hook never writes a second line for it. The guard of the auth plugin calls it for every answer it
+ * returns from `onRequest`, since Elysia 1.4.30 runs no `onAfterResponse` for such an answer (spec 0014 probe).
+ */
+export function writeRequestLine(sink: RequestLogSink, request: Request, status: number): void {
+  const entry = started.get(request);
+  started.delete(request);
+  writeLine(sink, request, status, entry);
+}
+
+/**
  * The request log plugin. `onRequest` runs before routing for every request, so it records the start and the
  * request id; `onAfterResponse` (global) writes the line once the answer was sent: `level` is `info` below 500 and
  * `error` from 500, `durationMs` is the rounded `performance.now()` difference. createApp registers it before every
  * route, so it covers all of them and the 404 of unknown paths. A request Bun refuses before Elysia (a body above
- * `maxRequestBodySize`) never reaches these hooks and writes no line.
+ * `maxRequestBodySize`) never reaches these hooks and writes no line. A request whose line writeRequestLine already
+ * wrote has no entry any more and writes nothing here.
  */
 export function createRequestLog(sink: RequestLogSink) {
-  const started = new WeakMap<Request, Started>();
   return new Elysia()
     .onRequest(({ request }) => {
       started.set(request, { at: performance.now(), id: requestIdOf(request.headers) });
     })
     .onAfterResponse({ as: 'global' }, ({ request, set, responseValue }) => {
       const entry = started.get(request);
+      if (entry === undefined) return;
       started.delete(request);
-      const status = statusOf(responseValue, set.status);
-      const path = logPath(request.url);
-      if (status < 500 && HEALTH_PATHS.has(path)) return;
-      const level: LogLevel = status < 500 ? 'info' : 'error';
-      write(sink, level, JSON.stringify({
-        time: new Date().toISOString(),
-        level,
-        event: 'request',
-        requestId: entry?.id ?? requestIdOf(request.headers),
-        method: logMethod(request.method),
-        path,
-        status,
-        durationMs: entry === undefined ? 0 : Math.round(performance.now() - entry.at),
-      }));
+      writeLine(sink, request, statusOf(responseValue, set.status), entry);
     });
 }

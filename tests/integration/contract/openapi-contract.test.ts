@@ -259,7 +259,8 @@ const exportFailures: [string, (dir: string, secret: string) => Promise<void>, s
   ['an /openapi/json response that is not 200', dir => edit(dir, appModule, "provider: null,", "provider: null, path: '/moved',"), 'OpenAPI export failed\n'],
   ['an /openapi/json response that answers 200 with text that is not JSON', async dir => {
     await edit(dir, appModule, "provider: null,", "provider: null, path: '/moved',");
-    await edit(dir, appModule, '.use(developmentRoutes).use(healthRoutes);', ".use(developmentRoutes).use(healthRoutes).get('/openapi/json', () => 'not json');");
+    // The tail of createApp follows spec 0014 (*Teks akhir `createApp`*).
+    await edit(dir, appModule, '.use(developmentRoutes).use(authRoutes).use(healthRoutes);', ".use(developmentRoutes).use(authRoutes).use(healthRoutes).get('/openapi/json', () => 'not json');");
   }, 'OpenAPI export failed\n'],
 ];
 for (const [name, mutate, stderr] of exportFailures) {
@@ -1100,8 +1101,9 @@ for (const [name, rule, model, exported] of elysiaExports) {
 }
 
 test('OPENAPI-004 REQUIRED_OPERATIONS holds exactly the entries of the required operation table', () => {
-  // Spec 0006 adds the readiness entry and spec 0012 the two health entries; READY-003 checks those three.
-  expect(REQUIRED_OPERATIONS.length).toBe(4);
+  // Spec 0006 adds the readiness entry, spec 0012 the two health entries, and spec 0014 the three auth entries;
+  // READY-003, DEP-003, and AUTH-011 check those six.
+  expect(REQUIRED_OPERATIONS.length).toBe(7);
   const { checkComponent, ...entry } = REQUIRED_OPERATIONS[0]!;
   expect(entry).toEqual({
     path: '/api/status', method: 'get', operationId: 'getDevelopmentStatus', tag: 'development',
@@ -1150,7 +1152,8 @@ test('OPENAPI-002 a document with several violations reports the topmost rule in
     ['tag', d => { d.openapi = '3.1.0'; }],
     ['schema', d => { statusOperation(d).tags = ['development']; }],
     ['security', d => { delete failureSchema(d).properties.detail; }],
-    ['required-operation', d => { delete d.components.securitySchemes; }],
+    // Only the OAuth scheme goes: the sessionCookie scheme of the auth operations (spec 0014) stays declared.
+    ['required-operation', d => { delete d.components.securitySchemes.OAuth; }],
   ];
   const d = broken();
   for (const [rule, repair] of expected) {
@@ -1216,8 +1219,15 @@ test('OPENAPI-006 subset-full.json holds the required status operation and every
   // Spec 0012: the two required health operations and their models come from the stored contract as well.
   for (const path of ['/health/live', '/health/ready']) expect(d.paths[path]).toStrictEqual(stored.paths[path]);
   for (const name of ['HealthLive', 'HealthReady', 'HealthUnavailable']) expect(d.components.schemas[name]).toStrictEqual(stored.components.schemas[name]);
+  // Spec 0014: the three required auth operations, their models, and the sessionCookie scheme come from it too.
+  expect(d.paths['/api/auth/session']).toStrictEqual({ post: stored.paths['/api/auth/session'].post, get: stored.paths['/api/auth/session'].get });
+  expect(d.paths['/api/auth/sessions']).toStrictEqual(stored.paths['/api/auth/sessions']);
+  for (const name of ['AuthError', 'AuthSession', 'AuthSessionList', 'SignInRequest']) expect(d.components.schemas[name]).toStrictEqual(stored.components.schemas[name]);
+  expect(d.components.securitySchemes.sessionCookie).toStrictEqual(stored.components.securitySchemes.sessionCookie);
   const operations: any[] = Object.values(d.paths).flatMap((item: any) => Object.values(item));
-  expect(Object.values(d.paths).flatMap((item: any) => Object.keys(item)).sort()).toEqual(['delete', 'get', 'get', 'get', 'get', 'get', 'get', 'get', 'head', 'options', 'patch', 'post', 'put']);
+  expect(Object.values(d.paths).flatMap((item: any) => Object.keys(item)).sort()).toEqual([
+    'delete', 'get', 'get', 'get', 'get', 'get', 'get', 'get', 'get', 'get', 'head', 'options', 'patch', 'post', 'post', 'put',
+  ]);
   expect(operations.some(operation => operation.deprecated === true)).toBe(true);
 
   const parameters: any[] = operations.flatMap(operation => operation.parameters ?? []);
@@ -1607,7 +1617,8 @@ test('OPENAPI-007 api:openapi and api:validate ignore a .env file in the checkou
 // of the development composition, the four required operations, and the production composition without the plugin.
 test('DEP-003 the stored contract declares GET /health/live and GET /health/ready as the Kontrak OpenAPI table, and the development export equals it', async () => {
   const stored = JSON.parse(storedText);
-  expect(stored.tags).toEqual([{ name: 'development' }, { name: 'health' }]);
+  // Spec 0014 adds the auth tag in front of the two tags of spec 0012.
+  expect(stored.tags).toEqual([{ name: 'auth' }, { name: 'development' }, { name: 'health' }]);
   const inline = (error: string) => ({ 'application/json': { schema: {
     additionalProperties: false, properties: { error: { const: error, type: 'string' } }, required: ['error'], type: 'object',
   } } });
@@ -1639,8 +1650,9 @@ test('DEP-003 the stored contract declares GET /health/live and GET /health/read
   for (const path of ['/openapi', '/openapi/json']) expect((await production.handle(new Request(`http://localhost${path}`))).status, path).toBe(404);
 });
 
-test('DEP-003 REQUIRED_OPERATIONS holds four entries, and removing or changing a health operation is rejected as required-operation', () => {
-  expect(REQUIRED_OPERATIONS.map(operation => `${operation.method} ${operation.path} ${operation.operationId}`)).toEqual([
+test('DEP-003 REQUIRED_OPERATIONS holds the four entries before spec 0014 first, and removing or changing a health operation is rejected as required-operation', () => {
+  // Spec 0014 appends its three auth entries after these four (AUTH-011 below).
+  expect(REQUIRED_OPERATIONS.map(operation => `${operation.method} ${operation.path} ${operation.operationId}`).slice(0, 4)).toEqual([
     'get /api/status getDevelopmentStatus',
     'get /api/readiness getDevelopmentReadiness',
     'get /health/live getHealthLive',
@@ -1656,6 +1668,112 @@ test('DEP-003 REQUIRED_OPERATIONS holds four entries, and removing or changing a
     ['a 200 that references another model', d => { d.paths['/health/live'].get.responses['200'].content = { 'application/json': { schema: { $ref: '#/components/schemas/HealthReady' } } }; }],
     ['a HealthLive with another literal', d => { d.components.schemas.HealthLive.properties.status = { const: 'ok', enum: ['ok'], type: 'string' }; }],
     ['a HealthReady with additional properties', d => { d.components.schemas.HealthReady.additionalProperties = true; }],
+  ];
+  for (const [name, mutate] of cases) {
+    const document = structuredClone(stored);
+    mutate(document);
+    expect(ruleOf(document), name).toBe('required-operation');
+  }
+});
+
+// AUTH-011 (spec 0014, AC-11): the five auth operations of table *API surface* in the stored contract and in the live
+// development export, and the three entries of *Operasi wajib baru* in REQUIRED_OPERATIONS, each proved by mutations of
+// the stored contract that break only that entry.
+const AUTH_OPERATIONS: [string, string, string, Record<string, unknown>[], string[]][] = [
+  ['/api/auth/session', 'post', 'signIn', [], ['200', '400', '401', '403', '415', '429', '500', '503']],
+  ['/api/auth/session', 'get', 'getAuthSession', [{ sessionCookie: [] }], ['200', '400', '401', '500', '503']],
+  ['/api/auth/session', 'delete', 'signOut', [{ sessionCookie: [] }], ['204', '400', '403', '500', '503']],
+  ['/api/auth/sessions', 'get', 'listAuthSessions', [{ sessionCookie: [] }], ['200', '400', '401', '500', '503']],
+  ['/api/auth/sessions/{sessionId}', 'delete', 'revokeAuthSession', [{ sessionCookie: [] }], ['204', '400', '401', '403', '404', '500', '503']],
+];
+const AUTH_SUCCESS: Record<string, string> = { signIn: 'AuthSession', getAuthSession: 'AuthSession', listAuthSessions: 'AuthSessionList' };
+
+test('AUTH-011 the stored contract declares the five auth operations with exactly the statuses of API surface, 204 without content, and AuthError on every error status', async () => {
+  const stored = JSON.parse(storedText);
+  expect(stored.components.securitySchemes).toStrictEqual({ sessionCookie: {
+    type: 'apiKey', in: 'cookie', name: '__Host-foundation_session',
+    description: 'Cookie sesi HttpOnly. Komposisi development memakai nama foundation_session tanpa Secure karena berjalan di HTTP lokal.',
+  } });
+  expect(Object.keys(stored.paths).filter(path => path.startsWith('/api/auth/')).sort()).toEqual(['/api/auth/session', '/api/auth/sessions', '/api/auth/sessions/{sessionId}']);
+  for (const [path, method, operationId, security, statuses] of AUTH_OPERATIONS) {
+    const label = `${method} ${path}`;
+    const operation = stored.paths[path][method];
+    expect([operation.operationId, operation.tags, operation.security], label).toEqual([operationId, ['auth'], security]);
+    expect(Object.keys(operation.responses).sort(), label).toEqual(statuses);
+    for (const status of statuses) {
+      const response = operation.responses[status];
+      if (status === '204') expect(response, `${label} 204`).toStrictEqual({ description: 'Response for status 204' });
+      else if (status === '200') expect(response.content, `${label} 200`).toStrictEqual({ 'application/json': { schema: { $ref: `#/components/schemas/${AUTH_SUCCESS[operationId]}` } } });
+      else expect(response.content, `${label} ${status}`).toStrictEqual({ 'application/json': { schema: { $ref: '#/components/schemas/AuthError' } } });
+    }
+    // No cookie parameter: the session cookie is the sessionCookie security scheme, read from the cookie header.
+    for (const parameter of operation.parameters ?? []) expect(parameter.in, label).not.toBe('cookie');
+  }
+  // Only the two DELETE routes take the x-csrf-token header, and only revokeAuthSession takes the sessionId path.
+  const parameters = (path: string, method: string) => (stored.paths[path][method].parameters ?? []).map((parameter: any) => `${parameter.in} ${parameter.name} ${parameter.required} ${parameter.schema.pattern}`);
+  expect(parameters('/api/auth/session', 'delete')).toEqual(['header x-csrf-token true ^[A-Za-z0-9_-]{43}$']);
+  expect(parameters('/api/auth/sessions/{sessionId}', 'delete')).toEqual([
+    'path sessionId true ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', 'header x-csrf-token true ^[A-Za-z0-9_-]{43}$',
+  ]);
+  for (const [path, method] of [['/api/auth/session', 'post'], ['/api/auth/session', 'get'], ['/api/auth/sessions', 'get']] as const) expect(parameters(path, method), `${method} ${path}`).toEqual([]);
+  expect(stored.paths['/api/auth/session'].post.requestBody).toStrictEqual({ required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/SignInRequest' } } } });
+  // No credential example anywhere in the contract (AC-10).
+  expect(storedText).not.toMatch(/"examples?"\s*:/);
+  // The live development export of the backend source gives the same auth operations and models.
+  const exported = await (await createApp('development').handle(new Request('http://localhost/openapi/json'))).json();
+  for (const path of ['/api/auth/session', '/api/auth/sessions', '/api/auth/sessions/{sessionId}']) expect(exported.paths[path], path).toStrictEqual(stored.paths[path]);
+  for (const name of ['AuthError', 'AuthSession', 'AuthSessionList', 'SignInRequest']) expect(exported.components.schemas[name], name).toStrictEqual(stored.components.schemas[name]);
+  expect(exported.components.securitySchemes).toStrictEqual(stored.components.securitySchemes);
+});
+
+test('AUTH-011 REQUIRED_OPERATIONS adds the three entries of Operasi wajib baru after the four older ones', () => {
+  expect(REQUIRED_OPERATIONS.slice(4).map(({ checkComponent: _check, ...entry }) => entry)).toEqual([
+    { path: '/api/auth/session', method: 'post', operationId: 'signIn', tag: 'auth', security: [], successStatus: '200', component: 'AuthSession' },
+    { path: '/api/auth/session', method: 'get', operationId: 'getAuthSession', tag: 'auth', security: [{ sessionCookie: [] }], successStatus: '200', component: 'AuthSession' },
+    { path: '/api/auth/sessions', method: 'get', operationId: 'listAuthSessions', tag: 'auth', security: [{ sessionCookie: [] }], successStatus: '200', component: 'AuthSessionList' },
+  ]);
+  for (const entry of REQUIRED_OPERATIONS.slice(4)) {
+    expect(Object.isFrozen(entry) && Object.isFrozen(entry.security) && entry.security.every(requirement => Object.isFrozen(requirement))).toBe(true);
+  }
+});
+
+test('AUTH-011 a mutation that breaks only one auth entry is rejected as required-operation, and the stored contract is accepted', () => {
+  const stored = JSON.parse(storedText);
+  expect(ruleOf(structuredClone(stored))).toBe('accepted');
+  const session = (d: any) => d.components.schemas.AuthSession;
+  const list = (d: any) => d.components.schemas.AuthSessionList;
+  const cases: [string, (d: any) => void][] = [
+    // signIn
+    ['POST /api/auth/session removed while GET and DELETE stay', d => { delete d.paths['/api/auth/session'].post; }],
+    ['another valid operationId on signIn', d => { d.paths['/api/auth/session'].post.operationId = 'createAuthSession'; }],
+    ['another declared tag on signIn', d => { d.paths['/api/auth/session'].post.tags = ['development']; }],
+    ['signIn that requires the session cookie', d => { d.paths['/api/auth/session'].post.security = [{ sessionCookie: [] }]; }],
+    ['a signIn 200 that references AuthSessionList', d => { d.paths['/api/auth/session'].post.responses['200'].content['application/json'].schema = { $ref: '#/components/schemas/AuthSessionList' }; }],
+    // getAuthSession
+    ['GET /api/auth/session removed', d => { delete d.paths['/api/auth/session'].get; }],
+    ['another valid operationId on getAuthSession', d => { d.paths['/api/auth/session'].get.operationId = 'readAuthSession'; }],
+    ['getAuthSession without security requirement', d => { d.paths['/api/auth/session'].get.security = []; }],
+    ['a getAuthSession 200 that references AuthError', d => { d.paths['/api/auth/session'].get.responses['200'].content['application/json'].schema = { $ref: '#/components/schemas/AuthError' }; }],
+    // listAuthSessions
+    ['GET /api/auth/sessions removed', d => { delete d.paths['/api/auth/sessions']; }],
+    ['another declared tag on listAuthSessions', d => { d.paths['/api/auth/sessions'].get.tags = ['health']; }],
+    ['listAuthSessions without security requirement', d => { d.paths['/api/auth/sessions'].get.security = []; }],
+    ['a listAuthSessions 200 that references AuthSession', d => { d.paths['/api/auth/sessions'].get.responses['200'].content['application/json'].schema = { $ref: '#/components/schemas/AuthSession' }; }],
+    // AuthSession model, shared by signIn and getAuthSession
+    ['AuthSession with additional properties allowed', d => { session(d).additionalProperties = true; }],
+    ['AuthSession without additionalProperties', d => { delete session(d).additionalProperties; }],
+    ['AuthSession with csrfToken left out of required', d => { session(d).required = ['user', 'session']; }],
+    ['AuthSession without csrfToken', d => { delete session(d).properties.csrfToken; session(d).required = ['user', 'session']; }],
+    ['AuthSession with a token property', d => { session(d).properties.token = { type: 'string' }; }],
+    ['AuthSession with a passwordHash inside user', d => { session(d).properties.user.properties.passwordHash = { type: 'string' }; }],
+    ['AuthSession with a tokenHash inside session', d => { session(d).properties.session.properties.tokenHash = { type: 'string' }; session(d).properties.session.required.push('tokenHash'); }],
+    ['AuthSession with a password inside user', d => { session(d).properties.user.properties.password = { type: 'string' }; }],
+    ['AuthSession whose user is a reference', d => { d.components.schemas.AuthUser = { type: 'object', additionalProperties: false, properties: { id: { type: 'string' } }, required: ['id'] }; session(d).properties.user = { $ref: '#/components/schemas/AuthUser' }; }],
+    // AuthSessionList model
+    ['AuthSessionList with an extra property', d => { list(d).properties.total = { type: 'integer', minimum: 0 }; }],
+    ['AuthSessionList items with an extra property', d => { list(d).properties.sessions.items.properties.token = { type: 'string' }; }],
+    ['AuthSessionList items without current', d => { delete list(d).properties.sessions.items.properties.current; list(d).properties.sessions.items.required = ['id', 'createdAt', 'lastSeenAt']; }],
+    ['AuthSessionList sessions as an object', d => { list(d).properties.sessions = { type: 'object', additionalProperties: false, properties: {}, required: [] }; }],
   ];
   for (const [name, mutate] of cases) {
     const document = structuredClone(stored);

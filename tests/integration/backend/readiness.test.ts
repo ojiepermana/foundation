@@ -216,7 +216,7 @@ for (const entry of ['apps/backend/src/index.ts', 'dist/backend/index.js']) {
     }
     const port = await unusedPort();
     const child = Bun.spawn([process.execPath, '--no-env-file', entry], {
-      cwd: root, env: { PATH: process.env['PATH'] ?? '', NODE_ENV: 'production', HOST: '127.0.0.1', PORT: String(port) },
+      cwd: root, env: { PATH: process.env['PATH'] ?? '', NODE_ENV: 'production', HOST: '127.0.0.1', PORT: String(port), PUBLIC_ORIGIN: 'https://foundation.test' },
       stdout: 'pipe', stderr: 'pipe',
     });
     try {

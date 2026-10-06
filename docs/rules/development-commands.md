@@ -25,6 +25,20 @@ Frontend memakai `apps/frontend/proxy.conf.json` untuk meneruskan API ke backend
 
 Dependency Angular/Elysia tetap dipasang melalui package root. Tooling ini tidak mengunduh dependency otomatis dan tidak membuat aplikasi contoh untuk menutupi prasyarat yang belum ada.
 
+## Akun pengguna development (spec 0014)
+
+Halaman `/masuk` membutuhkan akun, dan tidak ada registrasi publik. Sesudah provisioning dan migration, buat akun lewat perintah operator dengan `FOUNDATION_MIGRATOR_DATABASE_URL` seperti runner migration. Password hanya dibaca dari `FOUNDATION_ACCOUNT_PASSWORD` (15 sampai 128 karakter); isi lewat `read -rs` agar tidak tersimpan di riwayat shell, lalu hapus sesudahnya:
+
+```sh
+read -rs FOUNDATION_ACCOUNT_PASSWORD && export FOUNDATION_ACCOUNT_PASSWORD
+bun run db:accounts create --email <email> --display-name '<nama>' --apply
+unset FOUNDATION_ACCOUNT_PASSWORD
+```
+
+Hasilnya satu baris `Account created: <uuid>`. `set-password` dan `revoke-sessions` memakai bentuk yang sama menurut [aturan deployment](deployment.md). `serve` menghapus `FOUNDATION_ACCOUNT_PASSWORD` dari environment setiap proses anak, seperti variable provisioning.
+
+Backend development menerima `PUBLIC_ORIGIN` opsional (`http:` atau `https:`). Tanpa nilai itu, origin yang diizinkan untuk request yang mengubah data adalah `http://127.0.0.1:8889` dan `http://localhost:8889`, yaitu frontend development yang meneruskan `/api` lewat proxy. Request dari origin lain, termasuk port backend `8888` langsung, ditolak 403. Cookie sesi development bernama `foundation_session` tanpa `Secure`, karena berjalan di HTTP lokal.
+
 ## Worker opsional
 
 Worker tidak otomatis dijalankan karena foldernya ada. Daftarkan worker yang diperlukan pada `workers` di konfigurasi, kemudian pilih secara eksplisit:

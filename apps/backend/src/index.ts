@@ -22,7 +22,7 @@ function lifecycle(event: LifecycleEvent, text: string): void {
 try {
   const config = readConfiguration(Bun.env);
   if (Bun.env.DATABASE_URL) pool = createDatabasePool(Bun.env.DATABASE_URL);
-  const app = createApp(config.mode, { database: pool, ...(log === undefined ? {} : { log }) })
+  const app = createApp(config.mode, { database: pool, publicOrigin: config.publicOrigin, ...(log === undefined ? {} : { log }) })
     .listen({ hostname: config.host, port: config.port, maxRequestBodySize: 1024, idleTimeout: 10 });
   let stopping = false;
   const shutdown = async () => {

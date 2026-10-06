@@ -8,6 +8,17 @@ import { dirname, join, resolve } from 'node:path';
 import { checkFrontendBundle, FrontendBundleError } from '../../scripts/lib/frontend-bundle.ts';
 import { DEPLOYMENT_CHECKS, gitCommit, sourceTree, stepEnvironment, type DeploymentCheckName } from '../../scripts/lib/gate.ts';
 import { runProcessGroup, type ProcessGroupOptions, type ProcessGroupResult } from '../../scripts/lib/process-group.ts';
+import { deploymentAccountEnv, newTestAccounts, type TestAccount } from './auth-accounts.ts';
+import {
+  createTokenFingerprintStore,
+  newTokenKey,
+  readFingerprints,
+  removeTokenFingerprintStore,
+  tokenFingerprint,
+  tokenMatches,
+  tokenScanControl,
+  type TokenFingerprintStore,
+} from './token-fingerprints.ts';
 
 // `bun run test:deployment:real` (spec 0012, *Urutan orkestrasi*): builds the three images from a copy of the build
 // inputs in a `mkdtemp` folder, then follows the documented deployment steps on project `foundation-deploy-<hex>` with
@@ -16,12 +27,14 @@ import { runProcessGroup, type ProcessGroupOptions, type ProcessGroupResult } fr
 // copy with sentinel files, a temporary CA with an edge certificate, three random passwords, and the Compose env file,
 // (3) the pulls by digest and the PostgreSQL image, (4) the context probes, the three builds with run labels, the AC-2
 // scan of each image (export, history, inspect, and checkFrontendBundle), and images.json, (5) postgres, provisioning,
-// backend, readiness 503, the default runner command, migration, rerun, seed, readiness 200, the edge and `GET /` 200,
-// (6) the declaration without the override, the TLS, redirect, header, cache, API, CORS, edge error, and health checks
-// of the edge, the upstream stub, the inspect and network checks, the reachability probes with the public control,
-// the browser flow DEP-006, backend shutdown and restart, recreate, database outage, edge shutdown, the log checks,
-// and `compose stop` of the whole topology, and (7) cleanup on every exit path, a signal and the total deadline
-// included, then artifact-scan.json and result.json. Docker is only called through `dockerArgs`, with an argument
+// backend, readiness 503, the default runner command, migration, rerun, seed, readiness 200, the two test accounts of
+// spec 0014 through the `migrate` job, the edge and `GET /` 200, (6) the declaration without the override, the TLS,
+// redirect, header, cache, API, CORS, edge error, and health checks of the edge, the upstream stub, the inspect and
+// network checks, the reachability probes with the public control, the browser flow DEP-006 and AUTH-013, the auth
+// checks of spec 0014 through the edge (session cookie, origin and CSRF, Argon2id capacity, the edge limit), backend
+// shutdown and restart, recreate, database outage, edge shutdown, the log checks, and `compose stop` of the whole
+// topology, and (7) cleanup on every exit path, a signal and the total deadline included, then artifact-scan.json
+// (credentials, sentinels, and the token fingerprints of spec 0014, *Sidik token uji*) and result.json. Docker is only called through `dockerArgs`, with an argument
 // array, through `runProcessGroup`. Cleanup removes only the project, containers, images, and folder this run created,
 // by explicit name that passes the guards, the named containers before the project. The console prints fixed lines,
 // check and reason codes, and resource names of the run; command output is printed only redacted when a step fails.
@@ -153,7 +166,7 @@ export const CONTEXT_ALLOWLIST: Readonly<Record<string, Readonly<{ include: read
     exclude: Object.freeze(['**/*.spec.ts', '**/*.test.ts']),
   }),
   'database/Dockerfile.dockerignore': Object.freeze({
-    include: Object.freeze(['database/*.ts', 'database/migrations/', 'database/seeds/', 'libs/server/database/']),
+    include: Object.freeze(['database/*.ts', 'database/migrations/', 'database/seeds/', 'libs/server/database/', 'libs/server/auth/']),
     exclude: Object.freeze([]),
   }),
 });
@@ -785,7 +798,7 @@ export const DECLARATION: Readonly<Record<ServiceName, Declared>> = Object.freez
   backend: Object.freeze({
     image: '${FOUNDATION_BACKEND_IMAGE:?}', networks: Object.freeze(['app', 'data']), ports: Object.freeze([]),
     cpus: 1, memory: 512 * MIB, pids: 256, shm: null, readOnly: true, tmpfs: Object.freeze(['/tmp:rw,nosuid,nodev,noexec,size=64m']), restart: 'unless-stopped', stopGraceMs: 10_000,
-    environment: Object.freeze({ DATABASE_URL: '${FOUNDATION_BACKEND_DATABASE_URL:?}' }), dependsOnPostgres: true, profiles: Object.freeze([]), command: null, healthcheck: false, secrets: false, volume: false,
+    environment: Object.freeze({ DATABASE_URL: '${FOUNDATION_BACKEND_DATABASE_URL:?}', PUBLIC_ORIGIN: '${FOUNDATION_PUBLIC_ORIGIN:?}' }), dependsOnPostgres: true, profiles: Object.freeze([]), command: null, healthcheck: false, secrets: false, volume: false,
     dnsOptions: Object.freeze([]),
   }),
   postgres: Object.freeze({
@@ -925,7 +938,7 @@ export function hardeningProblems(service: ServiceName, inspected: unknown, proj
 /** *Environment per service*: the keys Compose adds to each container, beyond `Config.Env` of its image. */
 export const SERVICE_ENVIRONMENT: Readonly<Record<ServiceName, readonly string[]>> = Object.freeze({
   edge: Object.freeze([]),
-  backend: Object.freeze(['DATABASE_URL']),
+  backend: Object.freeze(['DATABASE_URL', 'PUBLIC_ORIGIN']),
   postgres: Object.freeze(['POSTGRES_DB', 'POSTGRES_PASSWORD', 'POSTGRES_USER']),
   migrate: Object.freeze(['FOUNDATION_MIGRATOR_DATABASE_URL']),
 });
@@ -994,12 +1007,34 @@ const LIFECYCLE_KEYS = ['event', 'level', 'time'];
 
 export type BackendLogLine =
   | Readonly<{ event: 'request'; time: string; level: 'info' | 'error'; requestId: string; method: string; path: string; status: number; durationMs: number }>
+  | Readonly<{ event: 'auth'; time: string; level: 'info'; requestId: string; action: string; outcome: string; userId: string | null; sessionId: string | null; accountKey: string | null }>
   | Readonly<{ event: string; time: string; level: 'info' | 'error' }>;
+export type RequestLogLine = Extract<BackendLogLine, { event: 'request' }>;
+export type AuthLogLine = Extract<BackendLogLine, { event: 'auth' }>;
+
+/**
+ * *Log keamanan* of spec 0014: per `action`, its outcomes, and whether a line of that outcome carries `userId`,
+ * `sessionId`, and `accountKey` (otherwise each is `null`).
+ */
+export const AUTH_LOG_EVENTS: Readonly<Record<string, Readonly<Record<string, readonly [userId: boolean, sessionId: boolean, accountKey: boolean]>>>> = Object.freeze({
+  sign_in: Object.freeze({ succeeded: [true, true, true] as const, failed: [false, false, true] as const, limited: [false, false, true] as const, busy: [false, false, true] as const }),
+  sign_out: Object.freeze({ succeeded: [true, true, false] as const }),
+  session_revoke: Object.freeze({ succeeded: [true, true, false] as const, not_found: [true, false, false] as const }),
+  request_rejected: Object.freeze({ origin: [false, false, false] as const, csrf: [false, false, false] as const }),
+});
+const AUTH_KEYS = ['accountKey', 'action', 'event', 'level', 'outcome', 'requestId', 'sessionId', 'time', 'userId'];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const ACCOUNT_KEY = /^[0-9a-f]{16}$/;
+
+const isRequestLine = (line: BackendLogLine | null): line is RequestLogLine => line !== null && line.event === 'request';
+const isAuthLine = (line: BackendLogLine | null): line is AuthLogLine => line !== null && line.event === 'auth';
 
 /**
  * One line of the production backend log (AC-10) with exact keys and types: a request line (`level` info below 500,
  * error from 500, `requestId` 32 hex, a fixed method, a path without query of at most 200 characters, integer status
- * and duration) or a lifecycle line of the vocabulary. `null` for any other text.
+ * and duration), an `auth` line of spec 0014 (keys exactly `time`, `level` info, `event`, `requestId` 32 hex,
+ * `action` and `outcome` of *Log keamanan*, `userId` and `sessionId` a lower case UUID or `null`, and `accountKey` 16
+ * hex digits or `null`, each as that table says), or a lifecycle line of the vocabulary. `null` for any other text.
  */
 export function parseBackendLogLine(line: string): BackendLogLine | null {
   const value = parseJson(line);
@@ -1008,6 +1043,16 @@ export function parseBackendLogLine(line: string): BackendLogLine | null {
   const keys = Object.keys(record).sort(codeUnit);
   const time = record['time'];
   if (typeof time !== 'string' || Number.isNaN(Date.parse(time)) || new Date(time).toISOString() !== time) return null;
+  if (record['event'] === 'auth') {
+    const { level, requestId, action, outcome, userId, sessionId, accountKey } = record;
+    if (!sameList(keys, AUTH_KEYS) || level !== 'info' || typeof requestId !== 'string' || !REQUEST_ID.test(requestId) || typeof action !== 'string' || typeof outcome !== 'string') return null;
+    const outcomes = Object.hasOwn(AUTH_LOG_EVENTS, action) ? AUTH_LOG_EVENTS[action]! : null;
+    const carried = outcomes !== null && Object.hasOwn(outcomes, outcome) ? outcomes[outcome]! : null;
+    if (carried === null) return null;
+    const holds = (field: unknown, present: boolean, pattern: RegExp) => (present ? typeof field === 'string' && pattern.test(field) : field === null);
+    if (!holds(userId, carried[0], UUID) || !holds(sessionId, carried[1], UUID) || !holds(accountKey, carried[2], ACCOUNT_KEY)) return null;
+    return record as unknown as BackendLogLine;
+  }
   if (record['event'] === 'request') {
     const { level, requestId, method, path, status, durationMs } = record;
     if (!sameList(keys, REQUEST_KEYS) || typeof requestId !== 'string' || !REQUEST_ID.test(requestId) || typeof method !== 'string' || !BACKEND_METHODS.has(method)) return null;
@@ -1049,6 +1094,147 @@ export function stoppedBackendProblems(samples: readonly StoppedSample[], window
   const late504 = late.filter((sample) => sample.status !== 502);
   if (late504.length > 0) problems.push(`${late504.length} jawaban sesudah ${windowMs} ms bukan 502`);
   return problems;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Spec 0014 (*Perubahan deployment*): the values and the pure judges of the auth checks through the edge.
+
+/** Name of the session cookie of the production composition (*Cookie sesi*). */
+export const SESSION_COOKIE = '__Host-foundation_session';
+/** POST /api/auth/session through the edge that browser_flow, auth_session_cookie, and auth_origin_csrf send together, at most. */
+export const SIGN_IN_BUDGET = 10;
+/** auth_edge_rate_limit: requests, and the most that run at once. */
+export const EDGE_LIMIT = Object.freeze({ requests: 30, concurrency: 5 });
+/** auth_capacity: sign ins at once inside the backend container, the least number of 200, and the longest 200 in ms. */
+export const CAPACITY = Object.freeze({ requests: 8, minimumSucceeded: 4, longestMs: 2_000 });
+const TOO_MANY_REQUESTS = '{"error":"Too many requests"}';
+const INVALID_CREDENTIALS = '{"error":"Invalid credentials"}';
+
+/**
+ * *Cookie sesi* of the production composition for the `Set-Cookie` values of one answer: exactly one, named
+ * `__Host-foundation_session`, with exactly `Path=/`, `Secure`, `HttpOnly`, and `SameSite=Strict` (attribute names
+ * without case) and nothing else, so no `Domain`, `Expires`, or `Max-Age`. `set` carries a 43 character token; `clear`
+ * an empty value and `Max-Age=0` too. A problem never holds the cookie value.
+ */
+export function sessionCookieProblems(values: readonly string[], kind: 'set' | 'clear'): string[] {
+  if (values.length !== 1) return [`${values.length} Set-Cookie, diharapkan 1`];
+  const [pair = '', ...attributes] = values[0]!.split(';').map((part) => part.trim());
+  const at = pair.indexOf('=');
+  const name = at === -1 ? pair : pair.slice(0, at);
+  const value = at === -1 ? '' : pair.slice(at + 1);
+  const problems: string[] = [];
+  if (name !== SESSION_COOKIE) problems.push(`nama cookie bukan ${SESSION_COOKIE}`);
+  if (kind === 'set' && !/^[A-Za-z0-9_-]{43}$/.test(value)) problems.push('nilai cookie bukan token 43 karakter');
+  if (kind === 'clear' && value !== '') problems.push('nilai cookie penghapus tidak kosong');
+  const normalized = (attribute: string) => {
+    const equals = attribute.indexOf('=');
+    return equals === -1 ? attribute.toLowerCase() : `${attribute.slice(0, equals).toLowerCase()}=${attribute.slice(equals + 1)}`;
+  };
+  const found = attributes.filter((attribute) => attribute !== '').map(normalized).sort(codeUnit);
+  const expected = ['path=/', 'secure', 'httponly', 'samesite=Strict', ...(kind === 'clear' ? ['max-age=0'] : [])].sort(codeUnit);
+  if (!sameList(found, expected)) problems.push(`atribut cookie ${found.join('; ') || 'tidak ada'}, diharapkan ${expected.join('; ')}`);
+  return problems;
+}
+
+/** The POST /api/auth/session lines of an edge access log text, in order. */
+export function signInPostLines(stdout: string): EdgeLogLine[] {
+  return stdout.split('\n').map((line) => parseEdgeLogLine(line.trim())).filter((line): line is EdgeLogLine => line !== null && line.method === 'POST' && line.path === '/api/auth/session');
+}
+
+/**
+ * The request budget of *Perubahan deployment*, judged at the end of auth_origin_csrf: at most SIGN_IN_BUDGET
+ * POST /api/auth/session lines in the edge log so far, and none of them answered 429 by the edge.
+ */
+export function signInBudgetProblems(lines: readonly EdgeLogLine[]): string[] {
+  const problems: string[] = [];
+  if (lines.length > SIGN_IN_BUDGET) problems.push(`${lines.length} POST /api/auth/session lewat edge, di atas anggaran ${SIGN_IN_BUDGET}`);
+  const limited = lines.filter((line) => line.status === 429).length;
+  if (limited > 0) problems.push(`${limited} POST /api/auth/session dijawab 429 sebelum auth_edge_rate_limit`);
+  return problems;
+}
+
+/**
+ * auth_edge_rate_limit: every answer is the backend 401 `Invalid credentials` (`upstreamStatus` 401 in its edge log
+ * line) or the edge 429 `Too many requests` with `application/json` and `no-store`, whose edge log line has an empty
+ * `upstreamStatus` and which has no backend request line; every answer carries *Header API*, and at least one is 429.
+ */
+export function edgeRateLimitProblems(answers: readonly (EdgeAnswer | null)[], edgeLines: ReadonlyMap<string, EdgeLogLine>, backendIds: ReadonlySet<string>): { problems: string[]; refused: number; limited: number } {
+  const problems: string[] = [];
+  let refused = 0;
+  let limited = 0;
+  for (const [index, answer] of answers.entries()) {
+    const label = `#${index + 1}`;
+    if (answer === null) {
+      problems.push(`${label} tanpa jawaban`);
+      continue;
+    }
+    const id = headerOf(answer, 'x-request-id');
+    const line = id === undefined ? undefined : edgeLines.get(id);
+    if (apiHeaderProblems(answer.headers).length > 0) problems.push(`${label} tanpa Header API tepat`);
+    if (answer.status === 401 && answer.body === INVALID_CREDENTIALS && (headerOf(answer, 'content-type') ?? '').startsWith('application/json')) {
+      refused += 1;
+      if (line === undefined) problems.push(`${label} 401 tidak ada di log edge`);
+      else if (line.upstreamStatus !== '401') problems.push(`${label} 401 bukan dari backend`);
+    } else if (answer.status === 429 && answer.body === TOO_MANY_REQUESTS && headerOf(answer, 'content-type') === 'application/json' && headerOf(answer, 'cache-control') === 'no-store') {
+      limited += 1;
+      if (line === undefined) problems.push(`${label} 429 tidak ada di log edge`);
+      else if (line.upstreamStatus !== '') problems.push(`${label} 429 diteruskan ke backend`);
+      if (id !== undefined && backendIds.has(id)) problems.push(`${label} 429 mempunyai baris request backend`);
+    } else problems.push(`${label} ${answer.status} bukan 401 backend atau 429 edge`);
+  }
+  if (limited === 0) problems.push('tidak ada jawaban 429 dari edge');
+  return { problems, refused, limited };
+}
+
+/**
+ * The fixed script of auth_capacity for `compose exec backend bun --no-env-file -e`: CAPACITY.requests sign ins at once
+ * to 127.0.0.1:8888 with `Origin` from PUBLIC_ORIGIN of the container (FOUNDATION_PUBLIC_ORIGIN) and the second account
+ * from FOUNDATION_DEPLOY_AUTH_OTHER_EMAIL and FOUNDATION_DEPLOY_AUTH_OTHER_PASSWORD (given through `-e` without a value),
+ * plus one `GET /health/ready` sent 50 ms later, while the verifications run. It prints one JSON line with the status
+ * and duration of each sign in and the readiness status, never a body, a cookie, or a token.
+ */
+export function capacityScript(): string {
+  return [
+    "const origin=process.env.PUBLIC_ORIGIN??'';",
+    "const body=JSON.stringify({email:process.env.FOUNDATION_DEPLOY_AUTH_OTHER_EMAIL??'',password:process.env.FOUNDATION_DEPLOY_AUTH_OTHER_PASSWORD??''});",
+    "const signIn=async()=>{const started=performance.now();try{const response=await fetch('http://127.0.0.1:8888/api/auth/session',{method:'POST',headers:{origin,'content-type':'application/json'},body,signal:AbortSignal.timeout(10000)});await response.arrayBuffer();return{status:response.status,ms:Math.round(performance.now()-started)};}catch{return{status:null,ms:Math.round(performance.now()-started)};}};",
+    "const ready=async()=>{await Bun.sleep(50);try{const response=await fetch('http://127.0.0.1:8888/health/ready',{signal:AbortSignal.timeout(5000)});await response.arrayBuffer();return response.status;}catch{return null;}};",
+    `Promise.all([Promise.all(Array.from({length:${CAPACITY.requests}},()=>signIn())),ready()]).then(([signIns,readyStatus])=>console.log(JSON.stringify({signIns,ready:readyStatus})),()=>process.exit(1));`,
+  ].join('');
+}
+
+export type CapacityResult = { signIns: { status: number | null; ms: number }[]; ready: number | null };
+
+/** The last stdout line of capacityScript; `null` when it is not that JSON shape. */
+export function parseCapacity(stdout: string): CapacityResult | null {
+  const value = parseJson(stdout.trim().split('\n').pop() ?? null);
+  if (!isRecord(value) || !Array.isArray(value['signIns'])) return null;
+  const ready = value['ready'];
+  const signIns: CapacityResult['signIns'] = [];
+  for (const item of value['signIns'] as unknown[]) {
+    if (!isRecord(item) || !(item['status'] === null || Number.isInteger(item['status'])) || !Number.isInteger(item['ms'])) return null;
+    signIns.push({ status: item['status'] as number | null, ms: item['ms'] as number });
+  }
+  if (!(ready === null || Number.isInteger(ready))) return null;
+  return { signIns, ready: ready as number | null };
+}
+
+/**
+ * auth_capacity for the output of capacityScript: CAPACITY.requests answers, each 200 or 503, at least
+ * CAPACITY.minimumSucceeded of them 200, the longest 200 within CAPACITY.longestMs, and `GET /health/ready` 200.
+ */
+export function capacityProblems(result: CapacityResult | null): { problems: string[]; succeeded: number; busy: number; longestMs: number | null } {
+  if (result === null) return { problems: ['keluaran skrip kapasitas tidak terbaca'], succeeded: 0, busy: 0, longestMs: null };
+  const problems: string[] = [];
+  if (result.signIns.length !== CAPACITY.requests) problems.push(`${result.signIns.length} jawaban masuk, diharapkan ${CAPACITY.requests}`);
+  const other = result.signIns.filter((item) => item.status !== 200 && item.status !== 503);
+  if (other.length > 0) problems.push(`${other.length} jawaban masuk bukan 200 atau 503 (${other.map((item) => item.status ?? 'tanpa jawaban').join(', ')})`);
+  const passed = result.signIns.filter((item) => item.status === 200);
+  if (passed.length < CAPACITY.minimumSucceeded) problems.push(`${passed.length} jawaban 200, diharapkan paling sedikit ${CAPACITY.minimumSucceeded}`);
+  const longestMs = passed.length === 0 ? null : Math.max(...passed.map((item) => item.ms));
+  if (longestMs !== null && longestMs > CAPACITY.longestMs) problems.push(`jawaban 200 terlama ${longestMs} ms, di atas ${CAPACITY.longestMs} ms`);
+  if (result.ready !== 200) problems.push(`GET /health/ready bersamaan ${result.ready ?? 'tanpa jawaban'}, diharapkan 200`);
+  return { problems, succeeded: passed.length, busy: result.signIns.filter((item) => item.status === 503).length, longestMs };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1391,6 +1577,16 @@ type Context = {
   sentinelProblems: string[];
   /** Container output read for the log checks, per label; scanned again for artifact-scan.json. */
   containerOutputs: [string, string][];
+  /** Spec 0014: the two test accounts of auth_account_job; their passwords are in `secrets`. */
+  accounts: readonly [TestAccount, TestAccount] | null;
+  /** *Sidik token uji*: the key of this run, the folder for the browser specs (made before browser_flow), and every fingerprint. */
+  tokenKey: string;
+  tokenStore: TokenFingerprintStore | null;
+  tokenFingerprints: Set<string>;
+  /** The session auth_session_cookie opened through the edge and auth_origin_csrf ends; only in memory. */
+  edgeSession: { token: string; csrfToken: string; id: string } | null;
+  /** `X-Request-Id` of the sign in through the edge that log_correlation follows. */
+  signInRequestId: string | null;
   /** Aborted by a signal or by the total deadline. */
   stop: AbortSignal;
   deadlineAt: number;
@@ -1741,6 +1937,8 @@ async function prepareWorkspace(context: Context): Promise<void> {
     ['FOUNDATION_POSTGRES_PASSWORD', adminPassword],
     ['FOUNDATION_BACKEND_DATABASE_URL', backendUrl],
     ['FOUNDATION_MIGRATOR_DATABASE_URL', migratorUrl],
+    // Spec 0014: the origin the browser of this run opens, so it is exactly the edge URL of the run.
+    ['FOUNDATION_PUBLIC_ORIGIN', `https://localhost:${httpsPort}`],
     ['FOUNDATION_EDGE_TLS_CERT_FILE', cert],
     ['FOUNDATION_EDGE_TLS_KEY_FILE', key],
     ['FOUNDATION_EDGE_BIND', '127.0.0.1'],
@@ -2174,6 +2372,8 @@ async function deploy(context: Context): Promise<void> {
   }
   pass(context, 'readiness_after_migration', 'GET /health/ready 200 {"status":"ready"} sesudah migration tanpa restart backend');
 
+  await authAccountJob(context);
+
   context.step = 'edge';
   const edge = await composeStep(context, 'up edge', ['up', '-d', '--wait', 'edge'], TIMEOUTS.composeUp);
   if (!succeeded(edge)) {
@@ -2198,9 +2398,14 @@ async function deploy(context: Context): Promise<void> {
   await stubChecks(context);
   await inspectChecks(context);
   await reachability(context);
-  await browserFlow(context);
   const port = context.httpsPort;
   if (port === null) throw new Error('Edge port missing');
+  await browserFlow(context);
+  // Spec 0014, in the order of DEPLOYMENT_CHECKS; no POST /api/auth/session goes through the edge after the last one.
+  await authSessionCookie(context, port);
+  await authOriginCsrf(context, port);
+  await authCapacity(context);
+  await authEdgeRateLimit(context, port);
   await backendShutdownRestart(context, port);
   await backendRecreate(context, port);
   await databaseOutage(context, port);
@@ -2610,20 +2815,39 @@ async function stubChecks(context: Context): Promise<void> {
   judge(context, 'api_stub_forwarding', problems, 'stub menerima host localhost tanpa header alamat client dengan x-request-id edge; 504 JSON; 1025 byte 413 tanpa sampai stub, 1024 byte sampai');
 }
 
-/** DEP-006 through playwright.deployment.config.ts against the edge of this run. */
+/**
+ * DEP-006 and AUTH-013 through playwright.deployment.config.ts against the edge of this run, in one invocation. The
+ * specs get the accounts of auth_account_job (FOUNDATION_DEPLOY_AUTH_*) and the fingerprint folder of *Sidik token
+ * uji*, made here; the fingerprints they add join the set of the run, also after a failure. The POST
+ * /api/auth/session lines the edge logged during the invocation are counted for the budget.
+ */
 async function browserFlow(context: Context): Promise<void> {
   context.step = 'browser_flow';
   const { root } = context.deps;
   const junit = join(root, EVIDENCE_ROOT, 'playwright-deployment.xml');
-  context.log('deployment: menjalankan alur browser DEP-006 lewat edge');
-  const result = await execute(context, 'playwright', ['node', join(root, 'node_modules/@playwright/test/cli.js'), 'test', '--config', 'playwright.deployment.config.ts'], TIMEOUTS.playwright, {
-    env: { ...context.dockerEnv, FOUNDATION_DEPLOY_EDGE_URL: `https://localhost:${context.httpsPort}` },
-  });
+  const before = await signInLines(context);
+  context.tokenStore ??= await createTokenFingerprintStore(`foundation-deploy-tokens-${context.names.hex}-`, context.tokenKey);
+  context.log('deployment: menjalankan alur browser DEP-006 dan AUTH-013 lewat edge');
+  let result: ProcessGroupResult;
+  try {
+    result = await execute(context, 'playwright', ['node', join(root, 'node_modules/@playwright/test/cli.js'), 'test', '--config', 'playwright.deployment.config.ts'], TIMEOUTS.playwright, {
+      env: {
+        ...context.dockerEnv,
+        FOUNDATION_DEPLOY_EDGE_URL: `https://localhost:${context.httpsPort}`,
+        ...(context.accounts === null ? {} : deploymentAccountEnv(context.accounts)),
+        ...context.tokenStore.env,
+      },
+    });
+  } finally {
+    for (const value of await readFingerprints(context.tokenStore).catch(() => new Set<string>())) context.tokenFingerprints.add(value);
+  }
+  const after = await signInLines(context);
+  const posts = before === null || after === null ? null : after.length - before.length;
   const junitExists = await Bun.file(junit).exists();
   // AC-6: the requested origins must be durable evidence in the JUnit, not only an attachment the reporter drops.
   const evidence = junitExists ? requestedOriginsProblems(await Bun.file(junit).text()) : [];
-  if (succeeded(result) && junitExists && evidence.length === 0) {
-    pass(context, 'browser_flow', 'DEP-006 lulus pada 1280×812 dan 375×812 tanpa pelanggaran CSP, error console, atau request /api/; origin yang diminta tercatat di JUnit');
+  if (succeeded(result) && junitExists && evidence.length === 0 && posts !== null) {
+    pass(context, 'browser_flow', `DEP-006 dan AUTH-013 lulus pada 1280×812 dan 375×812 tanpa pelanggaran CSP atau error; origin tercatat di JUnit; ${posts} POST masuk lewat edge`);
     return;
   }
   const output = context.redact(`${result.stdout}${result.stderr}`).trimEnd();
@@ -2631,10 +2855,263 @@ async function browserFlow(context: Context): Promise<void> {
   const detail = result.timedOut ? `Playwright melewati ${TIMEOUTS.playwright} ms`
     : !junitExists ? 'JUnit Playwright tidak ada'
     : !succeeded(result) ? `Playwright keluar ${result.code ?? 'tanpa kode'}`
+    : posts === null ? 'log edge tidak terbaca untuk menghitung POST masuk'
     : `bukti origin DEP-006: ${evidence[0]}`;
   context.checks.set('browser_flow', { name: 'browser_flow', status: 'failed', detail });
   context.reasons.push({ code: 'browser_failed', detail });
   context.error(`deployment: check browser_flow failed: ${detail}`);
+}
+
+// --- Spec 0014: the accounts through the runner image and the auth checks through the edge (*Perubahan deployment*).
+
+/** The public origin of the run: FOUNDATION_PUBLIC_ORIGIN, the edge URL the browser opens. */
+const publicOrigin = (port: number) => `https://localhost:${port}`;
+
+/** Adds the fingerprints of tokens this run obtained itself (*Sidik token uji*); a token is never kept elsewhere. */
+function fingerprint(context: Context, ...tokens: string[]): void {
+  for (const token of tokens) context.tokenFingerprints.add(tokenFingerprint(context.tokenKey, token));
+}
+
+/** The POST /api/auth/session lines of the edge access log so far; `null` when the log cannot be read. */
+async function signInLines(context: Context): Promise<EdgeLogLine[] | null> {
+  const logs = await serviceLogs(context, 'edge');
+  return logs === null ? null : signInPostLines(logs.stdout);
+}
+
+/** Every line of the edge access log of the running edge, by `requestId`; `null` when the log cannot be read. */
+async function edgeLinesById(context: Context): Promise<{ byId: Map<string, EdgeLogLine>; stdout: string } | null> {
+  const logs = await serviceLogs(context, 'edge');
+  if (logs === null) return null;
+  const byId = new Map<string, EdgeLogLine>();
+  for (const text of logs.stdout.split('\n')) {
+    const line = parseEdgeLogLine(text.trim());
+    if (line !== null) byId.set(line.requestId, line);
+  }
+  return { byId, stdout: logs.stdout };
+}
+
+/** Every parsed line of stdout and stderr of the running backend container; `null` when they cannot be read. */
+async function backendLogLines(context: Context): Promise<(BackendLogLine | null)[] | null> {
+  const logs = await serviceLogs(context, 'backend');
+  return logs === null ? null : [...backendLines(logs.stdout), ...backendLines(logs.stderr)];
+}
+
+/**
+ * auth_account_job (AC-3, AC-13 of spec 0014): the two test accounts of the run through `database/accounts.ts create`
+ * as a `migrate` job of the runner image, with the password only in FOUNDATION_ACCOUNT_PASSWORD (`-e` without a value),
+ * after seed and readiness 200 and before the edge, because the browser flow needs them. Each prints `Account created:
+ * <uuid>`; the same command again for the first account exits 1 with `Account exists`; no output holds an email or a
+ * password. A failure stops the run, like the other deployment steps.
+ */
+async function authAccountJob(context: Context): Promise<void> {
+  context.step = 'auth_account_job';
+  const accounts = newTestAccounts();
+  for (const account of accounts) context.secrets.push(account.password);
+  context.accounts = accounts;
+  const create = (account: TestAccount) => composeStep(context, 'run accounts', ['--profile', 'migrate', 'run', '--rm', '-T', '-e', 'FOUNDATION_ACCOUNT_PASSWORD',
+    'migrate', 'database/accounts.ts', 'create', '--email', account.email, '--display-name', account.displayName, '--apply'], TIMEOUTS.composeRun, {
+    env: { ...context.dockerEnv, FOUNDATION_ACCOUNT_PASSWORD: account.password },
+  });
+  const problems: string[] = [];
+  const leaked = (result: ProcessGroupResult) => accounts.some((account) => `${result.stdout}${result.stderr}`.includes(account.email) || `${result.stdout}${result.stderr}`.includes(account.password));
+  for (const [index, account] of accounts.entries()) {
+    const result = await create(account);
+    if (!succeeded(result) || !result.stdout.split('\n').some((line) => /^Account created: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(line.trim()))) {
+      printTail(context, 'run accounts', result);
+      problems.push(`akun ${index + 1}: create keluar ${result.code ?? 'tanpa kode'} tanpa Account created`);
+    }
+    if (leaked(result)) problems.push(`akun ${index + 1}: keluaran memuat email atau password`);
+  }
+  const again = await create(accounts[0]);
+  if (again.code !== 1 || again.timedOut || !hasLine(again.stderr, 'Account exists') || hasLine(again.stdout, 'Account exists') || /Account created/.test(again.stdout)) {
+    problems.push(`create ulang keluar ${again.code ?? 'tanpa kode'}, bukan 1 dengan Account exists di stderr`);
+  }
+  if (leaked(again)) problems.push('create ulang: keluaran memuat email atau password');
+  if (problems.length > 0) checkFailed(context, 'auth_account_job', problems.join('; '));
+  pass(context, 'auth_account_job', '2 akun uji dibuat job migrate image runner (Account created); create ulang keluar 1 Account exists; keluaran tanpa email dan password');
+}
+
+/**
+ * auth_session_cookie (AC-4, AC-13 of spec 0014): one sign in of the first account through the edge with the public
+ * origin answers 200 with `no-store`, *Header API*, and exactly one `Set-Cookie` of *Cookie sesi* production
+ * (`__Host-foundation_session`, `Path=/`, `Secure`, `HttpOnly`, `SameSite=Strict`, no `Domain`, no `Max-Age`), and the
+ * cookie reads the same session back through the edge. The token and the CSRF token are fingerprinted at once and
+ * kept only in memory for auth_origin_csrf; the `X-Request-Id` goes to log_correlation.
+ */
+async function authSessionCookie(context: Context, port: number): Promise<void> {
+  context.step = 'auth_session_cookie';
+  const account = context.accounts?.[0];
+  if (account === undefined) {
+    judge(context, 'auth_session_cookie', ['akun uji tidak ada'], '');
+    return;
+  }
+  const problems: string[] = [];
+  const before = await signInLines(context);
+  const answer = await https(context, port, '/api/auth/session', {
+    method: 'POST', headers: { Origin: publicOrigin(port), 'Content-Type': 'application/json' }, body: JSON.stringify({ email: account.email, password: account.password }),
+  });
+  if (answer === null || answer.status !== 200) problems.push(`masuk lewat edge ${shown(answer)}, diharapkan 200`);
+  else {
+    const cookies = headerValues(answer.headers, 'set-cookie');
+    const token = /^__Host-foundation_session=([A-Za-z0-9_-]{43});/.exec(cookies[0] ?? '')?.[1];
+    const body = parseJson(answer.body);
+    const csrfToken = isRecord(body) && typeof body['csrfToken'] === 'string' ? body['csrfToken'] : undefined;
+    const session = isRecord(body) ? body['session'] : undefined;
+    const id = isRecord(session) && typeof session['id'] === 'string' ? session['id'] : undefined;
+    // Fingerprinted before any other step, so the scans cover both tokens even when a later step fails.
+    if (token !== undefined) fingerprint(context, token);
+    if (csrfToken !== undefined) fingerprint(context, csrfToken);
+    problems.push(...sessionCookieProblems(cookies, 'set'));
+    if (header(answer, 'cache-control') !== 'no-store') problems.push('masuk tanpa Cache-Control no-store');
+    problems.push(...apiHeaderProblems(answer.headers).map((problem) => `masuk: ${problem}`));
+    context.signInRequestId = requestIdOf(answer) ?? null;
+    if (token === undefined || csrfToken === undefined || id === undefined) problems.push('jawaban masuk tanpa token, token CSRF, atau id sesi');
+    else {
+      const identity = await https(context, port, '/api/auth/session', { headers: { Cookie: `${SESSION_COOKIE}=${token}` } });
+      const read = identity?.status === 200 ? parseJson(identity.body) : undefined;
+      const readSession = isRecord(read) ? read['session'] : undefined;
+      if (identity === null || !isRecord(readSession) || readSession['id'] !== id) problems.push(`GET /api/auth/session dengan cookie ${shown(identity)}, diharapkan 200 sesi yang sama`);
+      else if (headerValues(identity.headers, 'set-cookie').length > 0 || header(identity, 'cache-control') !== 'no-store') problems.push('GET sesi menetapkan cookie atau tanpa no-store');
+      context.edgeSession = { token, csrfToken, id };
+    }
+  }
+  const after = await signInLines(context);
+  if (before === null || after === null) problems.push('log edge tidak terbaca');
+  const posts = before === null || after === null ? '-' : String(after.length - before.length);
+  judge(context, 'auth_session_cookie', problems, `masuk lewat edge 200 dengan satu Set-Cookie __Host-foundation_session Path=/ Secure HttpOnly SameSite=Strict tanpa Domain dan Max-Age; GET sesi 200; ${posts} POST masuk`);
+}
+
+/**
+ * auth_origin_csrf (AC-9, AC-13 of spec 0014): through the edge, sign in without `Origin`, with a foreign `Origin`,
+ * with `Sec-Fetch-Site: cross-site`, and as a cross site urlencoded form, sign out with a wrong CSRF token, and a
+ * revocation without `Origin` all answer the backend 403 `Forbidden` with *Header API*, `no-store`, and no cookie; the
+ * edge log shows `upstreamStatus` 403 and the backend log a `request_rejected` line with the same `requestId` and the
+ * outcome `origin` or `csrf`. The session stays valid, then sign out with the right CSRF token answers 204 with the
+ * removal cookie, and the token is refused 401. Last, the budget: at most SIGN_IN_BUDGET POST /api/auth/session
+ * through the edge so far, none of them 429.
+ */
+async function authOriginCsrf(context: Context, port: number): Promise<void> {
+  context.step = 'auth_origin_csrf';
+  const session = context.edgeSession;
+  if (session === null) {
+    judge(context, 'auth_origin_csrf', ['sesi lewat edge dari auth_session_cookie tidak ada'], '');
+    return;
+  }
+  const problems: string[] = [];
+  const origin = publicOrigin(port);
+  const foreign = 'https://foreign.example';
+  const cookie = `${SESSION_COOKIE}=${session.token}`;
+  // Never parsed: the guard refuses before the body. An email of no account, so a broken guard would not lock a test account.
+  const body = JSON.stringify({ email: `origin-${context.names.hex}@example.test`, password: 'bukan-password-akun' });
+  const before = await signInLines(context);
+  const rejected: [label: string, outcome: 'origin' | 'csrf', answer: EdgeAnswer | null][] = [
+    ['masuk tanpa Origin', 'origin', await https(context, port, '/api/auth/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })],
+    ['masuk dengan Origin asing', 'origin', await https(context, port, '/api/auth/session', { method: 'POST', headers: { Origin: foreign, 'Content-Type': 'application/json' }, body })],
+    ['masuk dengan Sec-Fetch-Site cross-site', 'origin', await https(context, port, '/api/auth/session', { method: 'POST', headers: { Origin: origin, 'Sec-Fetch-Site': 'cross-site', 'Content-Type': 'application/json' }, body })],
+    ['form urlencoded lintas situs', 'origin', await https(context, port, '/api/auth/session', { method: 'POST', headers: { Origin: foreign, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'email=a%40b.test&password=x' })],
+    ['keluar dengan token CSRF salah', 'csrf', await https(context, port, '/api/auth/session', { method: 'DELETE', headers: { Origin: origin, Cookie: cookie, 'x-csrf-token': 'A'.repeat(43) } })],
+    ['pencabutan tanpa Origin', 'origin', await https(context, port, `/api/auth/sessions/${session.id}`, { method: 'DELETE', headers: { Cookie: cookie, 'x-csrf-token': session.csrfToken } })],
+  ];
+  for (const [label, , answer] of rejected) {
+    if (answer === null || answer.status !== 403 || answer.body !== '{"error":"Forbidden"}' || !(header(answer, 'content-type') ?? '').startsWith('application/json')) problems.push(`${label} ${shown(answer)}, diharapkan 403 Forbidden`);
+    else {
+      if (header(answer, 'cache-control') !== 'no-store') problems.push(`${label} tanpa no-store`);
+      if (headerValues(answer.headers, 'set-cookie').length > 0) problems.push(`${label} menetapkan cookie`);
+      problems.push(...apiHeaderProblems(answer.headers).map((problem) => `${label}: ${problem}`));
+    }
+  }
+  const still = await https(context, port, '/api/auth/session', { headers: { Cookie: cookie } });
+  if (still?.status !== 200) problems.push(`sesi sesudah penolakan ${shown(still)}, diharapkan tetap 200`);
+  const signedOut = await https(context, port, '/api/auth/session', { method: 'DELETE', headers: { Origin: origin, Cookie: cookie, 'x-csrf-token': session.csrfToken } });
+  if (signedOut === null || signedOut.status !== 204 || signedOut.body !== '') problems.push(`keluar dengan token CSRF benar ${shown(signedOut)}, diharapkan 204`);
+  else problems.push(...sessionCookieProblems(headerValues(signedOut.headers, 'set-cookie'), 'clear').map((problem) => `keluar: ${problem}`));
+  const gone = await https(context, port, '/api/auth/session', { headers: { Cookie: cookie } });
+  if (gone?.status !== 401 || gone.body !== '{"error":"Unauthorized"}') problems.push(`token sesudah keluar ${shown(gone)}, diharapkan 401`);
+  context.edgeSession = null;
+
+  // Where each refusal came from: the edge forwarded it (upstreamStatus 403) and the backend wrote the event.
+  const edge = await edgeLinesById(context);
+  const backend = await backendLogLines(context);
+  if (edge === null || backend === null) problems.push('log edge atau backend tidak terbaca');
+  else {
+    const events = backend.filter(isAuthLine);
+    for (const [label, outcome, answer] of rejected) {
+      const id = requestIdOf(answer);
+      if (id === undefined) continue;
+      if (edge.byId.get(id)?.upstreamStatus !== '403') problems.push(`${label} tidak dijawab backend menurut log edge`);
+      if (!events.some((line) => line.requestId === id && line.action === 'request_rejected' && line.outcome === outcome)) problems.push(`${label} tanpa baris auth request_rejected ${outcome}`);
+    }
+  }
+  const after = edge === null ? null : signInPostLines(edge.stdout);
+  if (after !== null) problems.push(...signInBudgetProblems(after));
+  const posts = before === null || after === null ? '-' : String(after.length - before.length);
+  judge(context, 'auth_origin_csrf', problems, `${rejected.length} request lewat edge ditolak 403 backend dengan event origin atau csrf; keluar dengan token CSRF benar 204 lalu 401; ${posts} POST masuk, total ${after?.length ?? '-'} dari anggaran ${SIGN_IN_BUDGET}`);
+}
+
+/**
+ * auth_capacity (AC-6, AC-13 of spec 0014): capacityScript inside the backend container (not through the edge, so the
+ * edge limit takes no part) with the second account, which never gets a wrong password in the run: every answer 200 or
+ * 503, at least CAPACITY.minimumSucceeded 200 within CAPACITY.longestMs, `GET /health/ready` sent at the same time 200
+ * (verification holds no pool connection), and the backend neither restarted nor `OOMKilled`.
+ */
+async function authCapacity(context: Context): Promise<void> {
+  context.step = 'auth_capacity';
+  const accounts = context.accounts;
+  if (accounts === null) {
+    judge(context, 'auth_capacity', ['akun uji tidak ada'], '');
+    return;
+  }
+  const problems: string[] = [];
+  const before = await serviceInspect(context, 'backend');
+  const other = deploymentAccountEnv(accounts);
+  const result = await composeStep(context, 'exec backend capacity', ['exec', '-T', '-e', 'FOUNDATION_DEPLOY_AUTH_OTHER_EMAIL', '-e', 'FOUNDATION_DEPLOY_AUTH_OTHER_PASSWORD',
+    'backend', 'bun', '--no-env-file', '-e', capacityScript()], TIMEOUTS.exec, {
+    env: { ...context.dockerEnv, FOUNDATION_DEPLOY_AUTH_OTHER_EMAIL: other['FOUNDATION_DEPLOY_AUTH_OTHER_EMAIL']!, FOUNDATION_DEPLOY_AUTH_OTHER_PASSWORD: other['FOUNDATION_DEPLOY_AUTH_OTHER_PASSWORD']! },
+  });
+  if (!succeeded(result)) printTail(context, 'exec backend capacity', result);
+  const judged = capacityProblems(succeeded(result) ? parseCapacity(result.stdout) : null);
+  problems.push(...judged.problems);
+  const after = await serviceInspect(context, 'backend');
+  const state = (object: Record<string, unknown> | null) => recordOf(object?.['State']);
+  if (before === null || after === null) problems.push('state backend tidak terbaca');
+  else {
+    if (after['Id'] !== before['Id'] || state(after)['StartedAt'] !== state(before)['StartedAt'] || after['RestartCount'] !== 0) problems.push('backend dimulai ulang');
+    if (state(after)['OOMKilled'] !== false || state(after)['Running'] !== true) problems.push('backend OOMKilled atau tidak berjalan');
+  }
+  judge(context, 'auth_capacity', problems, `${judged.succeeded} dari ${CAPACITY.requests} masuk bersamaan di container backend 200 dan ${judged.busy} 503, 200 terlama ${judged.longestMs ?? '-'} ms; /health/ready bersamaan 200; tanpa restart dan OOMKilled`);
+}
+
+/**
+ * auth_edge_rate_limit (AC-6, AC-13 of spec 0014): EDGE_LIMIT.requests sign ins through the edge, at most
+ * EDGE_LIMIT.concurrency at once, each with another email of no account (the run id plus a number), so the limit per
+ * account never answers and no test account is locked. Judged by edgeRateLimitProblems against the edge log and the
+ * backend request lines. No POST /api/auth/session goes through the edge after this check.
+ */
+async function authEdgeRateLimit(context: Context, port: number): Promise<void> {
+  context.step = 'auth_edge_rate_limit';
+  const answers: (EdgeAnswer | null)[] = Array.from({ length: EDGE_LIMIT.requests }, () => null);
+  let next = 0;
+  const worker = async () => {
+    while (next < EDGE_LIMIT.requests) {
+      const index = next;
+      next += 1;
+      answers[index] = await https(context, port, '/api/auth/session', {
+        method: 'POST',
+        headers: { Origin: publicOrigin(port), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: `batas-${context.names.hex}-${index + 1}@example.test`, password: `bukan-password-${index + 1}` }),
+      });
+    }
+  };
+  await Promise.all(Array.from({ length: EDGE_LIMIT.concurrency }, worker));
+  const edge = await edgeLinesById(context);
+  const backend = await backendLogLines(context);
+  if (edge === null || backend === null) {
+    judge(context, 'auth_edge_rate_limit', ['log edge atau backend tidak terbaca'], '');
+    return;
+  }
+  const backendIds = new Set(backend.filter(isRequestLine).map((line) => line.requestId));
+  const judged = edgeRateLimitProblems(answers, edge.byId, backendIds);
+  judge(context, 'auth_edge_rate_limit', judged.problems, `${EDGE_LIMIT.requests} POST /api/auth/session lewat edge (paling banyak ${EDGE_LIMIT.concurrency} bersamaan): ${judged.refused} jawaban 401 backend dan ${judged.limited} jawaban 429 edge tanpa upstream`);
 }
 
 // --- Step 6, continued: the declaration, inspect, reachability, operation, and log checks (AC-4, AC-8, AC-9, AC-10).
@@ -3118,12 +3595,13 @@ async function logChecks(context: Context, port: number): Promise<void> {
     if (err.some((line) => line !== null && line.level !== 'error')) structure.push(`${label}: baris info di stderr`);
     if (out[0] === undefined || out[0] === null || out[0].event !== 'listening') structure.push(`${label}: baris pertama bukan listening`);
   }
-  const requests = [...backendLines(backendLogs?.stdout ?? ''), ...backendLines(backendLogs?.stderr ?? ''), ...backendLines(context.priorBackendLogs?.stdout ?? ''), ...backendLines(context.priorBackendLogs?.stderr ?? '')]
-    .filter((line): line is Extract<BackendLogLine, { event: 'request' }> => line !== null && line.event === 'request');
+  const parsed = [...backendLines(backendLogs?.stdout ?? ''), ...backendLines(backendLogs?.stderr ?? ''), ...backendLines(context.priorBackendLogs?.stdout ?? ''), ...backendLines(context.priorBackendLogs?.stderr ?? '')];
+  const requests = parsed.filter(isRequestLine);
+  const authEvents = parsed.filter(isAuthLine);
   if (requests.some((line) => (line.path === '/health/live' || line.path === '/health/ready') && line.status < 500)) structure.push('jawaban health di bawah 500 tercatat');
   if (large?.result !== 'ok' || large.status !== 413) structure.push(`body 2048 byte langsung ke backend ${probeShown(large)}, diharapkan 413`);
   if (requests.some((line) => line.path === largePath)) structure.push('request yang ditolak Bun sebelum Elysia tercatat');
-  judge(context, 'log_structure', structure, `${edgeLines.length} baris JSON edge dengan key dan tipe AC-10, termasuk status 0 untuk request HTTP/2 yang diakhiri tanpa jawaban; log backend JSON production (info hanya stdout, error hanya stderr); health di bawah 500 dan 413 Bun tidak tercatat`);
+  judge(context, 'log_structure', structure, `${edgeLines.length} baris JSON edge dengan key dan tipe AC-10, termasuk status 0 untuk request HTTP/2 tanpa jawaban; log backend JSON production dengan ${authEvents.length} baris auth (info hanya stdout); health di bawah 500 dan 413 Bun tidak tercatat`);
 
   context.step = 'log_correlation';
   const correlation: string[] = [];
@@ -3139,15 +3617,29 @@ async function logChecks(context: Context, port: number): Promise<void> {
   const directLine = requests.find((line) => line.path === directPath);
   if (direct?.result !== 'ok' || direct.status !== 404) correlation.push(`request langsung ke backend ${probeShown(direct)}`);
   if (directLine === undefined || directLine.requestId === directId.toLowerCase() || !REQUEST_ID.test(directLine.requestId)) correlation.push('backend tidak membuat requestId sendiri untuk X-Request-Id yang tidak sah');
-  judge(context, 'log_correlation', correlation, 'header X-Request-Id jawaban, baris log edge, dan baris log backend memuat ID yang sama; ID client tidak dipakai; ID tidak sah diganti backend');
+  // Spec 0014: the sign in of auth_session_cookie has one edge line, one backend request line, and one `auth` sign_in
+  // line, all with the X-Request-Id of its answer.
+  const signInId = context.signInRequestId;
+  if (signInId === null) correlation.push('masuk lewat edge tanpa X-Request-Id');
+  else {
+    const edgeLine = edgeLines.map((line) => parseEdgeLogLine(line)).find((line) => line?.requestId === signInId);
+    if (edgeLine?.path !== '/api/auth/session' || edgeLine.method !== 'POST' || edgeLine.status !== 200) correlation.push('baris log edge masuk dengan ID jawaban tidak ada');
+    if (requests.filter((line) => line.requestId === signInId && line.path === '/api/auth/session' && line.method === 'POST' && line.status === 200).length !== 1) correlation.push('baris request backend masuk dengan ID jawaban bukan tepat satu');
+    if (authEvents.filter((line) => line.requestId === signInId && line.action === 'sign_in' && line.outcome === 'succeeded').length !== 1) correlation.push('baris auth sign_in succeeded dengan ID jawaban bukan tepat satu');
+  }
+  judge(context, 'log_correlation', correlation, 'X-Request-Id jawaban, baris log edge, dan baris log backend memuat ID yang sama, juga baris auth sign_in masuk lewat edge; ID client tidak dipakai; ID tidak sah diganti backend');
 
   context.step = 'log_no_data';
   const scanned: [string, string][] = [
     ...outputs.flatMap(([label, logs]): [string, string][] => (logs === null ? [] : [[`stdout ${label}`, logs.stdout], [`stderr ${label}`, logs.stderr]])),
-    ...['run provision', 'run default command', 'run migrate', 'run seed'].map((label): [string, string] => [label, context.outputs.get(label) ?? '']),
+    ...['run provision', 'run default command', 'run migrate', 'run seed', 'run accounts', 'exec backend capacity'].map((label): [string, string] => [label, context.outputs.get(label) ?? '']),
   ];
   const leaks = scanned.filter(([, text]) => containsSecret(text, context.secrets)).map(([label]) => `${label} memuat nilai rahasia run`);
-  judge(context, 'log_no_data', [...context.sentinelProblems, ...leaks], `${context.secrets.length} nilai (sentinel query, Authorization, Cookie, header, body, termasuk saat 502; password dan DSN run) tidak ada di ${scanned.length} keluaran container`);
+  // Spec 0014: no log holds the email of a test account, or a session or CSRF token the run obtained (by fingerprint).
+  const emails = context.accounts?.map((account) => account.email) ?? [];
+  const emailLeaks = scanned.filter(([, text]) => emails.some((email) => text.includes(email))).map(([label]) => `${label} memuat email akun uji`);
+  const tokenLeaks = scanned.filter(([, text]) => tokenMatches(text, context.tokenKey, context.tokenFingerprints) > 0).map(([label]) => `${label} memuat token`);
+  judge(context, 'log_no_data', [...context.sentinelProblems, ...leaks, ...emailLeaks, ...tokenLeaks], `${context.secrets.length} nilai (sentinel, password dan DSN run, password akun uji), email akun uji, dan ${context.tokenFingerprints.size} sidik token tidak ada di ${scanned.length} keluaran`);
 
   context.step = 'postgres_log_policy';
   const postgresText = `${postgresLogs?.stdout ?? ''}${postgresLogs?.stderr ?? ''}`;
@@ -3191,23 +3683,40 @@ async function artifactScan(context: Context): Promise<void> {
   } catch {
     // No screenshots were written.
   }
+  // *Sidik token uji* (spec 0014): every fingerprint the browser specs added, the positive control, and a match in any
+  // scanned file, container output, command output, or this report is a finding. Once the browser flow passed or the
+  // run signed in through the edge itself, the set must not be empty.
+  if (context.tokenStore !== null) for (const value of await readFingerprints(context.tokenStore).catch(() => new Set<string>())) context.tokenFingerprints.add(value);
+  const control = context.tokenStore === null ? null : await tokenScanControl(context.tokenStore).catch(() => false);
+  const tokenFound = (data: Uint8Array | string) => tokenMatches(data, context.tokenKey, context.tokenFingerprints) > 0;
   const findings: string[] = [];
-  for (const [label, text] of context.containerOutputs) if (containsSecret(text, context.secrets)) findings.push(`${label} output`);
+  for (const [label, text] of context.containerOutputs) {
+    if (containsSecret(text, context.secrets)) findings.push(`${label} output`);
+    else if (tokenFound(text)) findings.push(`${label} output token`);
+  }
+  for (const [label, text] of context.outputs) if (tokenFound(text)) findings.push(`${label} output token`);
   const secrets = context.secrets.filter((value) => value !== '').map((value) => Buffer.from(value));
   for (const path of files) {
     const data = await readFile(join(evidence, path));
     if (secrets.some((value) => data.includes(value))) findings.push(`${EVIDENCE_ROOT}/${path}`);
+    else if (tokenFound(data)) findings.push(`${EVIDENCE_ROOT}/${path} token`);
   }
+  const signedIn = context.checks.get('browser_flow')?.status === 'passed' || context.checks.has('auth_session_cookie');
+  if (signedIn && context.tokenFingerprints.size === 0) findings.push('sidik token kosong sesudah test masuk');
+  if (control === false) findings.push('kontrol positif sidik token gagal');
   const junit = join(evidence, 'playwright-deployment.xml');
   const report = {
     outputsScanned: context.containerOutputs.map(([label]) => label),
     filesScanned: files.map((path) => `${EVIDENCE_ROOT}/${path}`),
     secretsChecked: secrets.length,
+    tokenFingerprints: context.tokenFingerprints.size,
+    tokenScanControl: control,
     junitSha256: (await Bun.file(junit).exists()) ? new Bun.CryptoHasher('sha256').update(await readFile(junit)).digest('hex') : null,
     findings,
   };
+  if (tokenFound(`${JSON.stringify(report, null, 2)}\n`)) findings.push(`${EVIDENCE_ROOT}/artifact-scan.json token`);
   await writeFile(join(evidence, 'artifact-scan.json'), `${JSON.stringify(report, null, 2)}\n`);
-  if (findings.length === 0) pass(context, 'artifact_scan', `${secrets.length} nilai run tidak ada di ${files.length} file bukti dan ${context.containerOutputs.length} keluaran container`);
+  if (findings.length === 0) pass(context, 'artifact_scan', `${secrets.length} nilai run dan ${context.tokenFingerprints.size} sidik token tidak ada di ${files.length} file bukti dan ${context.containerOutputs.length} keluaran container`);
   else {
     context.checks.set('artifact_scan', { name: 'artifact_scan', status: 'failed', detail: findings.join(', ') });
     context.reasons.push({ code: 'artifact_scan_findings', detail: findings.join(', ') });
@@ -3302,6 +3811,12 @@ export async function runDeployment(deps: RunDeps): Promise<number> {
     sentinels: [],
     sentinelProblems: [],
     containerOutputs: [],
+    accounts: null,
+    tokenKey: newTokenKey(),
+    tokenStore: null,
+    tokenFingerprints: new Set(),
+    edgeSession: null,
+    signInRequestId: null,
     stop: AbortSignal.any([deps.signal, deadline.signal]),
     deadlineAt: now() + deadlineMs,
     now,
@@ -3357,13 +3872,21 @@ export async function runDeployment(deps: RunDeps): Promise<number> {
     context.checks.set('artifact_scan', { name: 'artifact_scan', status: 'failed', detail: 'pemindaian bukti gagal' });
     context.reasons.push({ code: 'artifact_scan_findings', detail: 'pemindaian bukti gagal' });
   }
+  // The fingerprint folder of *Sidik token uji* goes after the scan; the fingerprints stay in memory for result.json.
+  try {
+    await removeTokenFingerprintStore(context.tokenStore);
+    context.tokenStore = null;
+  } catch {
+    context.checks.set('cleanup', { name: 'cleanup', status: 'failed', detail: 'folder sidik token' });
+    context.reasons.push({ code: 'cleanup_failed', detail: 'folder sidik token' });
+  }
   // A signal that arrived during cleanup or the scan is recorded in result.json and ends the run with its exit code.
   const late = received === null && deps.signal.aborted ? signalName(deps.signal) : null;
   if (late !== null) context.reasons.push({ code: 'signal', detail: late });
 
   let result = buildResult({ startedAt, finishedAt: new Date(now()).toISOString(), candidate, checks: context.checks, reasons: context.reasons });
   const raw = `${JSON.stringify(result, null, 2)}\n`;
-  if (containsSecret(raw, secrets)) {
+  if (containsSecret(raw, secrets) || tokenMatches(raw, context.tokenKey, context.tokenFingerprints) > 0) {
     result = buildResult({ startedAt, finishedAt: result.finishedAt, candidate, checks: context.checks, reasons: [...context.reasons, { code: 'artifact_scan_findings', detail: `${EVIDENCE_ROOT}/result.json` }] });
   }
   await writeFile(join(evidence, 'result.json'), redact(`${JSON.stringify(result, null, 2)}\n`));

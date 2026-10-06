@@ -56,6 +56,16 @@ Doctor memeriksa prasyarat tanpa mengubah database atau menghentikan proses. Ser
 
 Frontend, backend, dan worker dijalankan melalui Bun/Angular CLI; Compose tidak memuat runtime aplikasi. Credential Compose terpisah dari `.env` aplikasi. Lihat [aturan infrastruktur](docs/rules/infrastructure.md) untuk port, volume, healthcheck, dan batas provisioning.
 
+## Akses pengguna (spec 0014)
+
+Tidak ada registrasi publik: akun dibuat operator lewat `database/accounts.ts`. Sesudah migration, isi `FOUNDATION_MIGRATOR_DATABASE_URL` seperti runner migration dan password akun di `FOUNDATION_ACCOUNT_PASSWORD` (15 sampai 128 karakter, lewat `read -rs` agar tidak tersimpan di riwayat shell), lalu jalankan dari root:
+
+```sh
+bun run db:accounts create --email <email> --display-name '<nama>' --apply
+```
+
+Masuk lewat `http://127.0.0.1:8889/masuk`, lalu halaman `/akun` menampilkan profil, sesi aktif, `Akhiri sesi`, dan `Keluar`. `bun run db:accounts set-password --email <email> --apply` mengganti password dan mencabut sesi akun itu, dan `revoke-sessions --email <email> --apply` atau `revoke-sessions --all --apply` mencabut sesi tanpa mengubah password. Cookie, CSRF, batas percobaan, dan log ada di [aturan keamanan](docs/rules/security.md); job runner production ada di [aturan deployment](docs/rules/deployment.md).
+
 ## Kerangka aplikasi (spec 0001)
 
 Gunakan Node 24.21.0 dan Bun 1.4.2 sesuai `.node-version` serta `.bun-version`.

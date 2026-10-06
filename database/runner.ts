@@ -16,8 +16,14 @@ const expectedColumns = [
   ['applied_at', 'timestamp with time zone', true, 'transaction_timestamp()'],
 ];
 
-class RunnerError extends Error {
+/** A failure category of spec 0005: a fixed message, plus the SQL file name when one file caused it. */
+export class RunnerError extends Error {
   constructor(message: string, readonly file?: string) { super(message); }
+}
+
+/** The one line a command prints for a RunnerError: the category, then `: <file>` when a file caused it. */
+export function runnerErrorLine(error: RunnerError): string {
+  return error.file ? `${error.message}: ${error.file}` : error.message;
 }
 
 function fail(message: string, file?: string): never { throw new RunnerError(message, file); }
@@ -221,11 +227,14 @@ function verifyHistory(files: FileEntry[], rows: Array<{ name: string; checksum:
   return rows.length;
 }
 
-export async function runDatabaseCommand(kind: CommandKind, sql: SQL, root = resolve(import.meta.dir, '..')): Promise<RunReport> {
-  const migrations = await discover('migration', root);
-  const seeds = kind === 'seed' ? await discover('seed', root) : [];
-  const report: RunReport = { kind, applied: [], skipped: [] };
-  await sql.begin(async (tx) => {
+/**
+ * The owner transaction of spec 0005, the only place that runs these checks: READ COMMITTED with a 5 second lock wait,
+ * the migrator identity, the advisory locks `(638727, 5)` and `(638727, 6)`, `SET LOCAL ROLE foundation_owner`, the
+ * metadata shape, and the history against the migration files. `work` then runs as the owner with the number of
+ * applied migrations. After the commit the session role must be the migrator again.
+ */
+async function ownerTransaction<T>(sql: SQL, migrations: FileEntry[], work: (tx: Tx, applied: number) => Promise<T>): Promise<T> {
+  const result = await sql.begin(async (tx) => {
     await tx.unsafe('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
     await tx.unsafe("SET LOCAL lock_timeout = '5s'");
     await verifyIdentity(tx);
@@ -236,9 +245,37 @@ export async function runDatabaseCommand(kind: CommandKind, sql: SQL, root = res
     if (role?.name !== 'foundation_owner') fail('Owner role unavailable');
     await verifyMetadata(tx);
     const rows = await tx`SELECT name, checksum, applied_at FROM common.schema_migrations ORDER BY name`;
-    const applied = verifyHistory(migrations, rows);
-    if (kind === 'seed' && applied !== migrations.length) fail('Migrations pending');
-    if (kind === 'migration') {
+    return work(tx, verifyHistory(migrations, rows));
+  });
+  const [role] = await sql`SELECT current_user AS name`;
+  if (role?.name !== 'foundation_migrator') fail('Migrator role was not restored');
+  return result;
+}
+
+/** The owner transaction with the condition of the seed: every migration file is applied, else `Migrations pending`. */
+function currentOwnerTransaction<T>(sql: SQL, migrations: FileEntry[], work: (tx: Tx) => Promise<T>): Promise<T> {
+  return ownerTransaction(sql, migrations, (tx, applied) => {
+    if (applied !== migrations.length) fail('Migrations pending');
+    return work(tx);
+  });
+}
+
+/**
+ * The owner transaction that the seed and `database/accounts.ts` share (spec 0014, *Perintah operator*): the migration
+ * files are read first, then every check of ownerTransaction and the seed condition run before `work`. Files are read
+ * before the connection is used, so a file error never waits on a lock.
+ */
+export async function withOwnerTransaction<T>(sql: SQL, work: (tx: Tx) => Promise<T>, root = resolve(import.meta.dir, '..')): Promise<T> {
+  const migrations = await discover('migration', root);
+  return currentOwnerTransaction(sql, migrations, work);
+}
+
+export async function runDatabaseCommand(kind: CommandKind, sql: SQL, root = resolve(import.meta.dir, '..')): Promise<RunReport> {
+  const migrations = await discover('migration', root);
+  const seeds = kind === 'seed' ? await discover('seed', root) : [];
+  const report: RunReport = { kind, applied: [], skipped: [] };
+  if (kind === 'migration') {
+    await ownerTransaction(sql, migrations, async (tx, applied) => {
       report.skipped = migrations.slice(0, applied).map((file) => file.name);
       for (const file of migrations.slice(applied)) {
         try { await tx.unsafe(file.sql); }
@@ -246,16 +283,16 @@ export async function runDatabaseCommand(kind: CommandKind, sql: SQL, root = res
         await tx`INSERT INTO common.schema_migrations(name, checksum) VALUES (${file.name}, ${file.checksum})`;
         report.applied.push(file.name);
       }
-    } else {
+    });
+  } else {
+    await currentOwnerTransaction(sql, migrations, async (tx) => {
       for (const file of seeds) {
         try { await tx.unsafe(file.sql); }
         catch { fail('Seed SQL failed', file.name); }
         report.applied.push(file.name);
       }
-    }
-  });
-  const [role] = await sql`SELECT current_user AS name`;
-  if (role?.name !== 'foundation_migrator') fail('Migrator role was not restored');
+    });
+  }
   return report;
 }
 
@@ -272,7 +309,7 @@ export async function commandLine(kind: CommandKind): Promise<void> {
     for (const name of report.applied) console.log(`${kind === 'migration' ? 'Applied' : 'Seeded'}: ${name}`);
     console.log(kind === 'migration' ? `Migrations: ${report.applied.length} applied, ${report.skipped.length} skipped` : `Seeds: ${report.applied.length} executed`);
   } catch (error) {
-    if (error instanceof RunnerError) console.error(error.file ? `${error.message}: ${error.file}` : error.message);
+    if (error instanceof RunnerError) console.error(runnerErrorLine(error));
     else console.error(kind === 'migration' ? 'Migration failed' : 'Seed failed');
     process.exitCode = 1;
   } finally { if (sql) await sql.close(); }

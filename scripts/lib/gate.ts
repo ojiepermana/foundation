@@ -69,7 +69,8 @@ export function performanceEvidenceValid(object: Readonly<Record<string, unknown
 /**
  * Spec 0012 (*Check deployment*): every check `test:deployment:real` writes to `.local/feature-13/result.json`, in this
  * fixed order, with the acceptance criteria each one proves. The orchestration imports it, and the report shows the
- * criteria column, so a reader sees which check proves which criterion.
+ * criteria column, so a reader sees which check proves which criterion. A bare `AC-n` is a criterion of spec 0012;
+ * `0014/AC-n` is one of spec 0014 (*Perubahan deployment*), whose checks follow the order they run in.
  */
 export const DEPLOYMENT_CHECKS = Object.freeze(
   (
@@ -82,6 +83,7 @@ export const DEPLOYMENT_CHECKS = Object.freeze(
       ['readiness_before_migration', ['AC-3', 'AC-4']],
       ['migration_step', ['AC-3']],
       ['readiness_after_migration', ['AC-3', 'AC-4']],
+      ['auth_account_job', ['0014/AC-3', '0014/AC-13']],
       ['tls_versions', ['AC-5']],
       ['http_redirect', ['AC-5']],
       ['document_headers', ['AC-5', 'AC-6']],
@@ -98,14 +100,18 @@ export const DEPLOYMENT_CHECKS = Object.freeze(
       ['compose_declaration', ['AC-8', 'AC-10']],
       ['container_hardening', ['AC-8']],
       ['container_environment', ['AC-8']],
-      ['browser_flow', ['AC-6']],
+      ['browser_flow', ['AC-6', '0014/AC-12']],
+      ['auth_session_cookie', ['0014/AC-4', '0014/AC-13']],
+      ['auth_origin_csrf', ['0014/AC-9', '0014/AC-13']],
+      ['auth_capacity', ['0014/AC-6', '0014/AC-13']],
+      ['auth_edge_rate_limit', ['0014/AC-6', '0014/AC-13']],
       ['backend_shutdown_restart', ['AC-9']],
       ['backend_recreate', ['AC-9']],
       ['database_outage', ['AC-4', 'AC-9']],
       ['edge_shutdown', ['AC-9']],
-      ['log_structure', ['AC-10']],
-      ['log_correlation', ['AC-10']],
-      ['log_no_data', ['AC-10']],
+      ['log_structure', ['AC-10', '0014/AC-10']],
+      ['log_correlation', ['AC-10', '0014/AC-10']],
+      ['log_no_data', ['AC-10', '0014/AC-10']],
       ['postgres_log_policy', ['AC-10']],
       ['topology_shutdown', ['AC-9']],
       ['artifact_scan', ['AC-2', 'AC-11']],

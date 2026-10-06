@@ -271,6 +271,8 @@ test('GATE-009 every real bun:test file that runs Docker imports the signal clea
     }
   }
   expect(checked.sort()).toEqual([
+    // Spec 0014: the database suite of the auth migrations, the operator command, and the session lifecycle.
+    'tests/integration/database/auth.test.ts',
     'tests/integration/database/backup.test.ts',
     'tests/integration/database/health.test.ts',
     'tests/integration/database/migration.test.ts',
@@ -308,21 +310,22 @@ function callsWith(source: ts.SourceFile, marker: string): ts.CallExpression[] {
   return found;
 }
 
-test('GATE-009 test:database:real gives its bun test group 75000 ms after SIGTERM and a 600000 ms limit, and keeps the defaults for the build', async () => {
+test('GATE-009 test:database:real gives its bun test group 75000 ms after SIGTERM and a 900000 ms limit, and keeps the defaults for the build', async () => {
   const file = 'tests/orchestration/database-real.ts';
   const source = ts.createSourceFile(file, await readFile(join(root, file), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const tests = callsWith(source, 'test');
   expect(tests).toHaveLength(1);
   expect(graceOf(tests[0]!)).toBe(75_000);
-  // Spec 0013 (*Perubahan database-real.ts*): bun test gets 600000 ms for the backup suite; the build keeps 300000 ms.
-  expect(graceOf(tests[0]!, 'timeoutMs')).toBe(600_000);
+  // Spec 0013 (*Perubahan database-real.ts*), raised by spec 0014 (*Amandemen spec lain*, row 0013): bun test gets
+  // 900000 ms for the backup and auth suites with the same 75000 ms grace; the build keeps 300000 ms.
+  expect(graceOf(tests[0]!, 'timeoutMs')).toBe(900_000);
   const builds = callsWith(source, 'build:frontend');
   expect(builds).toHaveLength(1);
   expect(graceOf(builds[0]!)).toBeUndefined();
   expect(graceOf(builds[0]!, 'timeoutMs')).toBeUndefined();
   const text = source.getFullText();
   expect(text).toContain('timeoutMs: options.timeoutMs ?? 300_000');
-  expect(text).toContain("throw new Error('Database integration tests exceeded 600 seconds')");
+  expect(text).toContain("throw new Error('Database integration tests exceeded 900 seconds')");
   // The restore evidence it deletes, scans, and requires is the file the gate collects for this step.
   expect(text).toContain(`const restoreEvidence = resolve(root, '${RESTORE_EVIDENCE}');`);
 });
@@ -425,14 +428,16 @@ test('GATE-009 SIGTERM to the infrastructure suite runs compose down for its pro
   expect(run.after).toEqual([down, down, `ps -aq ${filter}`, `network ls -q ${filter}`, `volume ls -q ${filter}`].map((line) => `${line}|${run.folder}`));
 }, 60_000);
 
-test('GATE-009 SIGTERM to the provision, migration, readiness, and health suites removes the container they started on both passes, then its folder', async () => {
-  // covers: AC-4 (Pembersihan sinyal suite nyata: provision.test.ts, migration.test.ts, readiness.test.ts, health.test.ts)
+test('GATE-009 SIGTERM to the provision, migration, readiness, health, and auth suites removes the container they started on both passes, then its folder', async () => {
+  // covers: AC-4 (Pembersihan sinyal suite nyata: provision.test.ts, migration.test.ts, readiness.test.ts, health.test.ts, auth.test.ts)
   const suites = [
     ['tests/integration/database/provision.test.ts', undefined, /^foundation-db-test-\w{6}$/, /^run --rm -d --name (foundation-db-test-[0-9a-f]{8}) /, false],
     ['tests/integration/database/migration.test.ts', 'MIG-001', /^foundation-migration-\w{6}$/, /^run --rm -d --name (foundation-mig-test-[0-9a-f]{8}) /, false],
     ['tests/integration/database/readiness.test.ts', undefined, /^foundation-readiness-test-\w{6}$/, /^run -d --name (foundation-readiness-db-[0-9a-f]{8}) /, true],
     // DEP-009 of spec 0012 uses the READY-008 harness: the same guarded container, with a folder of its own.
     ['tests/integration/database/health.test.ts', undefined, /^foundation-health-test-\w{6}$/, /^run -d --name (foundation-readiness-db-[0-9a-f]{8}) /, true],
+    // Spec 0014: one cluster for the whole auth suite, started in beforeAll.
+    ['tests/integration/database/auth.test.ts', undefined, /^foundation-auth-test-\w{6}$/, /^run --rm -d --name (foundation-auth-db-[0-9a-f]{8}) /, false],
   ] as const;
   for (const [file, filter, folderPattern, started, guarded] of suites) {
     const run = await interruptedSuite(file, filter);
@@ -460,6 +465,8 @@ test('GATE-009 SIGTERM to the backup suite removes every registered container an
 }, 60_000);
 
 const REAL_SUITES = [
+  // Spec 0014: the auth suite with its one cluster and folder.
+  'tests/integration/database/auth.test.ts',
   // Spec 0013 (*Perubahan GATE-009*): the backup and restore suite with its networks, clusters, Compose runs, and tools.
   'tests/integration/database/backup.test.ts',
   'tests/integration/database/health.test.ts',

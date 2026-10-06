@@ -7,6 +7,9 @@ export { RequestBuilder } from './request-builder';
 export type { StrictHttpResponse } from './strict-http-response';
 export { FoundationApi } from './api';
 
+export type { AuthError } from './models/auth-error';
+export type { AuthSession } from './models/auth-session';
+export type { AuthSessionList } from './models/auth-session-list';
 export type { DevelopmentStatus } from './models/development-status';
 export type { HealthLive } from './models/health-live';
 export type { HealthReady } from './models/health-ready';
@@ -14,10 +17,13 @@ export type { HealthUnavailable } from './models/health-unavailable';
 export type { ReadinessAvailable } from './models/readiness-available';
 export type { ReadinessBusy } from './models/readiness-busy';
 export type { ReadinessUnavailable } from './models/readiness-unavailable';
+export type { SignInRequest } from './models/sign-in-request';
 
+export { AuthService } from './services/auth.service';
 export { DevelopmentService } from './services/development.service';
 export { HealthService } from './services/health.service';
 
+export { getAuthSession, type GetAuthSession$Params } from './fn/auth/get-auth-session';
 export {
   getDevelopmentReadiness,
   type GetDevelopmentReadiness$Params,
@@ -28,3 +34,7 @@ export {
 } from './fn/development/get-development-status';
 export { getHealthLive, type GetHealthLive$Params } from './fn/health/get-health-live';
 export { getHealthReady, type GetHealthReady$Params } from './fn/health/get-health-ready';
+export { listAuthSessions, type ListAuthSessions$Params } from './fn/auth/list-auth-sessions';
+export { revokeAuthSession, type RevokeAuthSession$Params } from './fn/auth/revoke-auth-session';
+export { signIn, type SignIn$Params } from './fn/auth/sign-in';
+export { signOut, type SignOut$Params } from './fn/auth/sign-out';

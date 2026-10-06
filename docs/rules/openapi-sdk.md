@@ -102,6 +102,11 @@ Resep berikut terbukti dengan Elysia 1.4.30 dan `@elysia/openapi` 1.4.16 pada sp
 - Parameter `path`, `query`, dan `header` hanya skalar. Header response seperti `Cache-Control` tidak dideklarasikan di OpenAPI sampai rule `response` diperluas.
 - `operationId`, `tags` berisi satu tag, dan `security` dinyatakan pada `detail` setiap route.
 
+Route sesi [spec 0014](../specs/0014-akses-pengguna-lifecycle-sesi/index.md) menambah dua bentuk yang terbukti dengan versi yang sama:
+
+- Route 204 yang juga mendeklarasikan galat tidak memakai map response ([spec 0014](../specs/0014-akses-pengguna-lifecycle-sesi/index.md), resep *Ekspor route 204 dengan galat*): bila route mempunyai map `response`, entri 204 di `detail.responses` hilang dan operasi tanpa 2xx ditolak rule `response`. Semua status ditulis di `detail.responses`, yaitu 204 sebagai `{ description }` dan setiap galat sebagai `{ description, content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthError' } } } }`. Route seperti itu (`signOut` dan `revokeAuthSession`) tidak mempunyai validasi response saat runtime, jadi body galatnya dibentuk satu fungsi bersama.
+- Cookie sesi dideklarasikan sebagai security scheme `sessionCookie` (`apiKey` di `cookie`) lewat `documentation.components` plugin OpenAPI, dan route yang membutuhkannya memakai `security: [{ sessionCookie: [] }]`. Route tidak mendeklarasikan schema `cookie` Elysia, karena plugin mengekspornya sebagai parameter `in: cookie` yang ditolak rule `parameter`; cookie dibaca dari header `cookie` request. Header CSRF `x-csrf-token` dideklarasikan sebagai schema `headers` skalar.
+
 ## Konfigurasi dan perintah SDK
 
 Contoh konfigurasi `apps/frontend/sdk.config.json` untuk satu backend:

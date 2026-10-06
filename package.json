@@ -8,6 +8,7 @@
     "db:provision": "bun database/provision.ts",
     "db:migrate": "bun database/migrate.ts",
     "db:seed": "bun database/seed.ts",
+    "db:accounts": "bun database/accounts.ts",
     "test:database:real": "bun tests/orchestration/database-real.ts",
     "test:readiness:real": "bun --no-env-file tests/orchestration/readiness-real.ts",
     "test:database:migration": "mkdir -p .local/feature-6 && bun test ./tests/integration/database/migration.test.ts --reporter=junit --reporter-outfile=.local/feature-6/migration.xml",

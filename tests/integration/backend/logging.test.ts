@@ -194,6 +194,40 @@ test('DEP-007 a 500 answer writes an error line only through sink.error, without
   expect(log.error[0]).not.toContain(secret);
 });
 
+// Spec 0014 (*Log keamanan*, amendment of spec 0012): one request line per request plus at most one `auth` line with the
+// same requestId, and the `onRequest` guard of the auth plugin writes the one request line of its own answers.
+test('DEP-007 an auth event adds one auth line with the requestId of its request line, and a guard answer writes exactly one request line', async () => {
+  const { info, error, sink } = capture();
+  const app = createApp('production', { log: sink, publicOrigin: 'https://foundation.test' });
+  const edgeId = randomBytes(16).toString('hex');
+  const forged = await handle(app, '/api/auth/session', {
+    method: 'POST', headers: { 'X-Request-Id': edgeId, 'Content-Type': 'application/json', Origin: 'https://evil.test' }, body: '{"email":"x"}',
+  });
+  expect(forged.status).toBe(403);
+  await afterResponse();
+  expect(info).toHaveLength(2);
+  const event = parse(info[0]!);
+  expect(Object.keys(event)).toEqual(['time', 'level', 'event', 'requestId', 'action', 'outcome', 'userId', 'sessionId', 'accountKey']);
+  expect(event).toMatchObject({ level: 'info', event: 'auth', requestId: edgeId, action: 'request_rejected', outcome: 'origin', userId: null, sessionId: null, accountKey: null });
+  expect(expectRequestLine(info[1]!, { level: 'info', method: 'POST', path: '/api/auth/session', status: 403 })['requestId']).toBe(edgeId);
+  // A guard answer without an event: one request line only, never a second from onAfterResponse.
+  info.length = 0;
+  const unknown = await handle(app, '/api/auth/unknown?token=x', { headers: { 'X-Request-Id': edgeId } });
+  expect(unknown.status).toBe(404);
+  await afterResponse();
+  expect(info).toHaveLength(1);
+  expect(expectRequestLine(info[0]!, { level: 'info', method: 'GET', path: '/api/auth/unknown', status: 404 })['requestId']).toBe(edgeId);
+  // An answer of the normal lifecycle under /api/auth/ (503 without a pool) still writes its one request line.
+  info.length = 0;
+  const unavailable = await handle(app, '/api/auth/session');
+  expect(unavailable.status).toBe(503);
+  await afterResponse();
+  expect(info).toEqual([]);
+  expect(error).toHaveLength(1);
+  expectRequestLine(error[0]!, { level: 'error', method: 'GET', path: '/api/auth/session', status: 503 });
+  expect(consoleCalls).toEqual([]);
+});
+
 test('DEP-007 lifecycle lines carry exactly time, level, and event, info for listening and stopped and error for the failures', () => {
   const log = capture();
   const at = new Date('2026-10-05T01:02:03.004Z');
@@ -368,6 +402,8 @@ function rawPost(port: number, path: string, bytes: number): Promise<string> {
 }
 
 const lines = (text: string) => text.split('\n').filter((line) => line !== '');
+/** Production configuration requires PUBLIC_ORIGIN since spec 0014 (table *Konfigurasi*). */
+const PUBLIC_ORIGIN = 'https://foundation.test';
 
 for (const entry of ['apps/backend/src/index.ts', 'dist/backend/index.js']) {
   test(`DEP-007 production process from ${entry} writes JSON lines, info only to stdout and error only to stderr, and no request data`, async () => {
@@ -376,7 +412,7 @@ for (const entry of ['apps/backend/src/index.ts', 'dist/backend/index.js']) {
       throw new Error('dist/backend/index.js is missing; run bun run build:backend first');
     }
     const port = await unusedPort();
-    const { child, output } = spawnBackend(entry, { NODE_ENV: 'production', HOST: '127.0.0.1', PORT: String(port) });
+    const { child, output } = spawnBackend(entry, { NODE_ENV: 'production', HOST: '127.0.0.1', PORT: String(port), PUBLIC_ORIGIN });
     const secret = randomBytes(16).toString('hex');
     const edgeId = randomBytes(16).toString('hex');
     try {
@@ -489,6 +525,7 @@ test('DEP-007 a production process whose readiness check ran into the database c
     NODE_ENV: 'production',
     HOST: '127.0.0.1',
     PORT: String(port),
+    PUBLIC_ORIGIN,
     DATABASE_URL: `postgresql://foundation_backend:${password}@${target.host}:${target.port}/foundation`,
   });
   try {
@@ -521,7 +558,7 @@ test('DEP-007 a production startup failure writes one startup_failed JSON line o
   try {
     const failing: Record<string, string>[] = [{ PORT: String(server.port) }, { PORT: '65536' }, { HOST: '10.0.0.1' }];
     for (const env of failing) {
-      const { child, output } = spawnBackend('apps/backend/src/index.ts', { NODE_ENV: 'production', HOST: '127.0.0.1', ...env });
+      const { child, output } = spawnBackend('apps/backend/src/index.ts', { NODE_ENV: 'production', HOST: '127.0.0.1', PUBLIC_ORIGIN, ...env });
       expect(await child.exited, JSON.stringify(env)).toBe(1);
       const [stdout, stderr] = await output;
       expect(stdout).toBe('');

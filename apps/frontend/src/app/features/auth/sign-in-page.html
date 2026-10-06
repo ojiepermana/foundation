@@ -1,0 +1,35 @@
+<section class="w-full max-w-3xl space-y-6 p-6 sm:p-8 lg:p-12" aria-labelledby="sign-in-title">
+  <h1 id="sign-in-title" class="text-2xl font-semibold">Masuk</h1>
+  <div class="space-y-1">
+    <p role="alert" class="min-w-0 text-base font-medium leading-relaxed text-destructive">{{ alertText() }}</p>
+    <p role="status" aria-live="polite" class="min-w-0 text-base leading-relaxed">{{ statusText() }}</p>
+  </div>
+  <Card>
+    <form novalidate (submit)="submit($event)">
+      <CardHeader>
+        <h2 CardTitle>Akun Foundation</h2>
+        <p CardDescription>Masuk dengan email dan password akun yang dibuat operator.</p>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        <div class="grid min-w-0 gap-2">
+          <label Label for="sign-in-email">Email</label>
+          <!-- No [value] binding: the page never writes the email, and writing the trimmed value of a focused
+            type="email" field moves the caret to the start in Chromium while the user types. -->
+          <input Input id="sign-in-email" name="email" type="email" autocomplete="username" spellcheck="false"
+            (input)="typed('email', $event)" />
+        </div>
+        <div class="grid min-w-0 gap-2">
+          <label Label for="sign-in-password">Password</label>
+          <input Input id="sign-in-password" name="password" type="password" autocomplete="current-password"
+            [value]="password()" (input)="typed('password', $event)" />
+        </div>
+      </CardContent>
+      <CardFooter class="gap-3">
+        <button Button type="submit" [attr.aria-disabled]="pending() ? 'true' : null">Masuk</button>
+        @if (pending()) {
+          <Spinner decorative class="shrink-0" />
+        }
+      </CardFooter>
+    </form>
+  </Card>
+</section>

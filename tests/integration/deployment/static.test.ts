@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test';
-import { chmod, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { csrfToken, newSessionToken, sessionCookie } from '../../../apps/backend/src/features/auth/auth.tokens.ts';
 import { REQUIRED_MIGRATION } from '../../../apps/backend/src/features/health/health.queries.ts';
 import { DEPLOYMENT_CHECKS, type DeploymentCheckName } from '../../../scripts/lib/gate.ts';
 import { DEPLOYMENT_IMAGE_NAMES } from '../../../scripts/lib/gate-report.ts';
@@ -10,6 +11,9 @@ import {
   addedEnvironment,
   BODY_LIMIT_BYTES,
   buildResult,
+  CAPACITY,
+  capacityProblems,
+  capacityScript,
   checkPins,
   CLIENT_ADDRESS_HEADERS,
   CommandRefused,
@@ -20,7 +24,9 @@ import {
   deploymentNames,
   dockerArgs,
   dockerfileImages,
+  EDGE_LIMIT,
   edgeLogLineProblem,
+  edgeRateLimitProblems,
   expectedContext,
   failingStatement,
   hardeningProblems,
@@ -34,6 +40,7 @@ import {
   IMAGES,
   nginxDefault400Problems,
   parseBackendLogLine,
+  parseCapacity,
   parseEdgeLogLine,
   parseProbe,
   PROBE_LIMIT_MS,
@@ -42,14 +49,34 @@ import {
   requestedOriginsProblems,
   runHex,
   secretArgs,
+  SESSION_COOKIE,
+  sessionCookieProblems,
+  SIGN_IN_BUDGET,
+  signInBudgetProblems,
+  signInPostLines,
   stoppedBackendProblems,
   TLS12_CIPHERS,
   TRAVERSAL_TARGETS,
   unpublishedPort,
   type CheckRecord,
+  type EdgeAnswer,
   type EdgeLogLine,
   type LoggedAnswer,
 } from '../../orchestration/deployment-real.ts';
+import {
+  createTokenFingerprintStore,
+  csrfTokenOf,
+  parseFingerprints,
+  readFingerprints,
+  recordTokenFingerprints,
+  removeTokenFingerprintStore,
+  TOKEN_FINGERPRINTS_VARIABLE,
+  TOKEN_KEY_VARIABLE,
+  tokenCandidates,
+  tokenFingerprint,
+  tokenMatches,
+  tokenScanControl,
+} from '../../orchestration/token-fingerprints.ts';
 
 // DEP-001 (spec 0012; AC-1, AC-2, AC-6, AC-7, AC-8, AC-10, AC-11, AC-12): the static form of the deployment artifacts
 // and the pure functions of the orchestration, without a container engine. The three Dockerfiles and their allow list
@@ -129,9 +156,9 @@ test('DEP-001 the three Dockerfiles have the numeric USER, entrypoint, STOPSIGNA
   for (const part of ['http://127.0.0.1:8888/health/live', 'AbortSignal.timeout(2000)', 'response.status === 200 ? 0 : 1']) expect(backendCheck).toContain(part);
 });
 
-test('DEP-001 the runner image copies database/ and libs/server/database/ as whole folders, and the backend bundle is built with whitespace and syntax minify only', async () => {
+test('DEP-001 the runner image copies database/, libs/server/database/, and libs/server/auth/ (spec 0014) as whole folders, and the backend bundle is built with whitespace and syntax minify only', async () => {
   const [runner] = stages(await read('database/Dockerfile'));
-  expect(named(runner!, 'COPY')).toEqual(['database/ /app/database/', 'libs/server/database/ /app/libs/server/database/']);
+  expect(named(runner!, 'COPY')).toEqual(['database/ /app/database/', 'libs/server/database/ /app/libs/server/database/', 'libs/server/auth/ /app/libs/server/auth/']);
   expect(named(runner!, 'WORKDIR')).toEqual(['/app']);
   const [build, final] = stages(await read('apps/backend/Dockerfile'));
   expect(named(build!, 'RUN')).toEqual([
@@ -160,7 +187,8 @@ const ALLOWLIST: Record<string, { include: string[]; exclude: string[] }> = {
     exclude: ['**/*.spec.ts', '**/*.test.ts'],
   },
   'apps/backend/Dockerfile.dockerignore': { include: ['package.json', 'bun.lock', 'apps/backend/src/', 'libs/server/'], exclude: ['**/*.spec.ts', '**/*.test.ts'] },
-  'database/Dockerfile.dockerignore': { include: ['database/*.ts', 'database/migrations/', 'database/seeds/', 'libs/server/database/'], exclude: [] },
+  // Spec 0014 (*Perubahan deployment*): database/accounts.ts needs the credential rules and the account lock.
+  'database/Dockerfile.dockerignore': { include: ['database/*.ts', 'database/migrations/', 'database/seeds/', 'libs/server/database/', 'libs/server/auth/'], exclude: [] },
 };
 const ROOT_DENY = ['.env', '.env.*', '**/.env', '**/.env.*', '.git', 'node_modules', '**/node_modules', '.local', 'dist', '**/dist', '.angular', '**/.angular', 'graphify-out', 'test-results', '.claude'];
 const rules = (text: string) => text.split(/\r?\n/).map((line) => line.trim()).filter((line) => line !== '' && !line.startsWith('#'));
@@ -251,7 +279,7 @@ const TOPOLOGY: Record<string, Service> = {
     cap_drop: ['ALL'], security_opt: ['no-new-privileges:true'], restart: 'unless-stopped', stop_grace_period: '15s', logging: LOGGING,
   },
   backend: {
-    image: '${FOUNDATION_BACKEND_IMAGE:?}', networks: ['app', 'data'], environment: { DATABASE_URL: '${FOUNDATION_BACKEND_DATABASE_URL:?}' },
+    image: '${FOUNDATION_BACKEND_IMAGE:?}', networks: ['app', 'data'], environment: { DATABASE_URL: '${FOUNDATION_BACKEND_DATABASE_URL:?}', PUBLIC_ORIGIN: '${FOUNDATION_PUBLIC_ORIGIN:?}' },
     cpus: 1, mem_limit: '512m', pids_limit: 256, read_only: true, tmpfs: ['/tmp:rw,nosuid,nodev,noexec,size=64m'], cap_drop: ['ALL'],
     security_opt: ['no-new-privileges:true'], restart: 'unless-stopped', stop_grace_period: '10s', depends_on: HEALTHY, logging: LOGGING,
   },
@@ -339,7 +367,7 @@ test('DEP-001 declarationProblems accepts deploy/compose.yaml in the config shap
 test('DEP-001 .env.deploy.example names every variable of Configuration required without a value', async () => {
   const lines = rules(await read('.env.deploy.example'));
   expect(lines).toEqual([
-    'FOUNDATION_FRONTEND_IMAGE=', 'FOUNDATION_BACKEND_IMAGE=', 'FOUNDATION_MIGRATE_IMAGE=', 'FOUNDATION_POSTGRES_PASSWORD=',
+    'FOUNDATION_FRONTEND_IMAGE=', 'FOUNDATION_BACKEND_IMAGE=', 'FOUNDATION_MIGRATE_IMAGE=', 'FOUNDATION_PUBLIC_ORIGIN=', 'FOUNDATION_POSTGRES_PASSWORD=',
     'FOUNDATION_BACKEND_DATABASE_URL=', 'FOUNDATION_MIGRATOR_DATABASE_URL=', 'FOUNDATION_EDGE_TLS_CERT_FILE=', 'FOUNDATION_EDGE_TLS_KEY_FILE=',
   ]);
   const text = await read('.env.deploy.example');
@@ -479,23 +507,35 @@ test('DEP-001 only location ^~ /api/ forwards to the backend, with no regex loca
   expect([...CLIENT_ADDRESS_HEADERS]).toEqual(clientAddress);
   expect(headers).toEqual([['Connection', '""'], ['Host', '$host'], ['X-Request-Id', '$request_id'], ...clientAddress.map((name) => [name, '""'])]);
   expect(only(block, 'if').map((item) => [item.args.join(' '), value(item.block!, 'return')])).toEqual([['($foundation_bad_path)', ['400']]]);
-  expect(value(block, 'error_page')).toEqual(['400 @api_bad_request', '413 @api_payload_too_large', '502 @api_bad_gateway', '504 @api_gateway_timeout']);
+  expect(value(block, 'error_page')).toEqual(['400 @api_bad_request', '413 @api_payload_too_large', '502 @api_bad_gateway', '504 @api_gateway_timeout', '429 @api_too_many_requests']);
+  // Spec 0014 (AC-6, *Perubahan deployment*): only POST /api/auth/session has a key, per client address, 30 per minute
+  // with a burst of 10 without delay, and the excess is 429 from the edge.
+  expect(value(block, 'limit_req')).toEqual(['zone=sign_in burst=10 nodelay']);
+  expect(value(http, 'limit_req_zone')).toEqual(['$foundation_sign_in_client zone=sign_in:10m rate=30r/m']);
+  expect(value(http, 'limit_req_status')).toEqual(['429']);
+  expect(all(https).filter((item) => item.name.startsWith('limit_req')).map((item) => item.args.join(' '))).toEqual(['zone=sign_in burst=10 nodelay']);
 
-  // The path part of $request_uri, and the traversal rule of AC-7 over that path only, never the query. The third map
+  // The path part of $request_uri, and the traversal rule of AC-7 over that path only, never the query. The fourth map
   // (the status of the access log, decision 57) is checked with the log format.
   const maps = only(http, 'map');
-  expect(maps.map((item) => item.args.join(' '))).toEqual(['$request_uri $foundation_path', '$foundation_path $foundation_bad_path', '$status $foundation_status', '$status $foundation_asset_cache']);
+  expect(maps.map((item) => item.args.join(' '))).toEqual([
+    '$request_uri $foundation_path', '$foundation_path $foundation_bad_path', '"$request_method:$foundation_path" $foundation_sign_in_client',
+    '$status $foundation_status', '$status $foundation_asset_cache',
+  ]);
+  expect(maps[2]!.block!.map((item) => [unquote(item.name), ...item.args.map(unquote)])).toEqual([['default', ''], ['POST:/api/auth/session', '$binary_remote_addr']]);
   expect(maps[0]!.block!.map((item) => [item.name, ...item.args])).toEqual([['"~^(?<p>[^?]*)"', '$p']]);
   expect(maps[1]!.block!.map((item) => [unquote(item.name), ...item.args])).toEqual([
     ['default', '0'], ['~(^|/)\\.\\.?(/|$)', '1'], ['~*%2e', '1'], ['~*%2f', '1'], ['~*%5c', '1'], ['~\\\\\\\\', '1'],
   ]);
-  // The four named locations answer JSON with Cache-Control no-store and the API headers.
+  // The five named locations answer JSON with Cache-Control no-store and the API headers; the 429 of spec 0014 has the
+  // body of the backend 429.
   const named = locations.filter((item) => item.args[0]?.startsWith('@'));
   expect(named.map((item) => [item.args[0], value(item.block!, 'return')[0]])).toEqual([
     ['@api_bad_request', '400 {"error":"Invalid request"}'],
     ['@api_payload_too_large', '413 {"error":"Payload too large"}'],
     ['@api_bad_gateway', '502 {"error":"Bad gateway"}'],
     ['@api_gateway_timeout', '504 {"error":"Gateway timeout"}'],
+    ['@api_too_many_requests', '429 {"error":"Too many requests"}'],
   ]);
   for (const item of named) {
     expect(value(item.block!, 'default_type'), item.args[0]).toEqual(['application/json']);
@@ -659,6 +699,164 @@ test('DEP-001 edgeLogLineProblem and parseBackendLogLine accept only the exact k
   expect(parseBackendLogLine(JSON.stringify({ time: request.time, level: 'error', event: 'startup_failed' }))).not.toBeNull();
   expect(parseBackendLogLine(JSON.stringify({ time: request.time, level: 'info', event: 'startup_failed' }))).toBeNull();
   expect(parseBackendLogLine(JSON.stringify({ time: request.time, level: 'info', event: 'listening', port: 8888 }))).toBeNull();
+
+  // The `auth` line of spec 0014 (*Log keamanan*): accepted with exactly its keys, the vocabulary of action and outcome,
+  // and the ids and account key the table gives that outcome; anything else is refused.
+  const uuid = '0f8fad5b-d9cb-469f-a165-70867728950e';
+  const auth = { time: request.time, level: 'info', event: 'auth', requestId: 'd'.repeat(32), action: 'sign_in', outcome: 'succeeded', userId: uuid, sessionId: uuid, accountKey: 'e'.repeat(16) };
+  expect(parseBackendLogLine(JSON.stringify(auth)) as unknown).toEqual(auth);
+  const accepted: Record<string, unknown>[] = [
+    { ...auth, outcome: 'failed', userId: null, sessionId: null },
+    { ...auth, outcome: 'limited', userId: null, sessionId: null },
+    { ...auth, outcome: 'busy', userId: null, sessionId: null },
+    { ...auth, action: 'sign_out', accountKey: null },
+    { ...auth, action: 'session_revoke', accountKey: null },
+    { ...auth, action: 'session_revoke', outcome: 'not_found', sessionId: null, accountKey: null },
+    { ...auth, action: 'request_rejected', outcome: 'origin', userId: null, sessionId: null, accountKey: null },
+    { ...auth, action: 'request_rejected', outcome: 'csrf', userId: null, sessionId: null, accountKey: null },
+  ];
+  for (const line of accepted) expect(parseBackendLogLine(JSON.stringify(line)), `${line['action']} ${line['outcome']}`).not.toBeNull();
+  const authCases: [string, Record<string, unknown>][] = [
+    ['a missing key', Object.fromEntries(Object.entries(auth).filter(([key]) => key !== 'accountKey'))],
+    ['an extra key', { ...auth, email: 'a@b.test' }],
+    ['level error', { ...auth, level: 'error' }],
+    ['an action outside the table', { ...auth, action: 'sign_up' }],
+    ['an outcome of another action', { ...auth, outcome: 'not_found' }],
+    ['an inherited name as action', { ...auth, action: 'toString' }],
+    ['a failed sign in with a user id', { ...auth, outcome: 'failed', sessionId: null }],
+    ['a succeeded sign in without a session id', { ...auth, sessionId: null }],
+    ['a sign out with an account key', { ...auth, action: 'sign_out' }],
+    ['a revoke not found with a session id', { ...auth, action: 'session_revoke', outcome: 'not_found', accountKey: null }],
+    ['a rejected request with a user id', { ...auth, action: 'request_rejected', outcome: 'csrf', sessionId: null, accountKey: null }],
+    ['an upper case user id', { ...auth, userId: uuid.toUpperCase() }],
+    ['an account key of 15 digits', { ...auth, accountKey: 'e'.repeat(15) }],
+    ['a request id of another form', { ...auth, requestId: 'D'.repeat(32) }],
+  ];
+  for (const [label, line] of authCases) expect(parseBackendLogLine(JSON.stringify(line)), label).toBeNull();
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// Spec 0014 (*Perubahan deployment*, *Sidik token uji*): the pure judges of the auth checks and the token scan.
+
+test('DEP-001 sessionCookieProblems accepts exactly the production session cookie of spec 0014 and its removal, without Domain, Expires, or Max-Age', () => {
+  const token = newSessionToken();
+  const production = sessionCookie('production');
+  // The backend values themselves pass, in both kinds.
+  expect(sessionCookieProblems([production.set(token)], 'set')).toEqual([]);
+  expect(sessionCookieProblems([production.clear], 'clear')).toEqual([]);
+  expect(sessionCookieProblems([`${SESSION_COOKIE}=${token}; SameSite=Strict; httponly; Secure; Path=/`], 'set')).toEqual([]);
+  const refused: [string, string[], 'set' | 'clear'][] = [
+    ['no cookie', [], 'set'],
+    ['two cookies', [production.set(token), production.set(token)], 'set'],
+    ['the development name', [sessionCookie('development').set(token)], 'set'],
+    ['without Secure', [`${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict`], 'set'],
+    ['with Domain', [`${production.set(token)}; Domain=localhost`], 'set'],
+    ['with Max-Age', [`${production.set(token)}; Max-Age=43200`], 'set'],
+    ['with Expires', [`${production.set(token)}; Expires=Wed, 07 Oct 2026 00:00:00 GMT`], 'set'],
+    ['SameSite Lax', [`${SESSION_COOKIE}=${token}; Path=/; Secure; HttpOnly; SameSite=Lax`], 'set'],
+    ['a short token', [`${SESSION_COOKIE}=${token.slice(1)}; Path=/; Secure; HttpOnly; SameSite=Strict`], 'set'],
+    ['a removal without Max-Age=0', [production.set(token).replace(token, '')], 'clear'],
+    ['a removal with a value', [production.clear.replace('=;', `=${token};`)], 'clear'],
+  ];
+  for (const [label, values, kind] of refused) {
+    const problems = sessionCookieProblems(values, kind);
+    expect(problems.length, label).toBeGreaterThan(0);
+    // A problem never repeats the token.
+    for (const problem of problems) expect(problem, label).not.toContain(token);
+  }
+});
+
+test('DEP-001 signInPostLines and signInBudgetProblems count only POST /api/auth/session of the edge log against the budget of 10, with no 429 before auth_edge_rate_limit', () => {
+  const line = (method: string, path: string, status: number) => JSON.stringify({ time: '2026-10-06T10:00:00+00:00', requestId: 'a'.repeat(32), method, path, status, bytes: 0, requestTime: 0, upstreamStatus: String(status), upstreamTime: '0.001' });
+  const text = [line('POST', '/api/auth/session', 200), line('GET', '/api/auth/session', 200), line('POST', '/api/auth/sessions', 404), line('DELETE', '/api/auth/session', 204), 'not json', line('POST', '/api/auth/session', 403)].join('\n');
+  const lines = signInPostLines(text);
+  expect(lines.map((item) => item.status)).toEqual([200, 403]);
+  expect(SIGN_IN_BUDGET).toBe(10);
+  const posts = (count: number, status = 200) => signInPostLines(Array.from({ length: count }, () => line('POST', '/api/auth/session', status)).join('\n'));
+  expect(signInBudgetProblems(posts(10))).toEqual([]);
+  expect(signInBudgetProblems(posts(11))).toHaveLength(1);
+  expect(signInBudgetProblems([...posts(3), ...posts(1, 429)])).toHaveLength(1);
+});
+
+test('DEP-001 edgeRateLimitProblems takes only the backend 401 and the edge 429 with Header API, needs one 429, and refuses a 429 that reached the backend', () => {
+  const apiHeaders = (id: string, extra: [string, string][] = []): [string, string][] => [
+    ['content-security-policy', "default-src 'none'; frame-ancestors 'none'"], ['strict-transport-security', 'max-age=31536000'], ['x-content-type-options', 'nosniff'],
+    ['referrer-policy', 'no-referrer'], ['cross-origin-resource-policy', 'same-origin'], ['x-request-id', id], ...extra,
+  ];
+  const id = (n: number) => n.toString(16).padStart(32, '0');
+  const refusedAnswer = (n: number): EdgeAnswer => ({ status: 401, body: '{"error":"Invalid credentials"}', headers: apiHeaders(id(n), [['content-type', 'application/json'], ['cache-control', 'no-store']]), elapsedMs: 1 });
+  const limitedAnswer = (n: number): EdgeAnswer => ({ status: 429, body: '{"error":"Too many requests"}', headers: apiHeaders(id(n), [['content-type', 'application/json'], ['cache-control', 'no-store']]), elapsedMs: 1 });
+  const edgeLine = (n: number, upstream: string): EdgeLogLine => ({ time: '2026-10-06T10:00:00+00:00', requestId: id(n), method: 'POST', path: '/api/auth/session', status: upstream === '' ? 429 : 401, bytes: 0, requestTime: 0, upstreamStatus: upstream, upstreamTime: upstream === '' ? '' : '0.05' });
+  const answers = [refusedAnswer(1), refusedAnswer(2), limitedAnswer(3)];
+  const lines = new Map([[id(1), edgeLine(1, '401')], [id(2), edgeLine(2, '401')], [id(3), edgeLine(3, '')]]);
+  expect(edgeRateLimitProblems(answers, lines, new Set([id(1), id(2)]))).toEqual({ problems: [], refused: 2, limited: 1 });
+  expect(EDGE_LIMIT).toEqual({ requests: 30, concurrency: 5 });
+  // No 429 at all, a 429 the backend saw, a 429 forwarded upstream, a 401 made by the edge, a missing answer, and a
+  // 429 without Header API are each a problem.
+  expect(edgeRateLimitProblems([refusedAnswer(1)], lines, new Set()).problems).toEqual(['tidak ada jawaban 429 dari edge']);
+  expect(edgeRateLimitProblems(answers, lines, new Set([id(3)])).problems).toEqual(['#3 429 mempunyai baris request backend']);
+  expect(edgeRateLimitProblems(answers, new Map([...lines, [id(3), edgeLine(3, '429')]]), new Set()).problems).toEqual(['#3 429 diteruskan ke backend']);
+  expect(edgeRateLimitProblems(answers, new Map([...lines, [id(1), edgeLine(1, '')]]), new Set()).problems).toEqual(['#1 401 bukan dari backend']);
+  expect(edgeRateLimitProblems([...answers, null], lines, new Set()).problems).toEqual(['#4 tanpa jawaban']);
+  const bare = { ...limitedAnswer(3), headers: [['x-request-id', id(3)], ['content-type', 'application/json'], ['cache-control', 'no-store']] as [string, string][] };
+  expect(edgeRateLimitProblems([refusedAnswer(1), bare], lines, new Set()).problems).toEqual(['#2 tanpa Header API tepat']);
+  expect(edgeRateLimitProblems([{ ...refusedAnswer(1), status: 200, body: '{}' }, limitedAnswer(3)], lines, new Set()).problems).toEqual(['#1 200 bukan 401 backend atau 429 edge']);
+});
+
+test('DEP-001 capacityScript prints statuses and durations only, and capacityProblems needs 200 or 503, at least four 200 within 2000 ms, and readiness 200', () => {
+  const script = capacityScript();
+  for (const part of ["process.env.PUBLIC_ORIGIN", 'FOUNDATION_DEPLOY_AUTH_OTHER_EMAIL', 'FOUNDATION_DEPLOY_AUTH_OTHER_PASSWORD', 'http://127.0.0.1:8888/api/auth/session', 'http://127.0.0.1:8888/health/ready', `length:${CAPACITY.requests}`]) expect(script).toContain(part);
+  // The printed line holds the status and the time of each answer, never a body, a cookie, or a token.
+  expect(script).not.toMatch(/set-cookie|csrfToken|response\.text|response\.json/i);
+  expect(CAPACITY).toEqual({ requests: 8, minimumSucceeded: 4, longestMs: 2_000 });
+  const run = (statuses: (number | null)[], ms: number, ready: number | null) => JSON.stringify({ signIns: statuses.map((status) => ({ status, ms })), ready });
+  expect(capacityProblems(parseCapacity(`noise\n${run([200, 200, 200, 200, 503, 503, 503, 503], 1500, 200)}\n`))).toEqual({ problems: [], succeeded: 4, busy: 4, longestMs: 1500 });
+  expect(capacityProblems(parseCapacity(run([200, 200, 200, 503, 503, 503, 503, 503], 100, 200))).problems).toHaveLength(1);
+  expect(capacityProblems(parseCapacity(run(Array.from({ length: 8 }, () => 200), 2_001, 200))).problems).toHaveLength(1);
+  expect(capacityProblems(parseCapacity(run([...Array.from({ length: 7 }, () => 200), 429], 100, 200))).problems).toHaveLength(1);
+  expect(capacityProblems(parseCapacity(run(Array.from({ length: 8 }, () => 200), 100, 503))).problems).toHaveLength(1);
+  expect(capacityProblems(parseCapacity(run(Array.from({ length: 7 }, () => 200), 100, 200))).problems).toHaveLength(1);
+  expect(capacityProblems(parseCapacity('not json')).problems).toEqual(['keluaran skrip kapasitas tidak terbaca']);
+  expect(parseCapacity(JSON.stringify({ signIns: [{ status: '200', ms: 1 }], ready: 200 }))).toBeNull();
+});
+
+test('DEP-001 the token fingerprint scan of spec 0014 finds a 43 character run bounded by another character or the file edge by its fingerprint only, and the positive control finds a planted token', async () => {
+  const key = 'f'.repeat(64);
+  const token = newSessionToken();
+  // The CSRF token derived by the specs equals the one the backend makes.
+  expect(csrfTokenOf(token)).toBe(csrfToken(token));
+  const fingerprints = new Set([tokenFingerprint(key, token)]);
+  for (const text of [token, `${token}\n`, `"${token}"`, `${SESSION_COOKIE}=${token}; Path=/`, `<p>${token}</p>`]) {
+    expect(tokenCandidates(text), text.length.toString()).toContain(token);
+    expect(tokenMatches(text, key, fingerprints)).toBe(1);
+  }
+  // A longer run is no candidate, another token or another key finds nothing, and bytes count like text.
+  expect(tokenMatches(`a${token}`, key, fingerprints)).toBe(0);
+  expect(tokenMatches(`${token}-`, key, fingerprints)).toBe(0);
+  expect(tokenMatches(newSessionToken(), key, fingerprints)).toBe(0);
+  expect(tokenMatches(token, 'e'.repeat(64), fingerprints)).toBe(0);
+  expect(tokenMatches(Buffer.from(`\u0000${token}\u0000`), key, fingerprints)).toBe(1);
+  expect(tokenFingerprint(key, token)).not.toContain(token);
+  expect(parseFingerprints(`${tokenFingerprint(key, token)}\nnot a fingerprint\n\n`)).toEqual(fingerprints);
+
+  // The store of an orchestration: a 0600 file in its own 0700 folder; a test adds fingerprints, never tokens; the
+  // control finds a planted token; the folder goes afterwards.
+  const store = await createTokenFingerprintStore('foundation-dep001-tokens-');
+  try {
+    expect((await stat(store.file)).mode & 0o777).toBe(0o600);
+    expect((await stat(store.folder)).mode & 0o777).toBe(0o700);
+    expect(Object.keys(store.env).sort()).toEqual([TOKEN_FINGERPRINTS_VARIABLE, TOKEN_KEY_VARIABLE].sort());
+    expect(() => recordTokenFingerprints([token], {})).toThrow(`${TOKEN_KEY_VARIABLE} and ${TOKEN_FINGERPRINTS_VARIABLE} are missing; run this spec through its orchestration`);
+    recordTokenFingerprints([token, csrfTokenOf(token)], store.env);
+    const written = await readFile(store.file, 'utf8');
+    expect(written).not.toContain(token);
+    expect(await readFingerprints(store)).toEqual(new Set([tokenFingerprint(store.key, token), tokenFingerprint(store.key, csrfTokenOf(token))]));
+    expect(await tokenScanControl(store)).toBe(true);
+    expect(await readdir(store.folder)).toEqual(['fingerprints']);
+  } finally {
+    await removeTokenFingerprintStore(store);
+  }
+  expect(await readdir(store.folder).catch(() => null)).toBeNull();
 });
 
 test('DEP-001 the entrypoint foundation-edge checks the upstream and the nameserver, writes upstream.conf, and execs nginx in the foreground', async () => {
@@ -933,12 +1131,17 @@ test('DEP-001 DEPLOYMENT_CHECKS holds the checks of the Check deployment table i
   const table: [string, string[]][] = [
     ['image_pins', ['AC-1']], ['image_context_sentinels', ['AC-1', 'AC-2']], ['image_filesystem', ['AC-2']], ['image_config', ['AC-1', 'AC-2']],
     ['provisioning_step', ['AC-3']], ['readiness_before_migration', ['AC-3', 'AC-4']], ['migration_step', ['AC-3']], ['readiness_after_migration', ['AC-3', 'AC-4']],
+    // Spec 0014 (*Perubahan deployment*): the account job right after readiness 200, the four auth checks right after
+    // browser_flow, and `0014/AC-n` added to browser_flow and the three log checks.
+    ['auth_account_job', ['0014/AC-3', '0014/AC-13']],
     ['tls_versions', ['AC-5']], ['http_redirect', ['AC-5']], ['document_headers', ['AC-5', 'AC-6']], ['static_cache_fallback', ['AC-6']],
     ['api_forwarding', ['AC-7']], ['api_headers', ['AC-7']], ['api_stub_forwarding', ['AC-7']], ['cors_absent', ['AC-7']], ['edge_errors', ['AC-7', 'AC-10']],
     ['health_not_public', ['AC-4', 'AC-7']], ['published_ports', ['AC-8']], ['network_isolation', ['AC-8']], ['egress_blocked', ['AC-8']],
-    ['compose_declaration', ['AC-8', 'AC-10']], ['container_hardening', ['AC-8']], ['container_environment', ['AC-8']], ['browser_flow', ['AC-6']],
+    ['compose_declaration', ['AC-8', 'AC-10']], ['container_hardening', ['AC-8']], ['container_environment', ['AC-8']], ['browser_flow', ['AC-6', '0014/AC-12']],
+    ['auth_session_cookie', ['0014/AC-4', '0014/AC-13']], ['auth_origin_csrf', ['0014/AC-9', '0014/AC-13']], ['auth_capacity', ['0014/AC-6', '0014/AC-13']],
+    ['auth_edge_rate_limit', ['0014/AC-6', '0014/AC-13']],
     ['backend_shutdown_restart', ['AC-9']], ['backend_recreate', ['AC-9']], ['database_outage', ['AC-4', 'AC-9']], ['edge_shutdown', ['AC-9']],
-    ['log_structure', ['AC-10']], ['log_correlation', ['AC-10']], ['log_no_data', ['AC-10']], ['postgres_log_policy', ['AC-10']],
+    ['log_structure', ['AC-10', '0014/AC-10']], ['log_correlation', ['AC-10', '0014/AC-10']], ['log_no_data', ['AC-10', '0014/AC-10']], ['postgres_log_policy', ['AC-10']],
     ['topology_shutdown', ['AC-9']], ['artifact_scan', ['AC-2', 'AC-11']], ['cleanup', ['AC-11']],
   ];
   expect(DEPLOYMENT_CHECKS.map((check): [string, string[]] => [check.name, [...check.criteria]])).toEqual(table);

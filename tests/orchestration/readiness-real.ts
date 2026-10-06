@@ -6,6 +6,15 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { listeners } from '../../scripts/lib/ports.ts';
 import { runProcessGroup, type ProcessGroupResult } from '../../scripts/lib/process-group.ts';
+import { createTestAccounts, e2eAccountEnv, newTestAccounts } from './auth-accounts.ts';
+import {
+  createTokenFingerprintStore,
+  readFingerprints,
+  removeTokenFingerprintStore,
+  tokenMatches,
+  tokenScanControl,
+  type TokenFingerprintStore,
+} from './token-fingerprints.ts';
 import {
   READINESS_RUN_LABEL_ARGS,
   readinessContainerLabelsAccepted,
@@ -17,9 +26,13 @@ import {
 // `bun run test:readiness:real` (spec 0006, READY-009, AC-2, AC-7, AC-8, and AC-10): starts an isolated PostgreSQL 18
 // from foundation-postgres:18-pinned, provisions and migrates it with random credentials, starts the real backend and
 // the development frontend on ports 8888 and 8889, runs playwright.real.config.ts, then stops everything and scans
-// every output and artifact for the credential values. Every child process runs through runProcessGroup as the leader
-// of its own group, with an explicit allow list environment and no .env file, and every exit path stops the groups
-// and removes the container through the guard of tests/orchestration/readiness-container.ts with owner 'browser'.
+// every output and artifact for the credential values and, through the token fingerprints of spec 0014 (*Sidik token
+// uji*), for every session and CSRF token the browser specs obtained. Every child process runs through
+// runProcessGroup as the leader of its own group, with an explicit allow list environment and no .env file, and every
+// exit path stops the groups and removes the container through the guard of tests/orchestration/readiness-container.ts
+// with owner 'browser'. The fingerprint folder is removed by this script after the scan, on every exit path, signals
+// included; it is not registered on tests/orchestration/signal-cleanup.ts, whose handlers would exit this process
+// before the container cleanup above.
 // Output is fixed text, plus Playwright output and service output tails with every credential value redacted. This file
 // lives in tests/, not scripts/, because INFRA-001 of spec 0002 keeps scripts/ free of Docker (rationale, decision 58).
 
@@ -33,7 +46,9 @@ const backendPort = 8888;
 const frontendPort = 8889;
 const containerName = `foundation-readiness-${randomBytes(4).toString('hex')}`;
 const [adminPassword, migratorPassword, backendPassword] = Array.from({ length: 3 }, () => randomBytes(24).toString('hex')) as [string, string, string];
-const secrets: string[] = [adminPassword, migratorPassword, backendPassword];
+// Two test accounts of spec 0014; their passwords join the scan list before anything runs.
+const accounts = newTestAccounts();
+const secrets: string[] = [adminPassword, migratorPassword, backendPassword, ...accounts.map((account) => account.password)];
 const redacted = (value: string) => secrets.reduce((text, secret) => text.replaceAll(secret, '[redacted]'), value);
 
 // Environments of spec 0006 (*Environment proses anak*).
@@ -144,6 +159,8 @@ async function filesUnder(directory: string): Promise<string[]> {
 const tail = (text: string) => redacted(text).trimEnd().split('\n').slice(-40).join('\n');
 
 let directory = '';
+// The fingerprint folder of *Sidik token uji*: outside .local/feature-10, removed on every exit path after the scan.
+let tokens: TokenFingerprintStore | null = null;
 let containerCreated = false;
 let failure: string | undefined;
 let playwright: ProcessGroupResult | undefined;
@@ -211,7 +228,16 @@ try {
   }, 60_000);
   outputs.push(['migrate', migrated.stdout + migrated.stderr]);
   if (migrated.code !== 0) throw new Failure('Isolated migration failed');
-  console.log('Isolated database provisioned and migrated.');
+  // Spec 0014: two test accounts through the operator command, on the database of this run only.
+  try {
+    await createTestAccounts((argv, env) => run(argv, env, 60_000).then((result) => {
+      outputs.push(['accounts', result.stdout + result.stderr]);
+      return result;
+    }), migratorUrl, accounts);
+  } catch {
+    throw new Failure('Test account creation failed');
+  }
+  console.log('Isolated database provisioned and migrated, with two test accounts.');
 
   // The real backend and the development frontend, each as its own process group until every exit path aborts them.
   const startService = (name: string, argv: string[], env: Record<string, string>) => {
@@ -233,13 +259,14 @@ try {
   if (!ready) throw new Failure('Backend /api/status and frontend / did not answer 200 within 60 seconds');
   console.log('Backend and frontend answered 200.');
 
+  tokens = await createTokenFingerprintStore('foundation-readiness-tokens-');
   playwright = await run(['node', resolve(root, 'node_modules/@playwright/test/cli.js'), 'test', '--config', 'playwright.real.config.ts'], {
-    ...dockerEnv, FOUNDATION_READINESS_CONTAINER: containerName,
+    ...dockerEnv, FOUNDATION_READINESS_CONTAINER: containerName, ...e2eAccountEnv(accounts), ...tokens.env,
   }, 300_000);
   outputs.push(['playwright', playwright.stdout + playwright.stderr]);
   console.log(redacted(playwright.stdout + playwright.stderr).trimEnd());
   if (playwright.timedOut) throw new Failure('Playwright exceeded 300 seconds');
-  if (playwright.code !== 0) throw new Failure('READY-009 browser flow failed');
+  if (playwright.code !== 0) throw new Failure('READY-009 or AUTH-012 browser flow failed');
   // Recovery without a restart: the backend and frontend that served the whole flow are the groups started above.
   if (serviceResults.size > 0) throw new Failure('Backend or frontend stopped during the browser flow');
 } catch (error) {
@@ -262,31 +289,49 @@ try {
   if (directory) await rm(directory, { recursive: true, force: true }).catch(() => undefined);
 }
 
-// Credential scan of spec 0006 (READY-009): service and step output, the JUnit report, and every file in outputDir.
+// Credential scan of spec 0006 (READY-009): service and step output, the JUnit report, and every file in outputDir,
+// for the credential values and, by fingerprint, for every token the browser specs obtained (spec 0014, *Sidik token
+// uji*). The fingerprints must exist once the browser flow ran, and the positive control must find a planted token.
 try {
+  const fingerprints = tokens === null ? new Set<string>() : await readFingerprints(tokens);
+  const controlPassed = tokens === null ? null : await tokenScanControl(tokens);
+  const tokenFound = (data: Uint8Array | string) => tokens !== null && tokenMatches(data, tokens.key, fingerprints) > 0;
   const findings: string[] = [];
   for (const [name, text] of outputs) {
     if (secrets.some((secret) => text.includes(secret))) findings.push(`${name} output`);
+    else if (tokenFound(text)) findings.push(`${name} output token`);
   }
   const files = [...((await Bun.file(junit).exists()) ? [junit] : []), ...(await filesUnder(outputDir))];
   for (const path of files) {
     const data = await readFile(path);
     if (secrets.some((secret) => data.includes(Buffer.from(secret)))) findings.push(path.slice(root.length + 1));
+    else if (tokenFound(data)) findings.push(`${path.slice(root.length + 1)} token`);
   }
   const junitExists = await Bun.file(junit).exists();
   const report = {
     outputsScanned: outputs.map(([name]) => name),
     filesScanned: files.map((path) => path.slice(root.length + 1)),
     secretsChecked: secrets.length,
+    tokenFingerprints: fingerprints.size,
+    tokenScanControl: controlPassed,
     junitSha256: junitExists ? createHash('sha256').update(await readFile(junit)).digest('hex') : null,
     findings,
   };
+  const reportText = `${JSON.stringify(report, null, 2)}\n`;
+  if (tokenFound(reportText)) findings.push(`${scanReport.slice(root.length + 1)} token`);
   await writeFile(scanReport, `${JSON.stringify(report, null, 2)}\n`);
-  if (findings.length > 0) failure = 'Readiness test credential found in output or Playwright artifacts';
+  if (findings.length > 0) failure = 'Readiness test credential or token found in output or Playwright artifacts';
   else if (playwright && !junitExists) failure ??= 'Playwright JUnit report is missing';
-  else console.log(`Readiness artifact scan passed: ${report.secretsChecked} random values absent from ${report.outputsScanned.length} outputs and ${files.length} files.`);
+  else if (playwright?.code === 0 && fingerprints.size === 0) failure ??= 'Token fingerprints missing after the browser flow';
+  else if (controlPassed === false) failure ??= 'Token scan control failed';
+  else console.log(`Readiness artifact scan passed: ${report.secretsChecked} random values and ${fingerprints.size} token fingerprints absent from ${report.outputsScanned.length} outputs and ${files.length} files.`);
 } catch {
   failure ??= 'Readiness artifact scan failed';
+} finally {
+  // The fingerprint folder goes on every exit path, after the scan.
+  await removeTokenFingerprintStore(tokens).catch(() => {
+    failure ??= 'Token fingerprint folder removal failed';
+  });
 }
 
 // Both ports are free again once the groups are gone.

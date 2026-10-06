@@ -12,7 +12,7 @@ Kode proyek tidak mendorong image ke registry dan tidak melakukan deploy. Status
 | --- | --- | --- | --- | --- | --- |
 | Edge | `apps/frontend/Dockerfile` | Build production Angular di `/srv/frontend/` dan nginx 1.30.5 dengan `apps/frontend/edge/` | `101:101` | `foundation-edge`, lalu nginx di foreground | `SIGQUIT` |
 | Backend | `apps/backend/Dockerfile` | Satu bundle `bun build` komposisi production di `/app/backend.js` | `1000:1000` | `bun --no-env-file /app/backend.js` | `SIGTERM` |
-| Runner | `database/Dockerfile` | `database/` dan `libs/server/database/` dari konteks daftar izin | `1000:1000` | `bun --no-env-file`, perintah bawaan `database/migrate.ts` | `SIGTERM` |
+| Runner | `database/Dockerfile` | `database/`, `libs/server/database/`, dan `libs/server/auth/` dari konteks daftar izin | `1000:1000` | `bun --no-env-file`, perintah bawaan `database/migrate.ts` | `SIGTERM` |
 
 Bangun ketiganya dari root checkout, dengan tag lokal pilihan Anda:
 
@@ -41,10 +41,11 @@ Salin `.env.deploy.example` ke `.env.deploy`, beri mode 0600, lalu isi nilainya.
 | `FOUNDATION_POSTGRES_PASSWORD` | Password `foundation_admin`, hanya dipakai saat cluster pertama kali dibuat, secret |
 | `FOUNDATION_BACKEND_DATABASE_URL` | DSN `foundation_backend` ke `postgres:5432/foundation`, menjadi `DATABASE_URL` backend, secret |
 | `FOUNDATION_MIGRATOR_DATABASE_URL` | DSN `foundation_migrator`, hanya untuk service `migrate`, secret |
+| `FOUNDATION_PUBLIC_ORIGIN` | Origin publik edge, misalnya `https://app.example.com`, wajib dan bukan secret. Compose meneruskannya sebagai `PUBLIC_ORIGIN` backend; backend production gagal start (`startup_failed`) bila nilainya tidak ada atau bukan origin `https:` tanpa path, dan hanya origin ini yang boleh mengirim request yang mengubah data (spec 0014) |
 | `FOUNDATION_EDGE_TLS_CERT_FILE`, `FOUNDATION_EDGE_TLS_KEY_FILE` | Path host sertifikat (rantai lengkap) dan key TLS, secret file |
 | `FOUNDATION_EDGE_BIND`, `FOUNDATION_EDGE_HTTPS_PORT`, `FOUNDATION_EDGE_HTTP_PORT` | Alamat dan port host edge, default `0.0.0.0`, 443, dan 80 |
 
-`FOUNDATION_ADMIN_DATABASE_URL`, `FOUNDATION_MIGRATOR_PASSWORD`, `FOUNDATION_BACKEND_PASSWORD`, dan `FOUNDATION_BACKUP_PASSWORD` hanya ada di shell operator untuk run provisioning dan tidak ditulis ke `.env.deploy`. Path relatif pada kedua variable TLS dibaca relatif terhadap folder `deploy/` (folder file Compose), jadi pakai path absolut. Siapa pun dengan akses Docker setara root di host dan dapat membaca environment container lewat `docker inspect`; karena itu setiap service hanya menerima credential miliknya, dan edge tidak menerima credential apa pun.
+`FOUNDATION_ADMIN_DATABASE_URL`, `FOUNDATION_MIGRATOR_PASSWORD`, `FOUNDATION_BACKEND_PASSWORD`, dan `FOUNDATION_BACKUP_PASSWORD` hanya ada di shell operator untuk run provisioning, dan `FOUNDATION_ACCOUNT_PASSWORD` hanya untuk perintah akun (bagian *Akun pengguna dan sesi*); semuanya tidak ditulis ke `.env.deploy` atau file env mana pun. Path relatif pada kedua variable TLS dibaca relatif terhadap folder `deploy/` (folder file Compose), jadi pakai path absolut. Siapa pun dengan akses Docker setara root di host dan dapat membaca environment container lewat `docker inspect`; karena itu setiap service hanya menerima credential miliknya, dan edge tidak menerima credential apa pun.
 
 Aturan nilai `.env.deploy`:
 
@@ -100,6 +101,15 @@ Jalankan dari root checkout. Setiap langkah harus keluar 0 sebelum langkah berik
    ```
 
    Baca readiness lagi dengan perintah langkah 5: jawabannya menjadi `200 {"status":"ready"}` tanpa restart backend.
+
+   Tidak ada registrasi publik, jadi buat akun pengguna pertama lewat job yang sama sesudah migration (spec 0014). Isi `FOUNDATION_ACCOUNT_PASSWORD` di shell dari secret manager Anda (15 sampai 128 karakter), tanpa menaruhnya di argumen perintah:
+
+   ```sh
+   docker compose --env-file .env.deploy -f deploy/compose.yaml --profile migrate run --rm -e FOUNDATION_ACCOUNT_PASSWORD \
+     migrate database/accounts.ts create --email <email> --display-name '<nama>' --apply
+   ```
+
+   Hasilnya satu baris `Account created: <uuid>`, dan email yang sudah ada keluar 1 dengan `Account exists` tanpa perubahan. Hapus variable itu dari shell sesudahnya. Perintah akun lain ada di bagian *Akun pengguna dan sesi*.
 7. Jalankan edge, lalu periksa `https://<host>/` dari luar:
 
    ```sh
@@ -117,10 +127,13 @@ Hentikan seluruh topologi dengan `docker compose --env-file .env.deploy -f deplo
 | OpenAPI JSON dan UI | Tidak dilayani production. Plugin hanya dipasang komposisi development, kontrak resmi adalah `openapi.json` di repository, dan dokumen itu tidak masuk image mana pun. |
 | Route diagnostik development (`/api/status`, `/api/readiness`) | Hanya komposisi development; production dan edge menjawab 404 dari backend. |
 | Health (`/health/live`, `/health/ready`) | Tanpa login, hanya jaringan internal (probe container, orkestrator, dan operator). Edge tidak meneruskannya, dan jawabannya tidak mengungkap waktu, versi, nama, atau pesan error. |
-| Admin | Tidak ada. Endpoint admin kelak memerlukan autentikasi dan otorisasi backend (fitur 15) serta spec sendiri, dan tidak pernah dibuka publik tanpa itu. |
+| Auth (`/api/auth/`) | Route `/api/auth/` publik lewat edge dengan kontrol spec 0014: guard origin, `Content-Type`, dan CSRF sebelum body diurai, batas percobaan per akun di database, batas verifikasi password per proses, dan batas edge `POST /api/auth/session` 30 request per menit per alamat client dengan burst 10. Kelebihan batas edge dijawab edge 429 `{"error":"Too many requests"}` tanpa diteruskan ke backend. |
+| Admin | Tidak ada. Spec 0014 hanya menyediakan satu peran pengguna; endpoint admin kelak memerlukan otorisasi berbasis peran dan spec sendiri, dan tidak pernah dibuka publik tanpa itu. Operasi akun hanya lewat job `migrate` (bagian *Akun pengguna dan sesi*). |
 | Metrics | Tidak ada endpoint. Pengamatan lewat log dan statistik mesin container. Endpoint metrics kelak hanya jaringan internal di luar `/api/`, seperti health. |
 
 `/health/live` menjawab 200 tanpa menyentuh database, sehingga orkestrator tidak memulai ulang backend yang sehat saat database berhenti. `/health/ready` menjawab 200 hanya bila migration `REQUIRED_MIGRATION` tercatat di `common.schema_migrations`, dan 503 bila database tidak terjangkau, lalu kembali 200 tanpa restart.
+
+Batas masuk di edge memakai alamat client dari koneksi TCP edge (`$binary_remote_addr`), tidak dari header: `map "$request_method:$foundation_path"` memberi kunci hanya untuk `POST /api/auth/session`, `limit_req_zone ... zone=sign_in:10m rate=30r/m`, dan di location `/api/` `limit_req zone=sign_in burst=10 nodelay` dengan `error_page 429` ke named location yang menjawab body `AuthError` dan header API. Di balik load balancer atau NAT, semua client yang berbagi satu alamat berbagi satu bucket; pada topologi seperti itu batas ini perlu ditinjau lewat spec saat platform dipilih.
 
 ### Memantau
 
@@ -158,12 +171,31 @@ Untuk `foundation_backup`, jalankan `ALTER ROLE foundation_backup PASSWORD ...` 
 
 Password `foundation_admin` hanya dipakai entrypoint saat cluster dibuat. Sesudah itu ganti lewat `ALTER ROLE foundation_admin PASSWORD ...` dengan koneksi admin, lalu perbarui `FOUNDATION_POSTGRES_PASSWORD` di `.env.deploy`, seperti aturan infrastruktur.
 
+## Akun pengguna dan sesi
+
+Akun dikelola operator lewat `database/accounts.ts` di image runner (spec 0014), dengan `FOUNDATION_MIGRATOR_DATABASE_URL` service `migrate`, transaksi pemilik yang sama dengan seed, dan syarat semua migration sudah diterapkan. Setiap perintah mencetak tepat satu baris dan tidak pernah mencetak password, hash, email, atau DSN. Password hanya dibaca dari `FOUNDATION_ACCOUNT_PASSWORD` yang Anda berikan lewat `-e` dari shell.
+
+```sh
+docker compose --env-file .env.deploy -f deploy/compose.yaml --profile migrate run --rm -e FOUNDATION_ACCOUNT_PASSWORD \
+  migrate database/accounts.ts set-password --email <email> --apply
+docker compose --env-file .env.deploy -f deploy/compose.yaml --profile migrate run --rm migrate database/accounts.ts revoke-sessions --email <email> --apply
+docker compose --env-file .env.deploy -f deploy/compose.yaml --profile migrate run --rm migrate database/accounts.ts revoke-sessions --all --apply
+```
+
+| Perintah | Hasil |
+| --- | --- |
+| `set-password --email <email> --apply` | `Password changed: <uuid>; sessions revoked: <n>`: hash baru, lalu seluruh sesi aktif akun itu dicabut dalam transaksi yang sama, sehingga password lama tidak menghasilkan sesi sesudahnya |
+| `revoke-sessions --email <email> --apply` | `Sessions revoked: <n>` untuk satu akun |
+| `revoke-sessions --all --apply` | `Sessions revoked: <n>` untuk semua akun; aman diulang, run kedua mencetak `Sessions revoked: 0`. Jalankan saat backend berhenti, misalnya langkah 8 *Runbook restore* dan *Prosedur insiden* di [aturan backup](backup.md) |
+
+Akun yang tidak ada keluar 1 dengan `Account not found`, dan bentuk argumen lain keluar 1 dengan `Use create, set-password, or revoke-sessions with --apply`. Tidak ada perintah untuk membaca daftar akun; reset paksa sesudah backup bocor membaca email lewat koneksi admin bagian *Rotasi password role* menurut [aturan backup](backup.md).
+
 ## Log dan retensi
 
 - Baca log per container dengan `docker logs <container>`, yang memisahkan stdout dan stderr. `docker compose logs` menggabungkan keduanya.
 - Edge menulis satu objek JSON per request ke stdout dengan key `time`, `requestId`, `method`, `path`, `status`, `bytes`, `requestTime`, `upstreamStatus`, dan `upstreamTime`. `path` tidak memuat query string, dan log tidak memuat IP client, user agent, referer, header, cookie, atau body. `status` bernilai `0` bila nginx mengakhiri request tanpa mengirim jawaban, misalnya stream HTTP/2 dengan header di atas batas. Error log edge ditulis ke stderr pada level `crit`.
 - Request yang ditolak nginx sebelum URI nya selesai diurai, yaitu path yang naik di atas root (misalnya `/api/../../x`) atau request line yang tidak sah, tetap tercatat satu baris dengan `status` 400 dan `requestId`, tetapi `path` kosong dan `method` dapat kosong, karena nginx belum mengisi `$request_uri` saat menolaknya. Cari baris itu lewat `requestId`, yang sama dengan header `X-Request-Id` jawaban 400 nya. Edge sengaja tidak mengisi `path` dari request line mentah, karena request line itu memuat query string.
-- Backend production menulis satu baris JSON per request yang sampai ke Elysia, kecuali jawaban health di bawah 500, dan baris JSON lifecycle (`listening`, `stopped`, dan kegagalan shutdown atau startup). Baris `info` ke stdout dan baris `error` ke stderr. Jawaban `/health/ready` 503 sebelum migration dan selama database tidak terjangkau tercatat sebagai baris `error` di stderr; itu wajar pada kedua keadaan itu.
+- Backend production menulis satu baris JSON per request yang sampai ke Elysia, kecuali jawaban health di bawah 500, dan baris JSON lifecycle (`listening`, `stopped`, dan kegagalan shutdown atau startup). Baris `info` ke stdout dan baris `error` ke stderr. Request di bawah `/api/auth/` dapat menambah paling banyak satu baris event `auth` (spec 0014) ke stdout dengan `requestId` yang sama, berisi tepat `time`, `level`, `event`, `requestId`, `action` (`sign_in`, `sign_out`, `session_revoke`, atau `request_rejected`), `outcome`, `userId`, `sessionId`, dan `accountKey` (16 heksadesimal pertama hash kunci percobaan), tanpa email, password, cookie, atau token. Jawaban yang ditolak guard plugin auth menulis baris request nya sendiri, tetap satu baris per request. Jawaban `/health/ready` 503 sebelum migration dan selama database tidak terjangkau tercatat sebagai baris `error` di stderr; itu wajar pada kedua keadaan itu.
 - Header jawaban `X-Request-Id`, baris log edge, dan baris log backend untuk satu request memuat ID yang sama. Backend tidak mempercayai `X-Request-Id` dari client yang bukan 32 heksadesimal kecil, dan edge selalu menimpa header itu.
 - PostgreSQL berjalan dengan `log_min_messages=log`, `log_min_error_statement=panic`, dan `log_error_verbosity=terse`, sehingga statement gagal tidak masuk log.
 - Setiap service memakai log driver `json-file` dengan `max-size` `10m` dan `max-file` `3`. Retensi log di platform paling lama 30 hari. Penyimpanan log platform dengan retensi itu ditetapkan saat platform dipilih.
@@ -173,7 +205,7 @@ Password `foundation_admin` hanya dipakai entrypoint saat cluster dibuat. Sesuda
 
 - Bukti per push adalah `bun run test:deployment:plan` (tier cepat) dan `bun run test:deployment:real` (tier nyata): topologi rujukan di satu host Docker dengan sertifikat dari CA sementara. Bukti itu bukan bukti platform deployment, kapasitas, image di registry, atau ketiadaan kerentanan paket OS image.
 - Paket OS ketiga image tidak dipindai pemindai kerentanan. `bun audit` di tier keamanan hanya mencakup paket npm. Pemindai image memerlukan spec tersendiri.
-- Tidak ada TLS di dalam host antara edge, backend, dan PostgreSQL, dan tidak ada rate limit. Topologi multi host atau database terkelola memerlukan spec baru.
+- Tidak ada TLS di dalam host antara edge, backend, dan PostgreSQL. Rate limit hanya ada untuk `POST /api/auth/session` (edge per alamat client dan backend per akun, spec 0014); endpoint lain belum dibatasi. Topologi multi host atau database terkelola memerlukan spec baru.
 - Browser pengguna memuat font dari Google sampai font di host sendiri.
 
 ## Status kesiapan release

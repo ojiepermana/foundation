@@ -9,6 +9,9 @@ const developmentRoutes: Routes = isDevMode()
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: FoundationHome },
+  // The auth pages exist in every build (spec 0014, *Halaman*); each loads on first use.
+  { path: 'masuk', loadComponent: () => import('./features/auth/sign-in-page').then((m) => m.SignInPage) },
+  { path: 'akun', loadComponent: () => import('./features/auth/account-page').then((m) => m.AccountPage) },
   ...developmentRoutes,
   { path: '**', redirectTo: '' },
 ];

@@ -3,11 +3,22 @@ import { lstat, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { runProcessGroup } from '../../scripts/lib/process-group.ts';
+import { databaseAccountPasswordLabels } from './auth-accounts.ts';
 import { readinessContainerLabelsAccepted, readinessContainerMissing, readinessNameAccepted } from './readiness-container.ts';
 import { restoreEvidenceFailure } from './restore-evidence.ts';
+import {
+  createTokenFingerprintStore,
+  readFingerprints,
+  removeTokenFingerprintStore,
+  tokenMatches,
+  tokenScanControl,
+  type TokenFingerprintStore,
+} from './token-fingerprints.ts';
 
 // `bun run test:database:real`: builds the frontend, runs the database suite against isolated PostgreSQL 18 containers,
-// and scans its JUnit report, the restore evidence of spec 0013, and the bundle for the random credentials. This file
+// and scans its JUnit report, the restore evidence of spec 0013, and the bundle for the random credentials and, through
+// the token fingerprints of spec 0014 (*Sidik token uji*), for every session token and CSRF token the suites obtained.
+// This file
 // lives in tests/, not scripts/, because it removes the READY-008 container itself and INFRA-001 of spec 0002 keeps
 // scripts/ free of Docker (spec 0006, rationale decision 58).
 const root = resolve(import.meta.dir, '../..');
@@ -33,10 +44,12 @@ const restoreUrls = [
   `postgres://foundation_backend:${restoreBackendPassword}@127.0.0.1:1/foundation`,
   `postgres://foundation_backup:${restoreBackupPassword}@127.0.0.1:1/foundation`,
 ];
+// Spec 0014 (AC-10): the account passwords of the database suites, from the labels the suites use with the same seed.
+const accountPasswords = databaseAccountPasswordLabels().map(password);
 const secrets = [
   seed, adminPassword, migratorPassword, backendPassword, backupPassword,
   restoreAdminPassword, restoreMigratorPassword, restoreBackendPassword, restoreBackupPassword,
-  adminUrl, migratorUrl, backendUrl, backupUrl, ...restoreUrls,
+  adminUrl, migratorUrl, backendUrl, backupUrl, ...restoreUrls, ...accountPasswords,
 ];
 const safeOutput = (value: string) => secrets.reduce((text, secret) => text.replaceAll(secret, '[redacted]'), value);
 // READY-008 container of this run (spec 0006, *Nama dan penjaga container*). It is named here and passed to bun test,
@@ -60,8 +73,8 @@ const handlers = (Object.keys(signalCodes) as HandledSignal[]).map((signal) => {
 
 /**
  * Runs one step as the leader of its own process group, so a timeout or an interrupt stops every process it started.
- * `timeoutMs` is the limit of the step, 300000 ms when absent (the frontend build); `bun test` passes 600000 ms
- * (spec 0013, *Perubahan database-real.ts*). `graceMs` is the wait after SIGTERM before SIGKILL; the default of
+ * `timeoutMs` is the limit of the step, 300000 ms when absent (the frontend build); `bun test` passes 900000 ms
+ * (spec 0013, *Perubahan database-real.ts*, raised by spec 0014 for the auth suite and BKP-009). `graceMs` is the wait after SIGTERM before SIGKILL; the default of
  * `runProcessGroup` (5000 ms) when absent.
  */
 async function run(command: string[], env: Record<string, string>, options: { graceMs?: number; timeoutMs?: number } = {}) {
@@ -126,6 +139,9 @@ for (const key of ['PATH', 'HOME', 'USER', 'TMPDIR', 'TMP', 'TEMP', 'LANG', 'LC_
 }
 let scratch = '';
 let failure: string | undefined;
+// The fingerprint folder of *Sidik token uji*: outside .local/ and the scratch folder, removed on every exit path after
+// the scan. tests/orchestration/signal-cleanup.ts is not imported here (see below), so this script removes it itself.
+let tokens: TokenFingerprintStore | null = null;
 
 try {
   await mkdir(evidence, { recursive: true });
@@ -151,35 +167,52 @@ try {
   // of tests/orchestration/signal-cleanup.ts plus 15000 ms, so bun test, the Docker clients the signal stopped, and the
   // READY-008 backend can exit before SIGKILL. That module is not imported here, because importing it installs its
   // signal handlers in this process.
-  // The backup suite of spec 0013 (BKP-003 to BKP-007) needs up to 600000 ms of its own, so bun test gets that limit.
+  // The backup suite of spec 0013 (BKP-003 to BKP-007), the auth suite, and BKP-009 of spec 0014 need up to 900000 ms
+  // together, so bun test gets that limit; the 75000 ms grace stays.
+  tokens = await createTokenFingerprintStore('foundation-database-tokens-');
   const tests = await run([process.execPath, '--no-env-file', 'test', './tests/integration/database', '--reporter=junit', `--reporter-outfile=${junit}`], {
     ...baseEnv, TMPDIR: scratch, TMP: scratch, TEMP: scratch, FOUNDATION_TEST_SECRET_SEED: seed, FOUNDATION_READINESS_DB_CONTAINER: readinessContainer,
-  }, { graceMs: 75_000, timeoutMs: 600_000 });
+    ...tokens.env,
+  }, { graceMs: 75_000, timeoutMs: 900_000 });
   console.log(tests.output.trim());
-  if (tests.timedOut) throw new Error('Database integration tests exceeded 600 seconds');
-  // JUnit, restore.json when bun test wrote it, and every file of the frontend bundle are scanned for every value above.
+  if (tests.timedOut) throw new Error('Database integration tests exceeded 900 seconds');
+  // JUnit, restore.json when bun test wrote it, and every file of the frontend bundle are scanned for every value above
+  // and, by fingerprint, for every token the suites obtained; the output of bun test and the report itself too.
+  const fingerprints = await readFingerprints(tokens);
+  const controlPassed = await tokenScanControl(tokens);
+  const store = tokens;
+  const tokenFound = (data: Uint8Array | string) => tokenMatches(data, store.key, fingerprints) > 0;
   const restore = await regularFile(restoreEvidence);
   const bundleFiles = await filesUnder(bundle);
   const paths = [junit, ...(restore === undefined ? [] : [restoreEvidence]), ...bundleFiles];
   const findings: string[] = [];
+  if (tokenFound(tests.output)) findings.push('bun test output token');
   for (const path of paths) {
     const data = path === restoreEvidence && restore !== undefined ? restore : await readFile(path);
     if (secrets.some((secret) => data.includes(Buffer.from(secret)))) findings.push(path.slice(root.length + 1));
+    else if (tokenFound(data)) findings.push(`${path.slice(root.length + 1)} token`);
   }
   const report = {
     filesScanned: paths.length,
     secretsChecked: secrets.length,
+    tokenFingerprints: fingerprints.size,
+    tokenScanControl: controlPassed,
     junitSha256: createHash('sha256').update(await readFile(junit)).digest('hex'),
     frontendBundleFiles: bundleFiles.length,
     findings,
   };
-  await writeFile(resolve(evidence, 'artifact-scan.json'), `${JSON.stringify(report, null, 2)}\n`);
-  if (findings.length) throw new Error('Database test credential found in JUnit, restore evidence, or frontend bundle');
+  const reportPath = resolve(evidence, 'artifact-scan.json');
+  if (tokenFound(`${JSON.stringify(report, null, 2)}\n`)) findings.push(`${reportPath.slice(root.length + 1)} token`);
+  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+  if (findings.length) throw new Error('Database test credential or token found in output, JUnit, restore evidence, or frontend bundle');
   if (tests.code !== 0) throw new Error('Database integration tests failed');
+  // The suites signed in, so the mechanism ran: an empty set means a token was never fingerprinted.
+  if (fingerprints.size === 0) throw new Error('Token fingerprints missing after the database suites');
+  if (!controlPassed) throw new Error('Token scan control failed');
   // `Restore evidence missing` or `Restore evidence not passed` (tests/orchestration/restore-evidence.ts).
   const restoreFailure = restoreEvidenceFailure(restore);
   if (restoreFailure !== undefined) throw new Error(restoreFailure);
-  console.log(`Database artifact scan passed: ${report.secretsChecked} random values absent from ${report.filesScanned} files.`);
+  console.log(`Database artifact scan passed: ${report.secretsChecked} random values and ${report.tokenFingerprints} token fingerprints absent from ${report.filesScanned} files.`);
   console.log('Restore evidence passed.');
 } catch (error) {
   failure = (error as Error).message;
@@ -192,6 +225,10 @@ try {
     failure ??= (error as Error).message;
   }
   if (scratch) await rm(scratch, { recursive: true, force: true }).catch(() => undefined);
+  // The fingerprint folder goes on every exit path, after the scan.
+  await removeTokenFingerprintStore(tokens).catch(() => {
+    failure ??= 'Token fingerprint folder removal failed';
+  });
 }
 
 for (const [signal, handler] of handlers) process.off(signal, handler);

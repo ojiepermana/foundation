@@ -232,7 +232,7 @@ const existingIds = [
   ...['UI-001', 'UI-002', 'UI-003'],
 ];
 
-test('GATE-002 the repository registries pass, keep every existing ID, and flag the five critical flows', async () => {
+test('GATE-002 the repository registries pass, keep every existing ID, and flag the seven critical flows', async () => {
   expect(existingIds).toHaveLength(58);
   const result = await validateRegistries({ root: repositoryRoot });
   expect(result.violations.map(formatViolation)).toEqual([]);
@@ -242,6 +242,9 @@ test('GATE-002 the repository registries pass, keep every existing ID, and flag 
   for (const id of [...existingIds, 'GATE-001', 'GATE-002', 'GATE-003']) expect(ids, id).toContain(id);
   expect(scenarios.filter((scenario) => scenario.critical).map((scenario) => scenario.id).sort()).toEqual([
     'APP-002',
+    // Spec 0014 (AC-15): the development and production browser flows of user access.
+    'AUTH-012',
+    'AUTH-013',
     // Spec 0012: the production browser flow through the edge.
     'DEP-006',
     'READY-006',

@@ -6,5 +6,6 @@
 !database/migrations/
 !database/seeds/
 !libs/server/database/
+!libs/server/auth/
 **/.env
 **/.env.*

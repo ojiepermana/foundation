@@ -11,9 +11,10 @@ export interface Service { name: string; command: string[]; cwd: string; env: No
 
 export function services(config: DevelopmentConfig, workers: string[], root = projectRoot): Service[] {
   const environment: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "development", HOST: config.host };
-  // Provisioning, migration, and backup credentials (spec 0013 AC-4) never reach a child process.
+  // Provisioning, migration, and backup credentials (spec 0013 AC-4) and the account password of the operator command
+  // (spec 0014, *Konfigurasi*) never reach a child process.
   for (const key of ["FOUNDATION_ADMIN_DATABASE_URL", "FOUNDATION_MIGRATOR_DATABASE_URL", "FOUNDATION_MIGRATOR_PASSWORD", "FOUNDATION_BACKEND_PASSWORD",
-    "FOUNDATION_BACKUP_PASSWORD", "FOUNDATION_BACKUP_DATABASE_URL"]) {
+    "FOUNDATION_BACKUP_PASSWORD", "FOUNDATION_BACKUP_DATABASE_URL", "FOUNDATION_ACCOUNT_PASSWORD"]) {
     delete environment[key];
   }
   for (const worker of Object.values(config.workers)) {

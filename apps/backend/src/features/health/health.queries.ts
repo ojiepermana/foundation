@@ -5,7 +5,7 @@ import type { SQL } from 'bun';
  * the name of the last file in `database/migrations/`. Every new migration updates this constant in the same commit;
  * DEP-001 fails when it falls behind the last migration file.
  */
-export const REQUIRED_MIGRATION = '0001-common-metadata-comment.sql';
+export const REQUIRED_MIGRATION = '0010-auth-grant-backend-sign-in-attempts.sql';
 
 /**
  * True when `common.schema_migrations` holds a row for `name`, read in one transaction on the backend pool with the

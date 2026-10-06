@@ -1,0 +1,69 @@
+<section class="w-full max-w-3xl space-y-6 p-6 sm:p-8 lg:p-12" aria-labelledby="account-title">
+  <h1 id="account-title" class="text-2xl font-semibold">Akun</h1>
+  <div class="space-y-1">
+    <p role="alert" class="min-w-0 text-base font-medium leading-relaxed text-destructive">{{ alertText() }}</p>
+    <div class="flex min-w-0 items-start gap-2">
+      @if (view().state === 'loading') {
+        <Spinner decorative class="mt-1 shrink-0" />
+      }
+      <p role="status" aria-live="polite" class="min-w-0 text-base leading-relaxed">{{ statusText() }}</p>
+    </div>
+  </div>
+  @if (retryable()) {
+    <button Button type="button" variant="outline" (click)="load()">Coba lagi</button>
+  }
+  @if (user(); as user) {
+    <Card>
+      <CardHeader>
+        <h2 CardTitle>Profil</h2>
+      </CardHeader>
+      <CardContent>
+        <dl class="grid min-w-0 gap-x-6 gap-y-1 text-sm sm:grid-cols-[max-content_1fr]">
+          <dt class="text-muted-foreground">Nama</dt>
+          <dd class="mb-2 min-w-0 break-words sm:mb-0">{{ user.displayName }}</dd>
+          <dt class="text-muted-foreground">Email</dt>
+          <dd class="min-w-0 break-all">{{ user.email }}</dd>
+        </dl>
+      </CardContent>
+    </Card>
+  }
+  @if (sessions(); as sessions) {
+    <Card>
+      <CardHeader>
+        <h2 CardTitle id="account-sessions-title">Sesi aktif</h2>
+      </CardHeader>
+      <CardContent>
+        <ul class="min-w-0 space-y-3" aria-labelledby="account-sessions-title">
+          @for (item of sessions; track item.id) {
+            <li Item variant="outline" size="sm" class="min-w-0 flex-wrap">
+              <ItemContent class="min-w-0">
+                <dl [id]="'account-session-' + item.id" class="grid min-w-0 gap-x-4 gap-y-1 text-sm sm:grid-cols-[max-content_1fr]">
+                  <dt class="text-muted-foreground">Dibuat</dt>
+                  <dd class="min-w-0"><time [attr.datetime]="item.createdAt">{{ timeText(item.createdAt) }}</time></dd>
+                  <dt class="text-muted-foreground">Terakhir aktif</dt>
+                  <dd class="min-w-0"><time [attr.datetime]="item.lastSeenAt">{{ timeText(item.lastSeenAt) }}</time></dd>
+                </dl>
+              </ItemContent>
+              <ItemActions>
+                @if (item.current) {
+                  <Badge variant="secondary">Sesi ini</Badge>
+                } @else {
+                  <button Button type="button" variant="outline" size="sm"
+                    [attr.aria-describedby]="'account-session-' + item.id"
+                    [attr.aria-disabled]="revoking().has(item.id) ? 'true' : null"
+                    (click)="revoke(item.id)">Akhiri sesi</button>
+                }
+              </ItemActions>
+            </li>
+          }
+        </ul>
+      </CardContent>
+    </Card>
+    <div class="flex items-center gap-3">
+      <button Button type="button" variant="outline" [attr.aria-disabled]="signingOut() ? 'true' : null" (click)="signOut()">Keluar</button>
+      @if (signingOut()) {
+        <Spinner decorative class="shrink-0" />
+      }
+    </div>
+  }
+</section>

@@ -672,7 +672,7 @@ test('BKP-001 .env.backup.example names every .env.backup variable of Configurat
 
 type Registry = { source: string; scenarios: { id: string; criteria: string[]; critical?: boolean; checks: { runner: string; file: string; testTag?: string; script: string }[] }[] };
 
-test('BKP-001 the scenario registry names BKP-001 to BKP-008 with the runner, script, file, and criteria of Critical test scenarios', async () => {
+test('BKP-001 the scenario registry names BKP-001 to BKP-008 with the runner, script, file, and criteria of Critical test scenarios, and BKP-009 of spec 0014 after them', async () => {
   const spec = await read('docs/specs/0013-backup-pemulihan-data/index.md');
   const section = spec.slice(spec.indexOf('**Critical test scenarios**'), spec.indexOf('## Build plan'));
   const expected = new Map<string, { criteria: string[]; runner: string; script: string; file: string }>();
@@ -694,6 +694,13 @@ test('BKP-001 the scenario registry names BKP-001 to BKP-008 with the runner, sc
   expect(together?.slice(1)).toEqual(['BKP-003', 'BKP-007', 'AC-8']);
   for (const id of ['BKP-003', 'BKP-004', 'BKP-005', 'BKP-006', 'BKP-007']) expected.get(id)!.criteria.push('AC-8');
   expect([...expected.keys()]).toEqual(['BKP-001', 'BKP-002', 'BKP-003', 'BKP-004', 'BKP-005', 'BKP-006', 'BKP-007', 'BKP-008']);
+  // Spec 0014 (*Critical test scenarios* and row 0013 of *Amandemen spec lain*): BKP-009 joins this registry with the
+  // file and script of its row there. The source of the registry stays spec 0013, so its criterion is AC-8 of spec 0013,
+  // the restore evidence that BKP-009 extends with the field `sessions` of restore.json.
+  const auth = await read('docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md');
+  const row = /^\| BKP-009 \| .+ \| `([^`]+)`, `([^`]+)` \| AC-14 \|$/m.exec(auth);
+  expect(row?.slice(1)).toEqual(['tests/integration/database/backup.test.ts', 'test:database:real']);
+  expected.set('BKP-009', { criteria: ['AC-8'], runner: 'bun:test', file: row![1]!, script: row![2]! });
 
   const registry = JSON.parse(await read('tests/scenarios/backup.json')) as Registry;
   expect(registry.source).toBe('docs/specs/0013-backup-pemulihan-data/index.md');
@@ -709,7 +716,11 @@ test('BKP-001 the scenario registry names BKP-001 to BKP-008 with the runner, sc
 // ---------------------------------------------------------------------------------------------------------------
 // Documents (*Dokumen yang diperbarui*, *Runbook restore*, *Prosedur insiden*, *Hook fitur 15*, AC-1 and AC-9).
 
-/** *Dokumen yang diperbarui*: the strings each document must hold literally, written here from the table. */
+/**
+ * *Dokumen yang diperbarui*: the strings each document must hold literally, written here from the table, with the
+ * amendment of spec 0014 (row 0013 of *Amandemen spec lain*): `tidak berlaku sampai fitur 15` left the list of
+ * docs/rules/backup.md, whose hook strings of spec 0014 are checked by procedureProblems below.
+ */
 const DOCUMENT_STRINGS: Readonly<Record<string, readonly string[]>> = {
   'docs/rules/backup.md': [
     'RPO', '24 jam', '25 jam', 'RTO', '4 jam', '35 hari', '7 backup', '26 jam', '27 jam', '30 hari', 'foundation_backup',
@@ -717,7 +728,7 @@ const DOCUMENT_STRINGS: Readonly<Record<string, readonly string[]>> = {
     '--profile backup run --rm backup create scheduled', '--profile backup run --rm backup check',
     '--profile restore run --rm -e FOUNDATION_ADMIN_DATABASE_URL restore', 'database/fingerprint.ts', 'pre-migration',
     'common.schema_migrations', '0700', 'di luar host', 'tidak mengunggah', 'bukan keaslian', 'Backup created:',
-    'tidak berlaku sampai fitur 15', 'ALTER ROLE', 'restore-drill-template.md', 'Migration history drift', '/dev/tcp',
+    'ALTER ROLE', 'restore-drill-template.md', 'Migration history drift', '/dev/tcp',
   ],
   'docs/rules/deployment.md': ['-e FOUNDATION_BACKUP_PASSWORD', 'create pre-migration', 'docs/rules/backup.md'],
   'docs/rules/security.md': ['docs/rules/backup.md', 'foundation_backup', 'pg_authid'],
@@ -750,9 +761,21 @@ function documentProblems(texts: Readonly<Record<string, string>>): string[] {
   return missing;
 }
 
+/** The table of spec 0013 with the amendment of spec 0014 applied, when spec 0014 states it. */
+function amendedDocumentStrings(spec: string, amendment: string): Record<string, string[]> {
+  const rows = specDocumentStrings(spec);
+  if (amendment.includes('string `tidak berlaku sampai fitur 15` keluar dari daftar')) {
+    rows['docs/rules/backup.md'] = (rows['docs/rules/backup.md'] ?? []).filter((value) => value !== 'tidak berlaku sampai fitur 15');
+  }
+  return rows;
+}
+
 test('BKP-001 the documents of Dokumen yang diperbarui hold every required string literally', async () => {
-  // The table here equals the table of the spec, so neither can drift without this test failing.
-  expect(specDocumentStrings(await read('docs/specs/0013-backup-pemulihan-data/index.md'))).toEqual(DOCUMENT_STRINGS as Record<string, string[]>);
+  // The table here equals the table of the spec with its amendment, so neither can drift without this test failing.
+  const spec = await read('docs/specs/0013-backup-pemulihan-data/index.md');
+  const amendment = await read('docs/specs/0014-akses-pengguna-lifecycle-sesi/index.md');
+  expect(amendedDocumentStrings(spec, amendment)).toEqual(DOCUMENT_STRINGS as Record<string, string[]>);
+  expect(specDocumentStrings(spec)['docs/rules/backup.md']).toContain('tidak berlaku sampai fitur 15');
   const texts: Record<string, string> = {};
   for (const path of Object.keys(DOCUMENT_STRINGS)) texts[path] = await read(path);
   expect(documentProblems(texts)).toEqual([]);
@@ -775,23 +798,30 @@ function section(text: string, heading: string): string[] {
 const INCIDENTS = ['Kehilangan atau kerusakan data', 'Credential bocor atau dicurigai', 'Backup bocor', 'Backup gagal atau `check` gagal'];
 
 /**
- * docs/rules/backup.md holds the ten steps of *Runbook restore* in order with step 8 `tidak berlaku sampai fitur 15`,
- * the four incidents of *Prosedur insiden* with session revocation marked the same way, and the five items of *Hook
- * fitur 15*. docs/rules/deployment.md passes `-e FOUNDATION_BACKUP_PASSWORD` on the provisioning command and creates the
- * `pre-migration` backup before the migration command (AC-9).
+ * docs/rules/backup.md holds the ten steps of *Runbook restore* in order, the four incidents of *Prosedur insiden*, and
+ * the five items of *Hook fitur 15* (AC-9). Spec 0014 (row `docs/rules/backup.md` of *Dokumen yang diperbarui*) filled
+ * the hook: step 8 starts with its fixed line and a command block with `revoke-sessions --all --apply` and the output
+ * `Sessions revoked:` before the backend of step 9, the first three incidents carry their session and reset strings, the
+ * hook section ends with its fixed closing line, and `tidak berlaku sampai fitur 15` is gone from the file.
+ * docs/rules/deployment.md passes `-e FOUNDATION_BACKUP_PASSWORD` on the provisioning command and creates the
+ * `pre-migration` backup before the migration command.
  */
 function procedureProblems(backup: string, deployment: string): string[] {
   const problems: string[] = [];
   const steps = section(backup, 'Runbook restore').filter((line) => /^\d+\. /.test(line));
   if (JSON.stringify(steps.map((line) => Number.parseInt(line, 10))) !== JSON.stringify([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])) problems.push('runbook steps');
-  if (steps[7] !== '8. Pencabutan seluruh sesi: tidak berlaku sampai fitur 15 (*Hook fitur 15*).') problems.push('runbook step 8');
+  if (steps[7] !== '8. Cabut seluruh sesi sebelum backend berjalan (*Hook fitur 15*):') problems.push('runbook step 8');
   const runbook = section(backup, 'Runbook restore').join('\n');
+  const stepEight = runbook.slice(runbook.indexOf('\n8. '), runbook.indexOf('\n9. '));
+  if (!/```sh\n.*--profile migrate run --rm migrate database\/accounts\.ts revoke-sessions --all --apply\n *```/.test(stepEight)) problems.push('runbook step 8 command');
+  if (!stepEight.includes('`Sessions revoked:')) problems.push('runbook step 8 output');
   const order = [
     'up -d --wait postgres',
     'migrate database/provision.ts --apply',
     '--profile restore run --rm -e FOUNDATION_ADMIN_DATABASE_URL restore <nama>.dump',
     'migrate database/migrate.ts --apply',
     '--profile migrate run --rm -e FOUNDATION_BACKUP_DATABASE_URL migrate database/fingerprint.ts',
+    '--profile migrate run --rm migrate database/accounts.ts revoke-sessions --all --apply',
     'up -d --wait backend',
     `--entrypoint bash backup -c 'timeout 3 bash -c "exec 3<>/dev/tcp/1.1.1.1/443"'`,
     'down --volumes',
@@ -799,8 +829,13 @@ function procedureProblems(backup: string, deployment: string): string[] {
   if (order.some((index) => index < 0) || order.some((index, position) => position > 0 && index <= order[position - 1]!)) problems.push('runbook commands');
   const incidents = section(backup, 'Prosedur insiden').filter((line) => line.startsWith('| ') && !line.startsWith('| Insiden') && !line.startsWith('| ---'));
   if (JSON.stringify(incidents.map((line) => line.slice(2, line.indexOf(' | ')))) !== JSON.stringify(INCIDENTS)) problems.push('incidents');
-  for (const index of [0, 1]) if (!incidents[index]?.includes('Cabut seluruh sesi (tidak berlaku sampai fitur 15)') && !incidents[index]?.includes('cabut seluruh sesi (tidak berlaku sampai fitur 15)')) problems.push(`incident ${index + 1} sessions`);
-  if (section(backup, 'Hook fitur 15').filter((line) => /^\d+\. /.test(line)).length !== 5) problems.push('hook items');
+  if (!incidents[0]?.includes('Cabut seluruh sesi lewat langkah 8 *Runbook restore*')) problems.push('incident 1 sessions');
+  if (!incidents[1]?.includes('cabut seluruh sesi dengan backend berhenti')) problems.push('incident 2 sessions');
+  if (!incidents[2]?.includes('`SELECT email FROM users.users ORDER BY email`') || !incidents[2]?.includes('set-password')) problems.push('incident 3 reset');
+  const hook = section(backup, 'Hook fitur 15');
+  if (hook.filter((line) => /^\d+\. /.test(line)).length !== 5) problems.push('hook items');
+  if (hook.filter((line) => line.trim() !== '').at(-1) !== 'Kontrak ini terisi oleh spec 0014 (tabel *Keputusan hook backup*).') problems.push('hook closing');
+  if (backup.includes('tidak berlaku sampai fitur 15')) problems.push('hook placeholder');
   const deploy = section(deployment, 'Langkah deployment berurutan').join('\n');
   const provision = /docker compose --env-file \.env\.deploy -f deploy\/compose\.yaml --profile migrate run --rm \\\n {5}(-e [A-Z_]+ ?)+\\\n {5}migrate database\/provision\.ts --apply/.exec(deploy)?.[0] ?? '';
   for (const name of ['FOUNDATION_ADMIN_DATABASE_URL', 'FOUNDATION_MIGRATOR_PASSWORD', 'FOUNDATION_BACKEND_PASSWORD', 'FOUNDATION_BACKUP_PASSWORD']) {
@@ -817,7 +852,14 @@ test('BKP-001 the runbook holds ten steps in order, the incident procedure four 
   const deployment = await read('docs/rules/deployment.md');
   expect(procedureProblems(backup, deployment)).toEqual([]);
   // Mutations each check names.
-  expect(procedureProblems(backup.replace('8. Pencabutan seluruh sesi: tidak berlaku sampai fitur 15', '8. Pencabutan seluruh sesi lewat backend'), deployment)).toContain('runbook step 8');
+  expect(procedureProblems(backup.replace('8. Cabut seluruh sesi sebelum backend berjalan', '8. Cabut seluruh sesi lewat backend'), deployment)).toContain('runbook step 8');
+  expect(procedureProblems(backup.replace('migrate database/accounts.ts revoke-sessions --all --apply\n', 'migrate database/accounts.ts revoke-sessions --all\n'), deployment)).toContain('runbook step 8 command');
+  expect(procedureProblems(backup.replaceAll('`Sessions revoked: ', '`Revoked: '), deployment)).toContain('runbook step 8 output');
+  expect(procedureProblems(backup.replace('Cabut seluruh sesi lewat langkah 8 *Runbook restore*', 'Cabut seluruh sesi'), deployment)).toContain('incident 1 sessions');
+  expect(procedureProblems(backup.replace('cabut seluruh sesi dengan backend berhenti', 'cabut seluruh sesi'), deployment)).toContain('incident 2 sessions');
+  expect(procedureProblems(backup.replace('`SELECT email FROM users.users ORDER BY email`', '`SELECT email FROM users.users`'), deployment)).toContain('incident 3 reset');
+  expect(procedureProblems(backup.replace('Kontrak ini terisi oleh spec 0014 (tabel *Keputusan hook backup*).', 'Kontrak ini terisi.'), deployment)).toContain('hook closing');
+  expect(procedureProblems(`${backup}\nLangkah ini tidak berlaku sampai fitur 15.\n`, deployment)).toContain('hook placeholder');
   expect(procedureProblems(backup.replace('| Backup bocor |', '| Arsip bocor |'), deployment)).toContain('incidents');
   expect(procedureProblems(backup, deployment.replace(' -e FOUNDATION_BACKUP_PASSWORD \\', ' \\'))).toContain('provisioning FOUNDATION_BACKUP_PASSWORD');
   expect(procedureProblems(backup, deployment.replace('backup create pre-migration', 'backup create manual'))).toContain('pre-migration before migration');

@@ -370,7 +370,10 @@ test('DEP-004 report.md renders the Deployment section with the image table, the
   expect(section).toContain('| image\\_context\\_sentinels | AC-1, AC-2 | passed |');
   expect(section).toContain('| api\\_headers | AC-7 | failed |');
   expect(section).toContain('| artifact\\_scan | AC-2, AC-11 | passed |');
-  const checkRows = section.filter((line) => /^\| [a-z\\_]+ \| AC-/.test(line));
+  // Spec 0014 adds checks whose criteria name the spec (`0014/AC-n`), next to those of spec 0012.
+  expect(section).toContain('| browser\\_flow | AC-6, 0014/AC-12 | passed |');
+  expect(section).toContain('| auth\\_edge\\_rate\\_limit | 0014/AC-6, 0014/AC-13 | passed |');
+  const checkRows = section.filter((line) => /^\| [a-z\\_]+ \| (?:0014\/)?AC-/.test(line));
   expect(checkRows.map((line) => line.split(' | ')[0]!.slice(2).replaceAll('\\_', '_'))).toEqual(DEPLOYMENT_CHECKS.map((check) => check.name));
   // The boundary text is printed as is without its control characters, on one line.
   expect(section).toContain('Batas | pipabaris');

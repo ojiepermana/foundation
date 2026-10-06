@@ -69,6 +69,66 @@ const statusOnly = (value: string) => (schema: Json): boolean => {
     (!hasEnum || (Array.isArray(values) && values.length === 1 && values[0] === value));
 };
 
+/** Property names that an auth response model never holds, at any depth (spec 0014, *Operasi wajib baru*). */
+const CREDENTIAL_NAMES: ReadonlySet<string> = new Set(['token', 'password', 'passwordHash', 'tokenHash']);
+
+/**
+ * Whether no property at any depth of `schema`, through `properties` and `items`, has a credential name. A reference
+ * anywhere in the tree fails, since this pure check cannot follow it to see what the target holds. An explicit stack
+ * keeps a deep tree from recursion.
+ */
+function withoutCredentialNames(schema: unknown): boolean {
+  const stack: unknown[] = [schema];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!isRecord(node)) continue;
+    if (isReference(node)) return false;
+    const properties = own(node, 'properties');
+    if (isRecord(properties)) {
+      for (const [name, child] of Object.entries(properties)) {
+        if (CREDENTIAL_NAMES.has(name)) return false;
+        stack.push(child);
+      }
+    }
+    if (Object.hasOwn(node, 'items')) stack.push(node['items']);
+  }
+  return true;
+}
+
+/** An inline object schema whose properties are exactly `names`, in any order. */
+function exactObject(schema: unknown, names: readonly string[]): schema is Json {
+  if (!isRecord(schema) || isReference(schema) || own(schema, 'type') !== 'object') return false;
+  const properties = own(schema, 'properties');
+  return isRecord(properties) && Object.keys(properties).length === names.length && names.every(name => Object.hasOwn(properties, name));
+}
+
+const AUTH_SESSION_NAMES = ['user', 'session', 'csrfToken'];
+
+/**
+ * Component check of `AuthSession` (spec 0014, *Operasi wajib baru*): an object with `additionalProperties: false`,
+ * properties exactly `user`, `session`, and `csrfToken`, all of them required, and no property named `token`,
+ * `password`, `passwordHash`, or `tokenHash` at any level.
+ */
+const authSessionModel = (schema: Json): boolean => {
+  if (!exactObject(schema, AUTH_SESSION_NAMES) || own(schema, 'additionalProperties') !== false) return false;
+  const required = own(schema, 'required');
+  return Array.isArray(required) && required.length === AUTH_SESSION_NAMES.length &&
+    AUTH_SESSION_NAMES.every(name => required.includes(name)) && withoutCredentialNames(schema);
+};
+
+/**
+ * Component check of `AuthSessionList` (spec 0014, *Operasi wajib baru*): properties exactly `sessions`, an array of
+ * objects whose properties are exactly `id`, `createdAt`, `lastSeenAt`, and `current`.
+ */
+const authSessionListModel = (schema: Json): boolean => {
+  if (!exactObject(schema, ['sessions'])) return false;
+  const sessions = (schema['properties'] as Json)['sessions'];
+  if (!isRecord(sessions) || isReference(sessions) || own(sessions, 'type') !== 'array') return false;
+  return exactObject(own(sessions, 'items'), ['id', 'createdAt', 'lastSeenAt', 'current']);
+};
+
+const SESSION_COOKIE_SECURITY = Object.freeze([Object.freeze({ sessionCookie: Object.freeze([]) as readonly string[] })]);
+
 /**
  * Operations that every exported contract must contain. New entries come only from the spec of the feature
  * that owns the route, together with a test that proves the entry (spec 0008, "Tabel operasi wajib").
@@ -145,6 +205,37 @@ export const REQUIRED_OPERATIONS: readonly Readonly<{
     successStatus: '200',
     component: 'HealthReady',
     checkComponent: statusOnly('ready'),
+  }),
+  // Spec 0014, *Operasi wajib baru*: sign in and the two reads of the caller's session; the two 204 routes stay out.
+  Object.freeze({
+    path: '/api/auth/session',
+    method: 'post',
+    operationId: 'signIn',
+    tag: 'auth',
+    security: Object.freeze([]),
+    successStatus: '200',
+    component: 'AuthSession',
+    checkComponent: authSessionModel,
+  }),
+  Object.freeze({
+    path: '/api/auth/session',
+    method: 'get',
+    operationId: 'getAuthSession',
+    tag: 'auth',
+    security: SESSION_COOKIE_SECURITY,
+    successStatus: '200',
+    component: 'AuthSession',
+    checkComponent: authSessionModel,
+  }),
+  Object.freeze({
+    path: '/api/auth/sessions',
+    method: 'get',
+    operationId: 'listAuthSessions',
+    tag: 'auth',
+    security: SESSION_COOKIE_SECURITY,
+    successStatus: '200',
+    component: 'AuthSessionList',
+    checkComponent: authSessionListModel,
   }),
 ]);
 

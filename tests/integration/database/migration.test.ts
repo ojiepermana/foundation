@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { SQL } from 'bun';
 import { randomBytes } from 'node:crypto';
 import { rmSync } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, rename, rm, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readdir, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { runDatabaseCommand } from '../../../database/runner';
@@ -128,12 +128,16 @@ async function withDatabase(run: (fixture: Fixture) => Promise<void>): Promise<v
   }
 }
 
+// The repository holds the baseline plus the nine migrations of spec 0014 (AC-1), so the CLI applies ten files in order.
+const repositoryMigrations = 10;
+
 test('MIG-001 baseline applies once, records bytes, and doctor accepts it', async () => withDatabase(async (fixture) => {
   const first = await fixture.cli('migrate');
   expect(first.code).toBe(0);
   expect(first.output).toContain(`Applied: ${baseline}`);
-  const rows = await fixture.admin`SELECT name, checksum, applied_at FROM common.schema_migrations`;
-  expect(rows).toHaveLength(1);
+  expect(first.output).toContain(`Migrations: ${repositoryMigrations} applied, 0 skipped`);
+  const rows = await fixture.admin`SELECT name, checksum, applied_at FROM common.schema_migrations ORDER BY name`;
+  expect(rows).toHaveLength(repositoryMigrations);
   expect(rows[0]?.name).toBe(baseline);
   const expected = new Bun.CryptoHasher('sha256').update(await Bun.file(resolve(root, 'database/migrations', baseline)).arrayBuffer()).digest('hex');
   expect(rows[0]?.checksum).toBe(expected);
@@ -141,8 +145,8 @@ test('MIG-001 baseline applies once, records bytes, and doctor accepts it', asyn
   expect((await fixture.admin`SELECT pg_catalog.obj_description('common.schema_migrations'::regclass) AS description`)[0]?.description).toBe('Foundation migration history');
   const again = await fixture.cli('migrate');
   expect(again.code).toBe(0);
-  expect(again.output).toContain('Migrations: 0 applied, 1 skipped');
-  expect((await fixture.admin`SELECT count(*)::int AS count FROM common.schema_migrations`)[0]?.count).toBe(1);
+  expect(again.output).toContain(`Migrations: 0 applied, ${repositoryMigrations} skipped`);
+  expect((await fixture.admin`SELECT count(*)::int AS count FROM common.schema_migrations`)[0]?.count).toBe(repositoryMigrations);
   const doctor = await command([process.execPath, '--no-env-file', 'scripts/doctor.ts'], {
     ...process.env, NODE_ENV: 'development', DATABASE_URL: fixture.backendUrl,
   });
@@ -255,13 +259,18 @@ test('MIG-004 serializes runners, restores role, times out on lock, and rejects 
 }), 35000);
 
 test('MIG-005 requires current migrations, repeats an idempotent seed, and rolls back a batch', async () => withDatabase(async (fixture) => {
+  // The seed CLI reads the repository, so the fixture holds every repository migration (spec 0014 adds nine) and the
+  // pending file takes the next number after them.
+  const names = (await readdir(resolve(root, 'database/migrations'))).filter((name) => name.endsWith('.sql')).sort();
+  for (const name of names) await copyFile(resolve(root, 'database/migrations', name), resolve(fixture.migrations, name));
+  const pending = `${String(names.length + 1).padStart(4, '0')}-users-pending.sql`;
   await runDatabaseCommand('migration', fixture.migrator, fixture.folder);
   const empty = await fixture.cli('seed');
   expect(empty.code).toBe(0);
   expect(empty.output).toContain('Seeds: 0 executed');
-  await writeFile(resolve(fixture.migrations, '0002-users-pending.sql'), 'SELECT 1;');
+  await writeFile(resolve(fixture.migrations, pending), 'SELECT 1;');
   await expect(runDatabaseCommand('seed', fixture.migrator, fixture.folder)).rejects.toThrow('Migrations pending');
-  await rm(resolve(fixture.migrations, '0002-users-pending.sql'));
+  await rm(resolve(fixture.migrations, pending));
   await fixture.admin`CREATE TABLE users.seed_probe (id integer PRIMARY KEY)`;
   await fixture.admin.unsafe('ALTER TABLE users.seed_probe OWNER TO foundation_owner');
   await mkdir(fixture.seeds);
@@ -275,5 +284,5 @@ test('MIG-005 requires current migrations, repeats an idempotent seed, and rolls
   await writeFile(resolve(fixture.seeds, '0002-users-failing.sql'), 'SELECT 1 / 0;');
   await expect(runDatabaseCommand('seed', fixture.migrator, fixture.folder)).rejects.toThrow('Seed SQL failed');
   expect((await fixture.admin`SELECT count(*)::int AS count FROM users.seed_probe`)[0]?.count).toBe(0);
-  expect((await fixture.admin`SELECT count(*)::int AS count FROM common.schema_migrations`)[0]?.count).toBe(1);
+  expect((await fixture.admin`SELECT count(*)::int AS count FROM common.schema_migrations`)[0]?.count).toBe(names.length);
 }), 30000);

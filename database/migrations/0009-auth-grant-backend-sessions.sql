@@ -1,0 +1,1 @@
+GRANT SELECT (id, user_id, token_hash, created_at, last_seen_at, idle_expires_at, expires_at, revoked_at), INSERT (user_id, token_hash, idle_expires_at, expires_at), UPDATE (last_seen_at, idle_expires_at, revoked_at, revoked_reason) ON auth.sessions TO foundation_backend;

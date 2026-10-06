@@ -9,6 +9,7 @@ import { createApp } from '../../../apps/backend/src/app';
 import { runDatabaseCommand } from '../../../database/runner';
 import { createDatabasePool } from '../../../libs/server/database/client';
 import { onSignalCleanup, type SignalCleanupCallback } from '../../orchestration/signal-cleanup';
+import { recordTokenFingerprintsWhenConfigured } from '../../orchestration/token-fingerprints';
 
 // BKP-003 to BKP-007 of spec 0013 (backup dan pemulihan data): backups through the Compose service `backup` of
 // deploy/backup.yaml on an isolated PostgreSQL 18 source, and restores through the service `restore` into a new,
@@ -21,6 +22,12 @@ import { onSignalCleanup, type SignalCleanupCallback } from '../../orchestration
 // container, Compose run, and the temporary folder is registered on tests/orchestration/signal-cleanup.ts right before
 // it is created, removed by explicit name, and released only after its normal removal (spec 0013, *Resource uji* and
 // *Perubahan GATE-009*). `afterAll` writes .local/feature-14/restore.json (*Isi restore.json*) even when a test fails.
+//
+// BKP-009 of spec 0014 (AC-14, the hook of feature 15): `beforeAll` makes one account on the source through
+// `database/accounts.ts create` and signs in once through `createApp('production')`, both before the fixture migration
+// and the backup, so the session is in the backup and in the source fingerprint. The last test of this file, after the
+// last comparison of the target with that fingerprint, proves the session is accepted on the restored target, refused
+// after `revoke-sessions --all --apply`, and that a second run revokes 0; it fills the field `sessions` of restore.json.
 
 const root = resolve(import.meta.dir, '../../..');
 const image = 'foundation-postgres:18-pinned';
@@ -77,6 +84,13 @@ const GUARDS = ['invalid_name', 'incomplete_backup', 'checksum_mismatch', 'check
 type Guard = typeof GUARDS[number];
 const BOUNDARY = 'Backup dan restore pada dua cluster PostgreSQL 18 terisolasi milik run dengan data fixture; bukan bukti RTO environment, ukuran data nyata, jadwal backup, salinan di luar host, atau enkripsi penyimpanan.';
 const RESTORE_LIMIT_MS = 300_000;
+/** BKP-009: the allowed origin and the session cookie of the production composition (spec 0014, *Cookie sesi*). */
+const PUBLIC_ORIGIN = 'https://foundation.test';
+const SESSION_COOKIE = '__Host-foundation_session';
+/** BKP-009 starts at most 25 minutes after the source sign in, inside the idle time of 30 minutes (spec 0014). */
+const SIGN_IN_LIMIT_MS = 25 * 60_000;
+/** The account of BKP-009; its password comes from the label `backup-account`, which test:database:real scans for. */
+const account = { email: `restore-${hex}@foundation.test`, displayName: 'Akun Uji Restore', password: token('backup-account') };
 const DAY_MS = 86_400_000;
 const HOUR_MS = 3_600_000;
 /** Step 9 of *Urutan restore*: the target holds no migration row, no relation but the metadata table, no extra schema. */
@@ -110,9 +124,9 @@ let targetCluster: Cluster | undefined;
 const registered = new Map<string, () => void>();
 let releaseFolder = () => {};
 
-// Evidence of *Isi restore.json*, filled as the tests go.
-const checks: Record<'backup' | 'restore' | 'fingerprint' | 'retention' | 'secretScan', Status> = {
-  backup: 'not_run', restore: 'not_run', fingerprint: 'not_run', retention: 'not_run', secretScan: 'not_run',
+// Evidence of *Isi restore.json*, filled as the tests go; `sessions` is the amendment of spec 0014 (BKP-009).
+const checks: Record<'backup' | 'restore' | 'fingerprint' | 'retention' | 'sessions' | 'secretScan', Status> = {
+  backup: 'not_run', restore: 'not_run', fingerprint: 'not_run', retention: 'not_run', sessions: 'not_run', secretScan: 'not_run',
 };
 const guards = new Map<Guard, Status>(GUARDS.map((name) => [name, 'not_run']));
 let serverVersion: string | null = null;
@@ -120,6 +134,9 @@ let backupEvidence: Record<string, unknown> | null = null;
 let restoreEvidence: Record<string, unknown> | null = null;
 let fingerprintEvidence: Record<string, unknown> | null = null;
 let retentionEvidence: { kept: string[]; removed: string[]; leftovers: string[]; untouched: string[] } | null = null;
+let sessionsEvidence: { beforeRevokeStatus: number; afterRevokeStatus: number; revoked: number; rerunRevoked: number } | null = null;
+/** The session BKP-009 made on the source: its tokens stay in memory only, never in a file or an assertion message. */
+let sourceSession: { token: string; csrfToken: string; id: string; startedAt: number } | null = null;
 let mainBackup = '';
 let secondBackup = '';
 let sourceFingerprint = '';
@@ -128,7 +145,9 @@ const scanned = { files: 0, findings: new Set<string>() };
 
 /** Every secret value of this run: passwords, DSNs, and sentinels. Never printed; only their count is reported. */
 function secretValues(): string[] {
-  const values = [...Object.values(source), ...Object.values(target), ...Object.values(broken), reserved, settingSentinel, ...Object.values(dsn)];
+  const values = [...Object.values(source), ...Object.values(target), ...Object.values(broken), reserved, settingSentinel, ...Object.values(dsn), account.password];
+  // Spec 0014: the session token and the CSRF token of BKP-009 are never in the dump, an output, or restore.json.
+  if (sourceSession) values.push(sourceSession.token, sourceSession.csrfToken);
   for (const cluster of [sourceCluster, targetCluster]) {
     if (cluster) values.push(cluster.adminUrl, cluster.migratorUrl, cluster.backendUrl, cluster.backupUrl);
   }
@@ -560,12 +579,70 @@ async function writeFixtureRoot(): Promise<void> {
 `);
 }
 
+/**
+ * BKP-009: `database/accounts.ts create` of the account on the source, as the operator runs it, with the migrator DSN of
+ * the source and the password only in FOUNDATION_ACCOUNT_PASSWORD. It runs while the source holds exactly the
+ * repository migrations, because the command checks that every repository migration is applied and nothing more.
+ */
+async function createSourceAccount(cluster: Cluster): Promise<void> {
+  const created = await command([process.execPath, '--no-env-file', 'database/accounts.ts', 'create', '--email', account.email, '--display-name', account.displayName, '--apply'], {
+    PATH: process.env['PATH'] ?? '', FOUNDATION_MIGRATOR_DATABASE_URL: cluster.migratorUrl, FOUNDATION_ACCOUNT_PASSWORD: account.password,
+  });
+  scan('accounts stdout', created.stdout);
+  scan('accounts stderr', created.stderr);
+  if (created.code !== 0 || created.stderr !== '' || !/^Account created: [0-9a-f-]{36}\n$/.test(created.stdout)) throw new Error('BKP-009 source account was not created');
+}
+
+/**
+ * BKP-009: one sign in on the source through the production composition with a `foundation_backend` pool of the source
+ * (spec 0014, row `backup.test.ts` of *Test dan file lama yang berubah*). The fingerprints of both tokens go to the file
+ * of *Sidik token uji* under test:database:real; the tokens themselves stay in memory.
+ */
+async function signInOnSource(cluster: Cluster): Promise<NonNullable<typeof sourceSession>> {
+  const startedAt = Date.now();
+  const pool = createDatabasePool(cluster.backendUrl);
+  try {
+    const app = createApp('production', { database: pool, publicOrigin: PUBLIC_ORIGIN });
+    const response = await app.handle(new Request('http://localhost/api/auth/session', {
+      method: 'POST',
+      headers: { origin: PUBLIC_ORIGIN, 'sec-fetch-site': 'same-origin', 'content-type': 'application/json' },
+      body: JSON.stringify({ email: account.email, password: account.password }),
+    }));
+    const body = await response.json() as { session?: { id?: unknown }; csrfToken?: unknown };
+    const token = new RegExp(`^${SESSION_COOKIE}=([A-Za-z0-9_-]{43}); `).exec(response.headers.getSetCookie()[0] ?? '')?.[1];
+    if (response.status !== 200 || token === undefined || typeof body.csrfToken !== 'string' || typeof body.session?.id !== 'string') {
+      throw new Error('BKP-009 source sign in failed');
+    }
+    recordTokenFingerprintsWhenConfigured([token, body.csrfToken]);
+    return { token, csrfToken: body.csrfToken, id: body.session.id, startedAt };
+  } finally {
+    await pool.close();
+  }
+}
+
+/**
+ * BKP-009: `database/accounts.ts revoke-sessions --all --apply` on the restored target, in a child process with the
+ * migrator DSN of the target. The target history holds the restore fixture migration that only the fixture root has
+ * (spec 0013, as BKP-004 runs the migration runner with that root), so the child calls the exported `accountCommand`
+ * of database/accounts.ts with the same argument list and the fixture root; the command line itself always reads the
+ * repository migrations and refuses this target (checked in the test).
+ */
+async function revokeAllOnTarget(cluster: Cluster): Promise<Result> {
+  const script = `const { accountCommand } = await import(${JSON.stringify(join(root, 'database/accounts.ts'))});
+process.exitCode = await accountCommand(['revoke-sessions', '--all', '--apply'], Bun.env, ${JSON.stringify(fixtureRoot)});`;
+  const result = await command([process.execPath, '--no-env-file', '-e', script], {
+    PATH: process.env['PATH'] ?? '', FOUNDATION_MIGRATOR_DATABASE_URL: cluster.migratorUrl,
+  });
+  result.leaked = scan('accounts stdout', result.stdout) + scan('accounts stderr', result.stderr);
+  return result;
+}
+
 async function writeRestoreEvidence(): Promise<void> {
   // Names of the fixed set in its order; a check that did not run is not a failure, but it keeps the status failed.
   const statuses = (): Array<[string, Status]> => [
     ['backup', checks.backup], ['restore', checks.restore], ['fingerprint', checks.fingerprint],
     ...GUARDS.map((name): [string, Status] => [name, guards.get(name) ?? 'not_run']),
-    ['retention', checks.retention], ['secretScan', checks.secretScan],
+    ['retention', checks.retention], ['sessions', checks.sessions], ['secretScan', checks.secretScan],
   ];
   const evidence = () => {
     const current = statuses();
@@ -580,6 +657,7 @@ async function writeRestoreEvidence(): Promise<void> {
       fingerprint: fingerprintEvidence,
       guards: GUARDS.map((name) => ({ name, status: guards.get(name) })),
       retention: retentionEvidence,
+      sessions: sessionsEvidence,
       secretScan: { filesScanned: scanned.files, valuesChecked: secretValues().length, findings: [...scanned.findings] },
       boundary: BOUNDARY,
     };
@@ -614,6 +692,11 @@ beforeAll(async () => {
     `FOUNDATION_POSTGRES_IMAGE=${image}`,
     '',
   ].join('\n'), { mode: 0o600 });
+  // BKP-009 (spec 0014): the repository migrations, the account and one session, then the fixture migration and seed, so
+  // the account command sees exactly the repository history and the backup holds the account and its session.
+  await withPool(sourceCluster.migratorUrl, (sql) => runDatabaseCommand('migration', sql, root));
+  await createSourceAccount(sourceCluster);
+  sourceSession = await signInOnSource(sourceCluster);
   await withPool(sourceCluster.migratorUrl, async (sql) => {
     await runDatabaseCommand('migration', sql, fixtureRoot);
     await runDatabaseCommand('seed', sql, fixtureRoot);
@@ -697,7 +780,11 @@ test('BKP-003 create manual through the Compose service backup leaves exactly th
     FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
     WHERE c.relkind IN ('r', 'p') AND n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname NOT LIKE 'pg\\_%'
     ORDER BY 1, 2`);
-  expect(sourceTables.map((row: { schema: string; name: string }) => `${row.schema}.${row.name}`)).toEqual(['common.schema_migrations', 'users.restore_fixture']);
+  // The four auth tables of spec 0014 (migrations 0002 to 0006) are part of every source; here they hold the account and
+  // the session of BKP-009, and no attempt row, because the successful sign in removed it.
+  expect(sourceTables.map((row: { schema: string; name: string }) => `${row.schema}.${row.name}`)).toEqual([
+    'auth.password_credentials', 'auth.sessions', 'auth.sign_in_attempts', 'common.schema_migrations', 'users.restore_fixture', 'users.users',
+  ]);
   for (const row of sourceTables as Array<{ schema: string; name: string }>) {
     expect(list.some((line) => new RegExp(`^[0-9]+; [0-9]+ [0-9]+ TABLE DATA ${row.schema} ${row.name} `).test(line)), `${row.schema}.${row.name}`).toBe(true);
   }
@@ -727,8 +814,11 @@ test('BKP-003 create manual through the Compose service backup leaves exactly th
   expect(printed.code).toBe(0);
   sourceFingerprint = printed.stdout.trim();
   const parsed = JSON.parse(sourceFingerprint) as { tables: Array<{ schema: string; name: string; rows: string }>; migrations: { count: number; last: string } };
-  expect(parsed.tables.map((table) => `${table.schema}.${table.name}:${table.rows}`)).toEqual(['common.schema_migrations:2', 'users.restore_fixture:3']);
-  expect(parsed.migrations.count).toBe(2);
+  expect(parsed.tables.map((table) => `${table.schema}.${table.name}:${table.rows}`)).toEqual([
+    'auth.password_credentials:1', 'auth.sessions:1', 'auth.sign_in_attempts:0', 'common.schema_migrations:11', 'users.restore_fixture:3', 'users.users:1',
+  ]);
+  // Ten repository migrations plus the restore fixture migration 0011.
+  expect(parsed.migrations.count).toBe(11);
   expect(parsed.migrations.last).toMatch(/-users-restore-fixture\.sql$/);
 
   // A second backup for `restore_failed`: a grant to a role that only the source has, so pg_restore fails on the target
@@ -1761,3 +1851,65 @@ test('BKP-004 the fingerprint lists tables and sequences from the catalog, a new
   await expectTargetUnchanged();
   checks.fingerprint = previous;
 }, 120_000);
+
+// BKP-009 (spec 0014, AC-14; the hook of feature 15 in spec 0013): the last test of this file, after the fingerprint probe
+// above, so every comparison of the target with the source fingerprint is done before the session on the target changes.
+test('BKP-009 a session made on the source before the backup is accepted on the restored target, refused 401 after revoke-sessions --all --apply, and a second run revokes 0', async () => {
+  checks.sessions = 'failed';
+  expect(sourceSession).not.toBeNull();
+  const session = sourceSession!;
+  // The idle time of the session is 30 minutes from the source sign in; past 25 minutes a 401 here would mislead.
+  const elapsed = Date.now() - session.startedAt;
+  if (elapsed > SIGN_IN_LIMIT_MS) {
+    throw new Error(`BKP-009 started ${Math.floor(elapsed / 60_000)} minutes after the source sign in, past the 25 minute limit inside the 30 minute idle time`);
+  }
+  const pool = createDatabasePool(targetCluster!.backendUrl);
+  try {
+    const app = createApp('production', { database: pool, publicOrigin: PUBLIC_ORIGIN });
+    const read = () => app.handle(new Request('http://localhost/api/auth/session', { headers: { cookie: `${SESSION_COOKIE}=${session.token}` } }));
+
+    // The session came with the backup: the restored target accepts it as the same session with the same CSRF token.
+    const before = await read();
+    const beforeBody = await before.json() as { user?: { email?: unknown }; session?: { id?: unknown }; csrfToken?: unknown };
+    expect(before.status).toBe(200);
+    expect(beforeBody.session?.id).toBe(session.id);
+    expect(beforeBody.user?.email).toBe(account.email);
+    // Compared as a boolean, so a failure never prints a token into the JUnit report.
+    expect(beforeBody.csrfToken === session.csrfToken).toBe(true);
+
+    // The command line reads the repository migrations, so it refuses this target, whose history also holds the restore
+    // fixture migration, without a change; the session stays accepted.
+    const refused = await command([process.execPath, '--no-env-file', 'database/accounts.ts', 'revoke-sessions', '--all', '--apply'], {
+      PATH: process.env['PATH'] ?? '', FOUNDATION_MIGRATOR_DATABASE_URL: targetCluster!.migratorUrl,
+    });
+    expect(scan('accounts stdout', refused.stdout) + scan('accounts stderr', refused.stderr)).toBe(0);
+    expect([refused.code, refused.stdout, refused.stderr]).toEqual([1, '', 'Migration history drift\n']);
+    expect((await read()).status).toBe(200);
+
+    // revoke-sessions --all --apply with the fixture root revokes the one active session as `operator`.
+    const first = await revokeAllOnTarget(targetCluster!);
+    expect(first.leaked).toBe(0);
+    expect(first.stderr).toBe('');
+    expect(first.code).toBe(0);
+    const revoked = /^Sessions revoked: ([0-9]+)\n$/.exec(first.stdout);
+    expect(revoked).not.toBeNull();
+    expect(Number(revoked![1])).toBe(1);
+    const [row] = await withPool(targetCluster!.adminUrl, (sql) => sql`SELECT revoked_reason, revoked_at IS NOT NULL AS revoked FROM auth.sessions WHERE id = ${session.id}`);
+    expect(row).toEqual({ revoked_reason: 'operator', revoked: true });
+
+    // The same cookie is refused now, and the answer removes it.
+    const after = await read();
+    expect(after.status).toBe(401);
+    expect(await after.json()).toEqual({ error: 'Unauthorized' });
+    expect(after.headers.getSetCookie()).toEqual([`${SESSION_COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0`]);
+
+    // Safe to repeat: the second run finds no active session.
+    const second = await revokeAllOnTarget(targetCluster!);
+    expect(second.leaked).toBe(0);
+    expect([second.code, second.stdout, second.stderr]).toEqual([0, 'Sessions revoked: 0\n', '']);
+    sessionsEvidence = { beforeRevokeStatus: before.status, afterRevokeStatus: after.status, revoked: Number(revoked![1]), rerunRevoked: 0 };
+    checks.sessions = 'passed';
+  } finally {
+    await pool.close();
+  }
+}, 60_000);

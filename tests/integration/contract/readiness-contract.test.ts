@@ -72,6 +72,10 @@ test('READY-003 REQUIRED_OPERATIONS keeps the status entry and adds the readines
     { path: '/api/readiness', method: 'get', operationId: 'getDevelopmentReadiness', tag: 'development', security: [], successStatus: '200', component: 'ReadinessAvailable' },
     { path: '/health/live', method: 'get', operationId: 'getHealthLive', tag: 'health', security: [], successStatus: '200', component: 'HealthLive' },
     { path: '/health/ready', method: 'get', operationId: 'getHealthReady', tag: 'health', security: [], successStatus: '200', component: 'HealthReady' },
+    // Spec 0014, *Operasi wajib baru*: the three auth entries follow (AUTH-011).
+    { path: '/api/auth/session', method: 'post', operationId: 'signIn', tag: 'auth', security: [], successStatus: '200', component: 'AuthSession' },
+    { path: '/api/auth/session', method: 'get', operationId: 'getAuthSession', tag: 'auth', security: [{ sessionCookie: [] }], successStatus: '200', component: 'AuthSession' },
+    { path: '/api/auth/sessions', method: 'get', operationId: 'listAuthSessions', tag: 'auth', security: [{ sessionCookie: [] }], successStatus: '200', component: 'AuthSessionList' },
   ]);
   expect(Object.isFrozen(REQUIRED_OPERATIONS[1]) && Object.isFrozen(REQUIRED_OPERATIONS[1]!.security)).toBe(true);
   const { checkComponent } = REQUIRED_OPERATIONS[1]!;

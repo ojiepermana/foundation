@@ -34,11 +34,19 @@ async function watch(page: Page): Promise<Traffic> {
 
 const isReadinessResponse = (response: Response) => new URL(response.url()).pathname === '/api/readiness';
 
-/** Exactly one item of the navigation carries `aria-current`, and it is the named link. */
+/** Development navigation of spec 0014, in order: Beranda, Akun, Kesiapan. */
+const developmentItems = [['Beranda', '/'], ['Akun', '/akun'], ['Kesiapan', '/kesiapan']] as const;
+
+/** The three items in order, and exactly one of them carries `aria-current`: the named link. */
 async function expectCurrentItem(navigation: Locator, current: 'Beranda' | 'Kesiapan'): Promise<void> {
-  const other = current === 'Beranda' ? 'Kesiapan' : 'Beranda';
-  await expect(navigation.getByRole('link', { name: current, exact: true })).toHaveAttribute('aria-current', 'page');
-  await expect(navigation.getByRole('link', { name: other, exact: true })).not.toHaveAttribute('aria-current');
+  const links = navigation.getByRole('link');
+  await expect(links).toHaveCount(developmentItems.length);
+  for (const [index, [name, href]] of developmentItems.entries()) {
+    await expect(links.nth(index)).toHaveAccessibleName(name);
+    await expect(links.nth(index)).toHaveAttribute('href', href);
+    if (name === current) await expect(links.nth(index)).toHaveAttribute('aria-current', 'page');
+    else await expect(links.nth(index)).not.toHaveAttribute('aria-current');
+  }
   await expect(navigation.locator('[aria-current]')).toHaveCount(1);
 }
 
@@ -213,9 +221,12 @@ for (const viewport of [{ width: 1280, height: 812 }, { width: 375, height: 812 
       await expect(navigation).toBeVisible();
     }
     const home = navigation.getByRole('link', { name: 'Beranda', exact: true });
+    const account = navigation.getByRole('link', { name: 'Akun', exact: true });
     await expect(home).toHaveAttribute('href', '/');
+    await expect(account).toHaveAttribute('href', '/akun');
     await expect(navigation.getByRole('link', { name: 'Kesiapan', exact: true })).toHaveAttribute('href', '/kesiapan');
     await expect(home).not.toHaveAttribute('aria-current');
+    await expect(account).not.toHaveAttribute('aria-current');
     const current = navigation.locator('[aria-current]');
     expect(await current.count()).toBeLessThanOrEqual(1);
     if ((await current.count()) === 1) await expect(current).toHaveAccessibleName('Kesiapan');
@@ -258,9 +269,12 @@ for (const viewport of [{ width: 1280, height: 812 }, { width: 375, height: 812 
       await expect(navigation).toBeVisible();
     }
     const home = navigation.getByRole('link', { name: 'Beranda', exact: true });
+    const account = navigation.getByRole('link', { name: 'Akun', exact: true });
     const readiness = navigation.getByRole('link', { name: 'Kesiapan', exact: true });
     await expect(home).toHaveAttribute('href', '/');
+    await expect(account).toHaveAttribute('href', '/akun');
     await expect(readiness).toHaveAttribute('href', '/kesiapan');
+    await expect(account).not.toHaveAttribute('aria-current');
     await expect(readiness).not.toHaveAttribute('aria-current');
     expect(traffic.apiRequests).toEqual([]);
     expect(traffic.pageErrors).toEqual([]);

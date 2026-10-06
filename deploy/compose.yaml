@@ -47,6 +47,8 @@ services:
       - data
     environment:
       DATABASE_URL: ${FOUNDATION_BACKEND_DATABASE_URL:?}
+      # Spec 0014: origin publik yang diizinkan plugin auth; backend production gagal start tanpa nilai yang sah.
+      PUBLIC_ORIGIN: ${FOUNDATION_PUBLIC_ORIGIN:?}
     cpus: 1
     mem_limit: 512m
     pids_limit: 256

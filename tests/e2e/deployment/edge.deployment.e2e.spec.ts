@@ -89,12 +89,14 @@ async function open(page: Page, edge: string, path: string): Promise<void> {
   expect(await violations(page)).toEqual([]);
 }
 
-/** The navigation holds exactly one item, Beranda to /. */
-async function expectOnlyBeranda(navigation: Locator): Promise<void> {
+/** The production navigation holds exactly two items in this order: Beranda to / and Akun to /akun (spec 0014). */
+async function expectBerandaAndAkun(navigation: Locator): Promise<void> {
   const links = navigation.getByRole('link');
-  await expect(links).toHaveCount(1);
-  await expect(links).toHaveAccessibleName('Beranda');
-  await expect(links).toHaveAttribute('href', '/');
+  await expect(links).toHaveCount(2);
+  await expect(links.nth(0)).toHaveAccessibleName('Beranda');
+  await expect(links.nth(0)).toHaveAttribute('href', '/');
+  await expect(links.nth(1)).toHaveAccessibleName('Akun');
+  await expect(links.nth(1)).toHaveAttribute('href', '/akun');
   await expect(navigation.getByText('Kesiapan')).toHaveCount(0);
 }
 
@@ -122,19 +124,19 @@ async function expectCleanTraffic(page: Page, traffic: Traffic, testInfo: TestIn
   for (const origin of traffic.requestedOrigins) expect([fontsCss, fontsFiles]).toContain(origin);
 }
 
-test('DEP-006 edge at 1280×812: the production build runs under the final CSP, the navigation holds only Beranda, and /kesiapan ends at /', async ({ page }, testInfo) => {
+test('DEP-006 edge at 1280×812: the production build runs under the final CSP, the navigation holds Beranda and Akun, and /kesiapan ends at /', async ({ page }, testInfo) => {
   const edge = edgeOrigin();
   const traffic = await watch(page, edge);
   await page.setViewportSize({ width: 1280, height: 812 });
 
   for (const path of ['/', '/kesiapan']) {
     await open(page, edge, path);
-    await expectOnlyBeranda(page.getByRole('navigation', { name: 'Primary navigation' }));
+    await expectBerandaAndAkun(page.getByRole('navigation', { name: 'Primary navigation' }));
   }
   await expectCleanTraffic(page, traffic, testInfo);
 });
 
-test('DEP-006 edge at 375×812: the production build runs under the final CSP, the navigation drawer holds only Beranda, and /kesiapan ends at /', async ({ page }, testInfo) => {
+test('DEP-006 edge at 375×812: the production build runs under the final CSP, the navigation drawer holds Beranda and Akun, and /kesiapan ends at /', async ({ page }, testInfo) => {
   const edge = edgeOrigin();
   const traffic = await watch(page, edge);
   await page.setViewportSize({ width: 375, height: 812 });
@@ -145,7 +147,7 @@ test('DEP-006 edge at 375×812: the production build runs under the final CSP, t
     await open(page, edge, path);
     await openNavigation.click();
     await expect(drawer).toBeVisible();
-    await expectOnlyBeranda(drawer);
+    await expectBerandaAndAkun(drawer);
     await page.keyboard.press('Escape');
     await expect(drawer).toBeHidden();
     expect(await violations(page)).toEqual([]);

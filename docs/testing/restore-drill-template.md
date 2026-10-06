@@ -61,7 +61,7 @@ Catatan tidak memuat password, DSN, nama orang, atau nilai data. Tabel ditulis h
 
 - Readiness (`GET /health/ready`):
 - Password lama ditolak (role yang password sumbernya gagal autentikasi di target):
-- Pencabutan sesi (tidak berlaku sampai fitur 15, atau hasil perintah hook fitur 15):
+- Pencabutan sesi langkah 8 (baris `Sessions revoked: <n>` dari `revoke-sessions --all --apply`, lalu run kedua `Sessions revoked: 0`):
 - Pemeriksaan isolasi network data langkah 10 (`/dev/tcp`, exit yang diharapkan bukan 0):
 
 ## RPO dan RTO terukur

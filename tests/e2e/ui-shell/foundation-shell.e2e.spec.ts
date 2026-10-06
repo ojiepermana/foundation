@@ -17,10 +17,16 @@ test('UI-001 shell navigation, focus, and responsive layout work at target sizes
   if (!navigationBounds || !mainBounds) throw new Error('The desktop shell landmarks did not render.');
   expect(navigationBounds.x + navigationBounds.width).toBeLessThanOrEqual(mainBounds.x);
   const homeLink = desktopNavigation.getByRole('link', { name: 'Beranda' });
+  const accountLink = desktopNavigation.getByRole('link', { name: 'Akun' });
   const readinessLink = desktopNavigation.getByRole('link', { name: 'Kesiapan' });
+  // Development navigation of spec 0014, in order: Beranda, Akun, Kesiapan.
+  await expect(desktopNavigation.getByRole('link')).toHaveCount(3);
+  await expect(desktopNavigation.getByRole('link').nth(1)).toHaveAccessibleName('Akun');
   await expect(homeLink).toHaveAttribute('href', '/');
+  await expect(accountLink).toHaveAttribute('href', '/akun');
   await expect(readinessLink).toHaveAttribute('href', '/kesiapan');
   expect(await homeLink.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  expect(await accountLink.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await readinessLink.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await readinessLink.click();
   await expect(page).toHaveURL('/kesiapan');
@@ -86,10 +92,13 @@ test('UI-001 shell navigation, focus, and responsive layout work at target sizes
   await page.keyboard.press('Enter');
   await expect(mobileDialog).toBeVisible();
   const mobileHomeLink = mobileDialog.getByRole('link', { name: 'Beranda' });
+  const mobileAccountLink = mobileDialog.getByRole('link', { name: 'Akun' });
   const mobileReadinessLink = mobileDialog.getByRole('link', { name: 'Kesiapan' });
   await expect(mobileHomeLink).toHaveAttribute('href', '/');
+  await expect(mobileAccountLink).toHaveAttribute('href', '/akun');
   await expect(mobileReadinessLink).toHaveAttribute('href', '/kesiapan');
   expect(await mobileHomeLink.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  expect(await mobileAccountLink.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await mobileReadinessLink.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   for (let attempt = 0; attempt < 5; attempt += 1) {
     if (await mobileHomeLink.evaluate((element) => element === document.activeElement)) break;

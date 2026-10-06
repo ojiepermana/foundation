@@ -85,7 +85,8 @@ function upService(argv: readonly string[]): string | null {
 /**
  * A command runner that answers every step up to the upstream stub the way a healthy topology would: the tools, both
  * certificates (written where `-keyout` and `-out` point), the pins, the builds, readiness 503 before and 200 after the
- * migration, the default runner command with `Use --apply`, and the migration counts. `hold` decides which call waits
+ * migration, the default runner command with `Use --apply`, the migration counts, and the account job of spec 0014
+ * (`Account created` once per email, then `Account exists`). `hold` decides which call waits
  * until it is aborted; `onHold` runs when that call arrives.
  */
 async function fakeRunner(
@@ -98,6 +99,7 @@ async function fakeRunner(
   let envText = '';
   let hex = '';
   let migrated = false;
+  const accounts = new Set<string>();
   let held = -1;
   const answer = async (argv: readonly string[], options: ProcessGroupOptions): Promise<ProcessGroupResult> => {
     const args = argv.join(' ');
@@ -134,6 +136,12 @@ async function fakeRunner(
       return ok(text);
     }
     if (args.endsWith(' database/seed.ts --apply')) return ok('Seeds: 0 executed\n');
+    if (args.includes(' database/accounts.ts create --email ')) {
+      const email = argv[argv.indexOf('--email') + 1]!;
+      if (accounts.has(email)) return failed('', 'Account exists\n');
+      accounts.add(email);
+      return ok(`Account created: 00000000-0000-4000-8000-00000000000${accounts.size}\n`);
+    }
     return ok();
   };
   const run: CommandRunner = async (argv, options) => {
@@ -448,8 +456,8 @@ test('DEP-008 the project guard refuses a foreign project or one that does not m
 
 /**
  * Fake `docker`: logs every call next to itself, records the `foundation.run` label and the content of every
- * `--env-file`, answers the steps up to the edge as a healthy topology would, and holds `compose ... up -d --wait <hold>`
- * in a `sleep` until the orchestration stops it.
+ * `--env-file`, answers the steps up to the edge as a healthy topology would (the account job of spec 0014 included),
+ * and holds `compose ... up -d --wait <hold>` in a `sleep` until the orchestration stops it.
  */
 const fakeDocker = `#!/bin/sh
 here=$(cd "$(dirname "$0")" && pwd)
@@ -478,6 +486,17 @@ case "$all" in
   *" database/migrate.ts --apply")
     if [ -f "$here/../migrated" ]; then echo 'Migrations: 0 applied, 1 skipped'; else : > "$here/../migrated"; echo 'Migrations: 1 applied, 0 skipped'; fi ;;
   *" database/seed.ts --apply") echo 'Seeds: 0 executed' ;;
+  *" database/accounts.ts create --email "*)
+    email=''
+    previous=''
+    for argument in "$@"; do
+      if [ "$previous" = "--email" ]; then email="$argument"; fi
+      previous="$argument"
+    done
+    mkdir -p "$here/../accounts"
+    if [ -f "$here/../accounts/$email" ]; then echo 'Account exists' >&2; exit 1; fi
+    : > "$here/../accounts/$email"
+    echo 'Account created: 00000000-0000-4000-8000-000000000001' ;;
 esac
 exit 0
 `;

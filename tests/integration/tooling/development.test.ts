@@ -199,6 +199,8 @@ test("TOOL-003 service configuration isolates database credentials and uses the 
   process.env.FOUNDATION_MIGRATOR_DATABASE_URL = "migrator-private-url";
   process.env.FOUNDATION_MIGRATOR_PASSWORD = "migrator-private-password";
   process.env.FOUNDATION_BACKEND_PASSWORD = "backend-private-password";
+  // Spec 0014 (amendment of spec 0003): the password of database/accounts.ts never reaches a child process either.
+  process.env.FOUNDATION_ACCOUNT_PASSWORD = "account-private-password";
   const definitions = services(selected, ["notification", "report"]);
   expect(definitions[0].env.PORT).toBe("8888");
   expect(definitions[0].env.DATABASE_URL).toBe("backend-private-url");
@@ -212,10 +214,11 @@ test("TOOL-003 service configuration isolates database credentials and uses the 
   expect(definitions[2].env.SESSION_SECRET).toBeUndefined();
   expect(definitions[3].env.SESSION_SECRET).toBeUndefined();
   expect(definitions.every((item) => item.env.NOTIFICATION_DATABASE_URL === undefined)).toBe(true);
-  for (const key of ["FOUNDATION_ADMIN_DATABASE_URL", "FOUNDATION_MIGRATOR_DATABASE_URL", "FOUNDATION_MIGRATOR_PASSWORD", "FOUNDATION_BACKEND_PASSWORD"]) {
-    expect(definitions.every((item) => item.env[key] === undefined)).toBe(true);
+  for (const key of ["FOUNDATION_ADMIN_DATABASE_URL", "FOUNDATION_MIGRATOR_DATABASE_URL", "FOUNDATION_MIGRATOR_PASSWORD", "FOUNDATION_BACKEND_PASSWORD", "FOUNDATION_ACCOUNT_PASSWORD"]) {
+    expect(definitions.every((item) => item.env[key] === undefined), key).toBe(true);
     delete process.env[key];
   }
+  expect(definitions.every((item) => !JSON.stringify(item.env).includes("account-private-password"))).toBe(true);
 });
 
 test("BKP-008 serve does not pass FOUNDATION_BACKUP_PASSWORD and FOUNDATION_BACKUP_DATABASE_URL to any child process", () => {

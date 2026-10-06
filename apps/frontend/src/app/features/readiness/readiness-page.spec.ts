@@ -344,17 +344,21 @@ describe('READY-005 development route and navigation', () => {
     expect(isDevMode()).toBe(true);
   });
 
-  it('registers kesiapan as a lazy route between the home route and the fallback', async () => {
-    expect(routes.map((route) => route.path)).toEqual(['', 'kesiapan', '**']);
-    const readiness = routes[1]!;
+  it('registers kesiapan as a lazy route between the auth routes and the fallback', async () => {
+    // Spec 0014 puts masuk and akun between the home route and kesiapan.
+    expect(routes.map((route) => route.path)).toEqual(['', 'masuk', 'akun', 'kesiapan', '**']);
+    const readiness = routes[3]!;
     expect(readiness.component).toBeUndefined();
     expect(typeof readiness.loadComponent).toBe('function');
     expect(await readiness.loadComponent!()).toBe(ReadinessPage);
   });
 
-  it('App.navItems holds exactly Beranda then Kesiapan in the AC-7 shape', () => {
-    expect(new App().navItems).toStrictEqual([
+  it('App.navItems holds exactly Beranda, Akun, then Kesiapan in the AC-7 shape', () => {
+    // Spec 0014 adds the static item Akun between Beranda and Kesiapan; App injects the session state, so it is built
+    // in an injection context.
+    expect(TestBed.runInInjectionContext(() => new App()).navItems).toStrictEqual([
       { id: 'home', title: 'Beranda', link: '/', exactMatch: true },
+      { id: 'account', title: 'Akun', link: '/akun', exactMatch: true },
       { id: 'readiness', title: 'Kesiapan', link: '/kesiapan', exactMatch: true },
     ]);
   });

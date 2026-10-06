@@ -33,6 +33,14 @@ Password memakai hash Argon2id melalui API native async `Bun.password`, dengan p
 
 Untuk production, prefer cookie dengan prefix `__Host-` jika topologi memungkinkan: `Secure`, `Path=/`, tanpa `Domain`. Development HTTP lokal memakai konfigurasi cookie yang dinyatakan khusus development; konfigurasi production tidak boleh diam-diam menonaktifkan `Secure`.
 
+Alur pertama akses pengguna ([spec 0014](../specs/0014-akses-pengguna-lifecycle-sesi/index.md)) menerapkan aturan ini sebagai sesi opaque di schema `auth`:
+
+- Cookie production `__Host-foundation_session` dengan `Path=/; Secure; HttpOnly; SameSite=Strict`, tanpa `Domain`, `Expires`, atau `Max-Age`. Development memakai `foundation_session` tanpa `Secure` karena berjalan di HTTP lokal. Nama dan atribut ditentukan mode komposisi `createApp`, bukan environment, sehingga production tidak dapat mematikan `Secure`.
+- Token sesi 32 byte acak hanya ada di `Set-Cookie`; database menyimpan SHA 256 nya. Sesi berakhir 30 menit sesudah tidak aktif dan paling lama 12 jam sesudah dibuat, dengan waktu dari `now()` PostgreSQL. Masuk lagi mengganti sesi yang dibawa request, satu akun paling banyak mempunyai 10 sesi aktif, dan sesi yang dicabut tidak pernah aktif lagi.
+- Route yang mengubah data menolak dengan 403 request tanpa `Origin` yang sama persis dengan origin yang diizinkan (`PUBLIC_ORIGIN`) atau dengan `Sec-Fetch-Site` selain `same-origin`. Masuk hanya menerima `Content-Type: application/json`, dan kedua route `DELETE` wajib membawa header `X-CSRF-Token` yang sama dengan token CSRF sesi (HMAC dari token sesi, tidak disimpan). Penolakan itu terjadi di guard `onRequest` plugin auth sebelum body diurai, karena hanya `onRequest` di Elysia yang dapat menjawab sebelum body diurai tanpa menjalankan handler.
+- Password memakai Argon2id `m=19456,t=2,p=1` lewat `Bun.password`, minimal 15 karakter saat ditetapkan operator. Masuk dibatasi 10 percobaan per 15 menit per akun di database bersama (kunci dari email ternormalisasi, ada atau tidak akunnya), paling banyak 4 verifikasi password berjalan per proses dengan antrean 12, dan 30 request per menit per alamat client di edge. Jawaban masuk yang gagal sama untuk akun yang ada dan yang tidak ada.
+- Log event `auth` mencatat masuk, keluar, pencabutan sesi, dan penolakan origin atau CSRF dengan `requestId` request nya, tanpa email, password, cookie, atau token. Akun hanya dibuat, diganti password nya, dan dicabut sesinya oleh operator lewat `database/accounts.ts` di image runner, menurut [aturan deployment](deployment.md); restore dan insiden mencabut seluruh sesi menurut [aturan backup](backup.md).
+
 ## HTTP, Angular, dan Elysia
 
 - Gunakan HTTPS pada akses production; terapkan HSTS setelah topologi TLS siap. Header keamanan dokumen frontend ditangani oleh server/reverse proxy yang mengirim dokumen tersebut, bukan hanya middleware backend API.

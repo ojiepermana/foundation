@@ -94,12 +94,14 @@ async function open(page: Page, path: string): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Kesiapan' })).toHaveCount(0);
 }
 
-/** The navigation holds exactly one item, Beranda to /. */
-async function expectOnlyBeranda(navigation: Locator): Promise<void> {
+/** The production navigation holds exactly two items in this order: Beranda to / and Akun to /akun (spec 0014). */
+async function expectBerandaAndAkun(navigation: Locator): Promise<void> {
   const links = navigation.getByRole('link');
-  await expect(links).toHaveCount(1);
-  await expect(links).toHaveAccessibleName('Beranda');
-  await expect(links).toHaveAttribute('href', '/');
+  await expect(links).toHaveCount(2);
+  await expect(links.nth(0)).toHaveAccessibleName('Beranda');
+  await expect(links.nth(0)).toHaveAttribute('href', '/');
+  await expect(links.nth(1)).toHaveAccessibleName('Akun');
+  await expect(links.nth(1)).toHaveAttribute('href', '/akun');
   await expect(navigation.getByText('Kesiapan')).toHaveCount(0);
 }
 
@@ -109,21 +111,21 @@ function expectNoDiagnosticTraffic(traffic: Traffic): void {
   expect(traffic.pageErrors).toEqual([]);
 }
 
-test('READY-007 production build at 1280×812: the navigation holds only Beranda, /kesiapan ends at /, and no request path contains /api/', async ({ page }) => {
+test('READY-007 production build at 1280×812: the navigation holds Beranda and Akun, /kesiapan ends at /, and no request path contains /api/', async ({ page }) => {
   await requireProductionBuild();
   const traffic = await serveProductionBuild(page);
   await page.setViewportSize({ width: 1280, height: 812 });
 
   await open(page, '/');
-  await expectOnlyBeranda(page.getByRole('navigation', { name: 'Primary navigation' }));
+  await expectBerandaAndAkun(page.getByRole('navigation', { name: 'Primary navigation' }));
   expectNoDiagnosticTraffic(traffic);
 
   await open(page, '/kesiapan');
-  await expectOnlyBeranda(page.getByRole('navigation', { name: 'Primary navigation' }));
+  await expectBerandaAndAkun(page.getByRole('navigation', { name: 'Primary navigation' }));
   expectNoDiagnosticTraffic(traffic);
 });
 
-test('READY-007 production build at 375×812: the navigation drawer holds only Beranda, /kesiapan ends at /, and no request path contains /api/', async ({ page }) => {
+test('READY-007 production build at 375×812: the navigation drawer holds Beranda and Akun, /kesiapan ends at /, and no request path contains /api/', async ({ page }) => {
   await requireProductionBuild();
   const traffic = await serveProductionBuild(page);
   await page.setViewportSize({ width: 375, height: 812 });
@@ -134,7 +136,7 @@ test('READY-007 production build at 375×812: the navigation drawer holds only B
     await open(page, path);
     await openNavigation.click();
     await expect(drawer).toBeVisible();
-    await expectOnlyBeranda(drawer);
+    await expectBerandaAndAkun(drawer);
     await page.keyboard.press('Escape');
     await expect(drawer).toBeHidden();
     expectNoDiagnosticTraffic(traffic);
